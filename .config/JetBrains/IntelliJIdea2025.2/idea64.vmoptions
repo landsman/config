@@ -1,0 +1,5 @@
+-Xmx1966m
+-Dide.managed.by.toolbox=/opt/jetbrains-toolbox/jetbrains-toolbox
+-Dtoolbox.notification.token=a472acd6-f8c0-43cd-a4c2-95c37a7943d3
+-Dtoolbox.notification.portFile=/home/landsman/.cache/JetBrains/Toolbox/ports/6c70f20b-a308-44cd-bcbf-67c5066acbcc.port
+-Dawt.toolkit.name=WLToolkit
