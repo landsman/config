@@ -1,0 +1,18 @@
+[General]
+EditableUrl=true
+FilterBar=true
+ShowFullPathInTitlebar=true
+ShowHiddenFiles=true
+ShowToolTips=true
+Version=202
+ViewPropsTimestamp=2025,11,28,12,32,30.873
+
+[KFileDialog Settings]
+Places Icons Auto-resize=false
+Places Icons Static Size=22
+
+[MainWindow]
+MenuBar=Disabled
+
+[PreviewSettings]
+Plugins=appimagethumbnail,audiothumbnail,blenderthumbnail,comicbookthumbnail,cursorthumbnail,djvuthumbnail,ebookthumbnail,exrthumbnail,directorythumbnail,fontthumbnail,imagethumbnail,jpegthumbnail,kraorathumbnail,windowsexethumbnail,windowsimagethumbnail,mobithumbnail,opendocumentthumbnail,gdk-pixbuf-thumbnailer,gsthumbnail,rawthumbnail,librsvg,svgthumbnail,ffmpegthumbs
