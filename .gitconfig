@@ -1,0 +1,56 @@
+[user]
+	name = Michal Landsman
+	email = landsman@***
+
+[init]
+	defaultBranch = main
+
+[core]
+	autocrlf = input
+	excludesfile = ~/.gitignore_global
+
+[branch]
+	autosetuprebase = always
+
+[diff]
+	algorithm = histogram
+	renames = copies
+
+[push]
+	default = current
+
+[pull]
+	rebase = true
+
+[fetch]
+	prune = true
+
+[merge]
+	ff = false
+
+[rebase]
+	missingCommitsCheck = warn
+
+[status]
+	showStash = true
+
+[log]
+	date = iso
+
+[alias]
+    co = checkout
+    cp = cherry-pick
+    st = status
+	ap = add -p
+	ci = commit
+	dc = diff --cached
+	fpush = push --force-with-lease
+	wip = !git add --all && git commit -m 'WIP [ci skip]'
+	unwip = reset HEAD~1
+	cleanup = !git fetch --all --prune && git branch --merged master | grep -v '\\*\\|master\\|develop' | xargs -n 1 -r git branch -d
+
+[filter "lfs"]
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f

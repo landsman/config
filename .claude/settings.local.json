@@ -2,7 +2,6 @@
   "permissions": {
     "allow": [
       "Edit(*)",
-
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
@@ -15,7 +14,6 @@
       "Bash(sort:*)",
       "Bash(uniq:*)",
       "Bash(wc:*)",
-
       "Bash(mkdir:*)",
       "Bash(cp:*)",
       "Bash(mv:*)",
@@ -23,13 +21,11 @@
       "Bash(touch:*)",
       "Bash(chmod:*)",
       "Bash(chown:*)",
-
       "Bash(cd:*)",
       "Bash(pwd)",
       "Bash(which:*)",
       "Bash(echo:*)",
       "Bash(printf:*)",
-
       "Bash(cargo build*)",
       "Bash(cargo check*)",
       "Bash(cargo test*)",
@@ -41,22 +37,18 @@
       "Bash(cargo clean*)",
       "Bash(rustc:*)",
       "Bash(rustup:*)",
-
       "Bash(npm:*)",
       "Bash(npx:*)",
       "Bash(yarn:*)",
       "Bash(node:*)",
       "Bash(nvm:*)",
-
       "Bash(python3:*)",
       "Bash(pip3:*)",
       "Bash(pipenv:*)",
       "Bash(python:*)",
       "Bash(pip:*)",
-
       "Bash(sqlite3:*)",
       "Bash(diesel:*)",
-
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(git log*)",
@@ -76,7 +68,6 @@
       "Bash(git remote*)",
       "Bash(git fetch*)",
       "Bash(git pull*)",
-
       "Bash(curl:*)",
       "Bash(wget:*)",
       "Bash(ping:*)",
@@ -84,26 +75,21 @@
       "Bash(dig:*)",
       "Bash(ssh:*)",
       "Bash(scp:*)",
-
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
-
       "Bash(terraform:*)",
       "Bash(aws:*)",
-
       "Bash(pkill:*)",
       "Bash(ps:*)",
       "Bash(top)",
       "Bash(htop)",
       "Bash(systemctl:*)",
       "Bash(journalctl:*)",
-
       "Bash(tar:*)",
       "Bash(gzip:*)",
       "Bash(gunzip:*)",
       "Bash(zip:*)",
       "Bash(unzip:*)",
-
       "Bash(diff:*)",
       "Bash(patch:*)",
       "Bash(tree:*)",
@@ -111,8 +97,8 @@
       "Bash(stat:*)",
       "Bash(du:*)",
       "Bash(df:*)",
-
-      "Bash(BASH_ENV=\"\" bash -c:*)"
+      "Bash(BASH_ENV=\"\" bash -c:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [
       "Bash(git push*)",
