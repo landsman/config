@@ -1,0 +1,8 @@
+#%PAM-1.0
+# Override of /usr/lib/pam.d/kde-smartcard — no smartcard auth used on this machine.
+# Without this override kscreenlocker runs pam_sss.so on every unlock (we don't
+# have SSSD installed); harmless but extra log noise.
+auth     required  pam_deny.so
+account  required  pam_deny.so
+password required  pam_deny.so
+session  required  pam_deny.so

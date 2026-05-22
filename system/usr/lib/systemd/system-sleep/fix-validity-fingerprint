@@ -1,0 +1,20 @@
+#!/bin/sh
+# Workaround for python-validity on Synaptics 06cb:009a (T480/T490/X1 Carbon):
+# the kernel re-enumerates the reader on resume (e.g. usb 1-7 -> usb 1-9),
+# leaving the daemon with a stale libusb handle. open-fprintd then replies
+# "service is suspended" to every PAM call and pam_fprintd blocks for ~25s.
+# Restarting both daemons after resume forces a fresh USB binding.
+# Pair this with `systemctl disable --now open-fprintd-resume.service` — the
+# stock resume service tries to Resume() on the dead handle and always crashes.
+case "$1" in
+  post)
+    logger -t fix-validity-fingerprint "post-resume hook starting"
+    for i in 1 2 3 4 5; do
+      [ -n "$(lsusb -d 06cb:009a 2>/dev/null)" ] && break
+      sleep 1
+    done
+    systemctl restart python3-validity.service
+    systemctl restart open-fprintd.service
+    logger -t fix-validity-fingerprint "post-resume hook done"
+    ;;
+esac
