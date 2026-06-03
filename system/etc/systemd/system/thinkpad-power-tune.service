@@ -1,5 +1,5 @@
 [Unit]
-Description=ThinkPad T480 CPU power & frequency tuning (PL1=20W, max=2.5GHz)
+Description=ThinkPad T480 CPU power & frequency tuning (PL1=20W, max=3.0GHz)
 After=multi-user.target
 After=systemd-modules-load.service
 
@@ -7,7 +7,7 @@ After=systemd-modules-load.service
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/bin/sh -c 'echo 20000000 > /sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_power_limit_uw'
-ExecStart=/usr/bin/cpupower frequency-set -u 2.5GHz
+ExecStart=/usr/bin/cpupower frequency-set -u 3.0GHz
 
 [Install]
 WantedBy=multi-user.target
