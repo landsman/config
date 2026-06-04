@@ -98,7 +98,8 @@
       "Bash(du:*)",
       "Bash(df:*)",
       "Bash(BASH_ENV=\"\" bash -c:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(make validate-gitconfig *)"
     ],
     "deny": [
       "Bash(git push*)",

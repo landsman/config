@@ -1,0 +1,11 @@
+name: validate
+
+on:
+  pull_request:
+
+jobs:
+  validate-gitconfig:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make qa
