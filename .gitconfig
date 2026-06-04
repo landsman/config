@@ -38,10 +38,10 @@
 	date = iso
 
 [alias]
-    co = checkout
-    cp = cherry-pick
-    st = status
-	ap = add -p
+	co = checkout
+	cp = cherry-pick
+	st = status
+	ap = add -palso va
 	ci = commit
 	dc = diff --cached
 	fpush = push --force-with-lease
