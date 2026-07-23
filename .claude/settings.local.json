@@ -121,11 +121,20 @@
       "mcp__azure-devops__pipelines_list_runs",
       "mcp__azure-devops__pipelines_get_run",
       "mcp__atlassian__getJiraIssue",
-      "mcp__atlassian__searchJiraIssuesUsingJql"
+      "mcp__atlassian__searchJiraIssuesUsingJql",
+      "Bash(gh:*)"
     ],
     "deny": [
       "Bash(git push*main*)",
       "Bash(git push*master*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh pr close*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh release delete*)",
+      "Bash(gh secret*)",
+      "Bash(gh auth*)",
+      "Bash(gh api*-X DELETE*)",
+      "Bash(gh api*--method DELETE*)",
       "Bash(rm -rf /*)",
       "Bash(sudo rm -rf*)",
       "Bash(chmod 777*)",
