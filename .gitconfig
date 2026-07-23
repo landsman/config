@@ -5,6 +5,12 @@
 [init]
 	defaultBranch = main
 
+[commit]
+	gpgsign = true
+
+[gpg]
+	format = ssh
+
 [core]
 	autocrlf = input
 	excludesfile = ~/.gitignore_global
@@ -41,7 +47,7 @@
 	co = checkout
 	cp = cherry-pick
 	st = status
-	ap = add -palso va
+	ap = add -p
 	ci = commit
 	dc = diff --cached
 	fpush = push --force-with-lease
