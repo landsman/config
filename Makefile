@@ -8,8 +8,7 @@ git: ## hook repo .gitconfig into ~/.gitconfig, ask for email override
 		|| git config --global --add include.path '$(CURDIR)/.gitconfig'
 	@read -p "email [$$(git config --file '$(CURDIR)/.gitconfig' user.email)]: " e; \
 		[ -z "$$e" ] || git config --global user.email "$$e"
-	@git config --show-origin --get-all include.path
-	@git config --show-origin user.email
+	@git config --list --show-scope
 
 .DEFAULT_GOAL := help
 .PHONY: help git
