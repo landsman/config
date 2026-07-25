@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Re-enable the internal panel (eDP-1) after resume when the lid is open.
 #
+# Target: ThinkPad T480 · Kubuntu 26.04 · KDE Plasma 6 (Wayland) · DisplayPort-MST dock.
+#
 # Works around a KWin/Wayland + DisplayPort-MST-dock bug: after waking at (or
 # away from) the dock, KWin can leave the internal output disabled and map the
 # desktop onto an external that is no longer connected -> black internal screen.
