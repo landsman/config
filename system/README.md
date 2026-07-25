@@ -7,7 +7,6 @@ System-wide files (everything under `/`, not `$HOME`). The directory layout mirr
 | Path in repo                                            | Installs to                                              | What it does                                                                                                                                                              |
 |---------------------------------------------------------|----------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `etc/pam.d/kde-smartcard`                               | `/etc/pam.d/kde-smartcard`                               | Overrides the vendor smartcard PAM stack — no smartcard hardware/SSSD on this box                                                                                         |
-| `usr/lib/systemd/system-sleep/fix-validity-fingerprint` | `/usr/lib/systemd/system-sleep/fix-validity-fingerprint` | Restarts `python3-validity` + `open-fprintd` on resume so the Synaptics 06cb:009a reader doesn't hang unlock for ~25 s                                                    |
 | `etc/modprobe.d/thinkpad_acpi.conf`                     | `/etc/modprobe.d/thinkpad_acpi.conf`                     | Enables `fan_control=1` on the `thinkpad_acpi` module so userspace (thinkfan) can drive the fan via `/proc/acpi/ibm/fan`                                                  |
 | `etc/thinkfan.conf`                                     | `/etc/thinkfan.conf`                                     | Balanced fan curve for T480 dual-heatpipe cooler — reads `coretemp` (Package + 4 cores), drives `tpacpi` levels 0–7 + `disengaged`                                        |
 | `etc/systemd/system/thinkpad-power-tune.service`        | `/etc/systemd/system/thinkpad-power-tune.service`        | Caps Intel RAPL PL1 to 20 W and max CPU frequency to 3.0 GHz at boot — without it BIOS leaves PL1 at 200 W and CPU pins at 95 °C under any sustained load (postgres, JVMs)|
@@ -20,8 +19,7 @@ System-wide files (everything under `/`, not `$HOME`). The directory layout mirr
 ```
 sudo cp -r system/etc/. /etc/
 sudo cp -r system/usr/. /usr/
-sudo chmod +x /usr/lib/systemd/system-sleep/fix-validity-fingerprint /usr/lib/systemd/system-sleep/fix-internal-display
-sudo systemctl disable --now open-fprintd-resume.service
+sudo chmod +x /usr/lib/systemd/system-sleep/fix-internal-display
 sudo modprobe -r thinkpad_acpi && sudo modprobe thinkpad_acpi
 sudo systemctl daemon-reload
 sudo systemctl enable --now thinkfan.service thinkpad-power-tune.service
@@ -29,8 +27,6 @@ sudo update-initramfs -u
 ```
 
 `update-initramfs -u` is required for `i915-no-psr.conf`: `i915` loads early from the initramfs (KMS + `splash`), so it reads its options from the initramfs copy of `modprobe.d`, not `/etc`. Without rebuilding, the option is silently ignored and PSR stays on. Verify with `lsinitramfs /boot/initrd.img-$(uname -r) | grep i915-no-psr`.
-
-The `open-fprintd-resume.service` line is one-time cleanup: the stock service tries to call `Resume()` on a stale USB handle after wake and always crashes — our sleep hook replaces it.
 
 The `modprobe` reload picks up `fan_control=1`. Thinkfan refuses to start without it.
 
@@ -53,5 +49,5 @@ The service also hooks `suspend.target` and `hibernate.target` so the undervolt 
 
 ## Hardware / OS context
 
-- ThinkPad T480 (Synaptics Validity 06cb:009a fingerprint reader)
+- ThinkPad T480
 - Kubuntu 26.04, KDE Plasma 6, systemd 259
