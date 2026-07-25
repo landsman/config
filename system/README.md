@@ -13,13 +13,14 @@ System-wide files (everything under `/`, not `$HOME`). The directory layout mirr
 | `etc/systemd/system/thinkpad-power-tune.service`        | `/etc/systemd/system/thinkpad-power-tune.service`        | Caps Intel RAPL PL1 to 20 W and max CPU frequency to 3.0 GHz at boot — without it BIOS leaves PL1 at 200 W and CPU pins at 95 °C under any sustained load (postgres, JVMs)|
 | `etc/intel-undervolt.conf`                              | `/etc/intel-undervolt.conf`                              | Undervolt offsets for i5-8350U: Core/Cache -75 mV, GPU -50 mV. Applied at boot + after resume by `intel-undervolt.service` (built from source, see Install)               |
 | `etc/modprobe.d/i915-no-psr.conf`                       | `/etc/modprobe.d/i915-no-psr.conf`                       | Sets `enable_psr=0` on `i915` — disables Panel Self Refresh, which on the UHD 620 (Kaby Lake) leaves the internal eDP-1 panel black after resume (`Atomic update failure on pipe A` in dmesg). Needs `update-initramfs -u`, see Install |
+| `usr/lib/systemd/system-sleep/fix-internal-display`     | `/usr/lib/systemd/system-sleep/fix-internal-display`     | Re-enables the internal panel (`eDP-1`) after resume when the lid is open — works around a KWin/Wayland + DisplayPort-MST-dock bug that leaves the internal output off and maps the desktop onto a disconnected external. Runs `kscreen-doctor` as the user after a 3 s MST settle |
 
 ## Install
 
 ```
 sudo cp -r system/etc/. /etc/
 sudo cp -r system/usr/. /usr/
-sudo chmod +x /usr/lib/systemd/system-sleep/fix-validity-fingerprint
+sudo chmod +x /usr/lib/systemd/system-sleep/fix-validity-fingerprint /usr/lib/systemd/system-sleep/fix-internal-display
 sudo systemctl disable --now open-fprintd-resume.service
 sudo modprobe -r thinkpad_acpi && sudo modprobe thinkpad_acpi
 sudo systemctl daemon-reload
