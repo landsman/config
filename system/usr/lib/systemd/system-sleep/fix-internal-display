@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Re-enable the internal panel (eDP-1) after resume when the lid is open.
+#
+# Target: ThinkPad T480 · Kubuntu 26.04 · KDE Plasma 6 (Wayland) · DisplayPort-MST dock.
+#
+# Works around a KWin/Wayland + DisplayPort-MST-dock bug: after waking at (or
+# away from) the dock, KWin can leave the internal output disabled and map the
+# desktop onto an external that is no longer connected -> black internal screen.
+# systemd-sleep runs this as root, but kscreen-doctor must talk to the user's
+# KWin, so we re-enter the session env and run it as the user.
+#
+# ponytail: user/uid hardcoded — this is a personal single-user machine;
+# generalize (loginctl enumerate) only if this repo ever targets other boxes.
+
+[ "$1" = post ] || exit 0
+
+USER_NAME=landsman
+UID_N=$(id -u "$USER_NAME") || exit 0
+RT="/run/user/$UID_N"
+
+# Lid closed = clamshell/docked-only, internal is meant to be off -> do nothing.
+case "$(awk '{print $2}' /proc/acpi/button/lid/*/state 2>/dev/null)" in
+	open) ;;
+	*) exit 0 ;;
+esac
+
+# Locate the session's Wayland socket (usually wayland-0, don't assume).
+WL=$(cd "$RT" 2>/dev/null && ls wayland-[0-9]* 2>/dev/null | grep -v '\.lock$' | head -1)
+[ -n "$WL" ] || exit 0
+
+# Let DP-MST link training settle, then nudge KWin. Backgrounded so we never
+# stall the resume path.
+# ponytail: fixed 3s settle — the physical calibration knob; bump if MST on this
+# dock needs longer to enumerate before kscreen-doctor takes effect.
+(
+	sleep 3
+	runuser -u "$USER_NAME" -- env \
+		XDG_RUNTIME_DIR="$RT" \
+		WAYLAND_DISPLAY="$WL" \
+		DBUS_SESSION_BUS_ADDRESS="unix:path=$RT/bus" \
+		kscreen-doctor output.eDP-1.enable
+) &
