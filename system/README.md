@@ -11,15 +11,14 @@ System-wide files (everything under `/`, not `$HOME`). The directory layout mirr
 | `etc/thinkfan.conf`                                     | `/etc/thinkfan.conf`                                     | Balanced fan curve for T480 dual-heatpipe cooler — reads `coretemp` (Package + 4 cores), drives `tpacpi` levels 0–7 + `disengaged`                                        |
 | `etc/systemd/system/thinkpad-power-tune.service`        | `/etc/systemd/system/thinkpad-power-tune.service`        | Caps Intel RAPL PL1 to 20 W and max CPU frequency to 3.0 GHz at boot — without it BIOS leaves PL1 at 200 W and CPU pins at 95 °C under any sustained load (postgres, JVMs)|
 | `etc/intel-undervolt.conf`                              | `/etc/intel-undervolt.conf`                              | Undervolt offsets for i5-8350U: Core/Cache -75 mV, GPU -50 mV. Applied at boot + after resume by `intel-undervolt.service` (built from source, see Install)               |
-| `etc/modprobe.d/i915-no-psr.conf`                       | `/etc/modprobe.d/i915-no-psr.conf`                       | Sets `enable_psr=0` on `i915` — disables Panel Self Refresh, which on the UHD 620 (Kaby Lake) leaves the internal eDP-1 panel black after resume (`Atomic update failure on pipe A` in dmesg). Needs `update-initramfs -u`, see Install |
-| `usr/lib/systemd/system-sleep/fix-internal-display`     | `/usr/lib/systemd/system-sleep/fix-internal-display`     | Re-enables the internal panel (`eDP-1`) after resume when the lid is open — works around a KWin/Wayland + DisplayPort-MST-dock bug that leaves the internal output off and maps the desktop onto a disconnected external. Runs `kscreen-doctor` as the user after a 3 s MST settle |
+| `etc/modprobe.d/i915-no-psr.conf`                       | `/etc/modprobe.d/i915-no-psr.conf`                       | Sets `enable_psr=0` on `i915` — disables Panel Self Refresh. Kept as a cheap, harmless mitigation for i915 resume glitches, but **unproven on this machine**: it did not fix the black panel after resume (see Known issues). Needs `update-initramfs -u`, see Install |
 
 ## Install
 
 ```
 sudo cp -r system/etc/. /etc/
 sudo cp -r system/usr/. /usr/
-sudo chmod +x /usr/lib/systemd/system-sleep/fix-internal-display
+sudo chmod +x /usr/lib/systemd/system-sleep/fix-validity-fingerprint
 sudo modprobe -r thinkpad_acpi && sudo modprobe thinkpad_acpi
 sudo systemctl daemon-reload
 sudo systemctl enable --now thinkfan.service thinkpad-power-tune.service
@@ -46,6 +45,43 @@ sudo intel-undervolt read   # verify Core/Cache -99.61 mV, GPU -49.80 mV
 ```
 
 The service also hooks `suspend.target` and `hibernate.target` so the undervolt is re-applied after every wake — without it, MSR 0x150 resets to 0 mV on S3 resume.
+
+## Known issues
+
+### Internal panel black after resume (upstream KWin bug, unfixed)
+
+Sporadically after waking, the internal panel stays black and the session acts as
+if an external monitor were attached. **This is not fixable from this repo** — it
+is an upstream regression, documented here so it isn't re-diagnosed from scratch.
+
+Signature, at the exact second of resume:
+
+```
+kwin_wayland_drm: Atomic modeset test failed! No such file or directory   (x12)
+kwin_wayland_drm: Failed to open drm device
+```
+
+KWin has lost its DRM device, so anything that talks *to* KWin (`kscreen-doctor`,
+KScreen profiles) is powerless — a resume hook calling `kscreen-doctor` was tried
+and removed for this reason. Matches [KDE Bug 520008](https://bugs.kde.org/show_bug.cgi?id=520008)
+(Ubuntu 26.04 + i915 + external monitor + Plasma 6.6).
+
+Timeline on this machine: `Failed to open drm device` first appears **2026-05-18**,
+the day of the 26.04 upgrade. Suspend/resume worked reliably for months before that
+(one boot in June logged 28 clean resumes). X11 is not an escape hatch — Plasma's
+X11 session is no longer packaged in 26.04.
+
+Two red herrings, recorded so they aren't chased again:
+
+- `i915 ... *ERROR* Atomic update failure on pipe A` — vblank-timing warnings
+  (missed flip deadline), cosmetic. They still occur with PSR disabled via the
+  kernel cmdline, and are **unrelated** to this bug. Not to be confused with
+  KWin's `Atomic modeset test failed`, which is the real signature.
+- PSR (`i915.enable_psr=0`) — plausible, unproven, did not fix it.
+
+Recovery when it happens: restart the compositor from a TTY (Ctrl+Alt+F3) —
+`systemctl --user restart plasma-kwin_wayland.service`. This restarts the Wayland
+session, so unsaved work in running apps is at risk.
 
 ## Hardware / OS context
 
