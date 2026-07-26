@@ -16,14 +16,29 @@
 # ponytail: user hardcoded — personal single-user box; generalize (loginctl)
 # only if this repo ever targets another machine.
 
-[ "$1" = post ] || exit 0
-
 USER_NAME=landsman
 UID_N=$(id -u "$USER_NAME") || exit 0
 RT="/run/user/$UID_N"
 BL=/sys/class/backlight/intel_backlight
 
 log() { logger -t fix-internal-display -- "$*"; }
+
+# systemd-sleep calls us as `$0 post suspend`. We must NOT do the waiting here:
+# systemd-suspend.service is Type=oneshot + KillMode=control-group, so the
+# moment this script returns systemd SIGTERMs everything left in its cgroup —
+# a backgrounded `sleep` loop is killed before it can do anything. Hand the
+# delayed work to a transient unit instead, which lives outside that cgroup.
+case "$1" in
+	post)
+		systemd-run --no-block --collect \
+			--description="fix-internal-display: re-enable eDP-1 after resume" \
+			"$0" nudge >/dev/null 2>&1 ||
+			log "systemd-run failed -> panel not nudged"
+		exit 0
+		;;
+	nudge) ;;  # the transient unit: fall through and do the work
+	*) exit 0 ;;
+esac
 
 lid=$(awk '{print $2}' /proc/acpi/button/lid/*/state 2>/dev/null)
 log "resume: lid=${lid:-unknown}"
@@ -44,35 +59,34 @@ as_user() {
 		"$@"
 }
 
-# Backgrounded so we never stall the resume path.
+# Foreground here is correct: we are the transient unit, not the sleep hook,
+# so waiting delays nothing.
 # ponytail: 5 tries x 2 s — the calibration knob. DP-MST link training and KWin
 # output re-evaluation are both slow/racy; widen if the log shows we gave up
 # while the state was still settling.
-(
-	for i in 1 2 3 4 5; do
-		sleep 2
+for i in 1 2 3 4 5; do
+	sleep 2
 
-		status=$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null)
-		enabled=$(cat /sys/class/drm/card*-eDP-1/enabled 2>/dev/null)
-		bright=$(cat "$BL/brightness" 2>/dev/null)
-		log "try $i: drm status=$status enabled=$enabled backlight=$bright"
+	status=$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null)
+	enabled=$(cat /sys/class/drm/card*-eDP-1/enabled 2>/dev/null)
+	bright=$(cat "$BL/brightness" 2>/dev/null)
+	log "try $i: drm status=$status enabled=$enabled backlight=$bright"
 
-		# Failure mode 2: panel enabled but backlight driven to 0 -> looks black.
-		if [ "$bright" = 0 ]; then
-			max=$(cat "$BL/max_brightness" 2>/dev/null)
-			echo "$max" > "$BL/brightness" 2>/dev/null &&
-				log "try $i: backlight was 0 -> restored to $max"
-		fi
+	# Failure mode 2: panel enabled but backlight driven to 0 -> looks black.
+	if [ "$bright" = 0 ]; then
+		max=$(cat "$BL/max_brightness" 2>/dev/null)
+		echo "$max" > "$BL/brightness" 2>/dev/null &&
+			log "try $i: backlight was 0 -> restored to $max"
+	fi
 
-		# Failure mode 1: KWin left the output disabled.
-		out=$(as_user kscreen-doctor output.eDP-1.enable 2>&1)
-		log "try $i: kscreen-doctor: ${out:-(no output)}"
+	# Failure mode 1: KWin left the output disabled.
+	out=$(as_user kscreen-doctor output.eDP-1.enable 2>&1)
+	log "try $i: kscreen-doctor: ${out:-(no output)}"
 
-		if [ "$enabled" = enabled ] && [ "${bright:-1}" != 0 ]; then
-			log "try $i: eDP-1 looks healthy -> done"
-			exit 0
-		fi
-	done
-	log "gave up after 5 tries; final kscreen-doctor state follows"
-	as_user kscreen-doctor -o 2>&1 | while IFS= read -r l; do log "state: $l"; done
-) &
+	if [ "$enabled" = enabled ] && [ "${bright:-1}" != 0 ]; then
+		log "try $i: eDP-1 looks healthy -> done"
+		exit 0
+	fi
+done
+log "gave up after 5 tries; final kscreen-doctor state follows"
+as_user kscreen-doctor -o 2>&1 | while IFS= read -r l; do log "state: $l"; done
