@@ -3,40 +3,76 @@
 #
 # Target: ThinkPad T480 · Kubuntu 26.04 · KDE Plasma 6 (Wayland) · DisplayPort-MST dock.
 #
-# Works around a KWin/Wayland + DisplayPort-MST-dock bug: after waking at (or
-# away from) the dock, KWin can leave the internal output disabled and map the
-# desktop onto an external that is no longer connected -> black internal screen.
-# systemd-sleep runs this as root, but kscreen-doctor must talk to the user's
-# KWin, so we re-enter the session env and run it as the user.
+# Works around a KWin/Wayland bug: after waking, KWin can leave the internal
+# output disabled and map the desktop onto an external that is no longer
+# connected -> black internal screen. systemd-sleep runs this as root, but
+# kscreen-doctor must talk to the user's KWin, so we re-enter the session env.
 #
-# ponytail: user/uid hardcoded — this is a personal single-user machine;
-# generalize (loginctl enumerate) only if this repo ever targets other boxes.
+# Everything is logged to the journal under the tag `fix-internal-display`:
+#   journalctl -b -t fix-internal-display
+# The log is the point: if the panel is still black after this runs, the log
+# says which failure mode it was (output disabled / backlight at 0 / neither).
+#
+# ponytail: user hardcoded — personal single-user box; generalize (loginctl)
+# only if this repo ever targets another machine.
 
 [ "$1" = post ] || exit 0
 
 USER_NAME=landsman
 UID_N=$(id -u "$USER_NAME") || exit 0
 RT="/run/user/$UID_N"
+BL=/sys/class/backlight/intel_backlight
+
+log() { logger -t fix-internal-display -- "$*"; }
+
+lid=$(awk '{print $2}' /proc/acpi/button/lid/*/state 2>/dev/null)
+log "resume: lid=${lid:-unknown}"
 
 # Lid closed = clamshell/docked-only, internal is meant to be off -> do nothing.
-case "$(awk '{print $2}' /proc/acpi/button/lid/*/state 2>/dev/null)" in
-	open) ;;
-	*) exit 0 ;;
-esac
+[ "$lid" = open ] || { log "lid not open -> nothing to do"; exit 0; }
 
 # Locate the session's Wayland socket (usually wayland-0, don't assume).
 WL=$(cd "$RT" 2>/dev/null && ls wayland-[0-9]* 2>/dev/null | grep -v '\.lock$' | head -1)
-[ -n "$WL" ] || exit 0
+[ -n "$WL" ] || { log "no wayland socket in $RT -> abort"; exit 0; }
+log "wayland socket=$WL"
 
-# Let DP-MST link training settle, then nudge KWin. Backgrounded so we never
-# stall the resume path.
-# ponytail: fixed 3s settle — the physical calibration knob; bump if MST on this
-# dock needs longer to enumerate before kscreen-doctor takes effect.
-(
-	sleep 3
+as_user() {
 	runuser -u "$USER_NAME" -- env \
 		XDG_RUNTIME_DIR="$RT" \
 		WAYLAND_DISPLAY="$WL" \
 		DBUS_SESSION_BUS_ADDRESS="unix:path=$RT/bus" \
-		kscreen-doctor output.eDP-1.enable
+		"$@"
+}
+
+# Backgrounded so we never stall the resume path.
+# ponytail: 5 tries x 2 s — the calibration knob. DP-MST link training and KWin
+# output re-evaluation are both slow/racy; widen if the log shows we gave up
+# while the state was still settling.
+(
+	for i in 1 2 3 4 5; do
+		sleep 2
+
+		status=$(cat /sys/class/drm/card*-eDP-1/status 2>/dev/null)
+		enabled=$(cat /sys/class/drm/card*-eDP-1/enabled 2>/dev/null)
+		bright=$(cat "$BL/brightness" 2>/dev/null)
+		log "try $i: drm status=$status enabled=$enabled backlight=$bright"
+
+		# Failure mode 2: panel enabled but backlight driven to 0 -> looks black.
+		if [ "$bright" = 0 ]; then
+			max=$(cat "$BL/max_brightness" 2>/dev/null)
+			echo "$max" > "$BL/brightness" 2>/dev/null &&
+				log "try $i: backlight was 0 -> restored to $max"
+		fi
+
+		# Failure mode 1: KWin left the output disabled.
+		out=$(as_user kscreen-doctor output.eDP-1.enable 2>&1)
+		log "try $i: kscreen-doctor: ${out:-(no output)}"
+
+		if [ "$enabled" = enabled ] && [ "${bright:-1}" != 0 ]; then
+			log "try $i: eDP-1 looks healthy -> done"
+			exit 0
+		fi
+	done
+	log "gave up after 5 tries; final kscreen-doctor state follows"
+	as_user kscreen-doctor -o 2>&1 | while IFS= read -r l; do log "state: $l"; done
 ) &
