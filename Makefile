@@ -70,10 +70,16 @@ unstow: ## remove the symlinks again
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -D -d devices $(DEVICE_PKG) || true
 	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -D -d os $(OS_PKG) || true
 
-shell: ## hook the alias loader into ~/.bashrc (idempotent)
+shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
+	@# Sourced by absolute path, the way .gitconfig is included, rather than
+	@# appended: a copy stops tracking the repo the moment the fragment changes,
+	@# and the old append-once grep would report success while doing nothing.
+	@grep -qF '$(CURDIR)/.bashrc' "$$HOME/.bashrc" \
+		|| printf '\n. "%s/.bashrc"\n' '$(CURDIR)' >> "$$HOME/.bashrc"
+	@grep -nF '$(CURDIR)/.bashrc' "$$HOME/.bashrc"
 	@grep -qF 'bash_aliases.d' "$$HOME/.bashrc" \
-		|| cat .bashrc >> "$$HOME/.bashrc"
-	@grep -nF 'bash_aliases.d' "$$HOME/.bashrc"
+		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
+		|| true
 
 #
 # GIT config

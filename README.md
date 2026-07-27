@@ -18,7 +18,7 @@ lives wherever it stays true.
 | `os/macos/` | macOS userland — `~/.zshrc`: PATH, mise, completion | `make stow` (auto) |
 | `devices/t480/system/` | Root-owned files under `/` for that machine — see [its README](devices/t480/system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
-| `.bashrc` | Fragment appended to the distro `~/.bashrc` | `make shell` |
+| `.bashrc` | Fragment *sourced* from the distro `~/.bashrc` by absolute path | `make shell` |
 | `Brewfile` | Packages — one list for every machine, macOS and Linux | `make brew` |
 
 Both packages are detected, so one `make stow` is correct everywhere:
@@ -99,7 +99,10 @@ Two things are deliberately *not* stowed, because a symlink would break them:
   so machine-specific values (email, signing key) stay out of the repo. A symlink
   would make `git config --global ...` write into the repo.
 - **`.bashrc`** — it is a fragment, not a full shell config. Symlinking it over
-  `~/.bashrc` would drop everything the distro puts there.
+  `~/.bashrc` would drop everything the distro puts there, so `make shell`
+  appends a `. <repo>/.bashrc` line instead. It used to `cat` the fragment in,
+  which meant every later edit stopped at the repo; on a machine hooked up that
+  way, delete the pasted block once and re-run `make shell`.
 
 Aliases are split into drop-ins (`~/.config/bash_aliases.d/*.sh`) so `shared/`
 and `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
