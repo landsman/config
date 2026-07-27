@@ -90,5 +90,6 @@ renaming it over the target, which replaces the symlink with a regular file — 
 ## Docs
 
 - [ThinkPad T480](devices/t480/README.md) — hardware, known issues, kernel pin
+- [HP ProDesk 600 G3](devices/hp-prodesk-600-g3/README.md) — the pollos cluster, provisioned from [landsman/homelab](https://github.com/landsman/homelab/tree/main/pollos)
 - [System config (root-owned)](system/README.md)
 - [Claude](.claude/README.md)
