@@ -70,6 +70,9 @@ Measured on this machine (failures per resume, same hardware, same session):
 | 7.0.0-28 | 9 | 4–11 per resume |
 | 7.0.0-28 + `KWIN_DRM_USE_MODIFIERS=0` | 9 | 21.5 per resume (worse) |
 
+**Reported upstream:** [Launchpad #2161881](https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2161881)
+(ubuntu/+source/linux) — watch it before dropping the kernel pin.
+
 Corroborated by an independent report on the same distro and GPU vendor:
 [Framework 13 / Intel / Ubuntu 26.04](https://community.frame.work/t/ubuntu-26-04-suspend-resume-crash-on-kernel-7-0-0-27/83394)
 — *"Reverting back to 7.0.0-22 fixed the issue for me."*
