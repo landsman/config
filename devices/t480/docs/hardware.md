@@ -6,7 +6,8 @@
 | CPU | Intel Core i5-8350U |
 | GPU | Intel UHD Graphics 620, Kaby Lake-R GT2 `[8086:5917]`, `i915` |
 | BIOS | N24ET81W (1.56), 2025-09-06 |
-| Storage | Samsung PM9C1a NVMe, LUKS-encrypted root |
+| RAM | 64 GB (`MemTotal` 65583460 kB, ~62 GiB usable) |
+| Storage | Samsung SSD 990 EVO Plus 2 TB NVMe (PM9C1a controller, DRAM-less), LUKS-encrypted root |
 | Fingerprint | Synaptics Validity 06cb:009a |
 | Dual boot | Kubuntu 26.04 (KDE) and Omarchy/Arch (Hyprland) |
 | Dock | DisplayPort MST — BenQ 4K on DP-1, second panel on DP-4 |
@@ -17,6 +18,8 @@
 cat /sys/class/dmi/id/product_version    # ThinkPad T480  -> the `devices/` package name
 cat /sys/class/dmi/id/product_name       # 20L6S0CE41
 cat /sys/class/dmi/id/bios_version
+grep MemTotal /proc/meminfo              # RAM
+lsblk -dno NAME,SIZE,MODEL | grep nvme   # drive model + size
 lspci -nnk -s 00:02.0                    # GPU + driver in use
 kscreen-doctor -o                        # current outputs (Wayland)
 ```
