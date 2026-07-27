@@ -4,29 +4,40 @@ My localhost configuration files.
 
 ## Layout
 
-Split on two axes — **hardware** and **OS** — because this T480 dual-boots
-Kubuntu and Arch (Omarchy), and most config belongs to one or the other, not both.
+Split on two axes — **device** and **OS** — because the same laptop dual-boots
+Kubuntu and Arch (Omarchy), and the same OS runs on more than one machine. A file
+lives wherever it stays true.
 
 | Path | Scope | Installed by |
 |------|-------|--------------|
 | `shared/` | Portable — any machine, any OS | `make stow` |
-| `t480/` | This hardware, whichever OS is booted (Intel GPU, thinkpad_acpi) | `make stow` |
-| `ubuntu/` | Kubuntu userland — KDE, Dolphin, xdg portals | `make stow` (auto) |
-| `arch/` | Omarchy/Arch userland — Hyprland, hyprmon | `make stow` (auto) |
+| `devices/t480/` | This hardware, whichever OS is booted (Intel GPU, thinkpad_acpi) | `make stow` (auto) |
+| `os/ubuntu/` | Kubuntu userland — KDE, Dolphin, xdg portals | `make stow` (auto) |
+| `os/arch/` | Omarchy/Arch userland — Hyprland, hyprmon | `make stow` (auto) |
 | `system/` | Root-owned files under `/` — see [system/README.md](system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
 | `.bashrc` | Fragment appended to the distro `~/.bashrc` | `make shell` |
 
-The OS package is picked automatically from `/etc/os-release` `ID`, so the same
-`make stow` links `shared t480 ubuntu` on Kubuntu and `shared t480 arch` on Arch.
-An ID with no matching directory is simply skipped.
+Both packages are detected, so one `make stow` is correct everywhere:
 
-There is no `macos/` yet — it gets created when there is actually a macOS file to
-put in it, and auto-detection will pick it up once the directory exists.
+- **device** from DMI `product_version` — `ThinkPad T480` → `t480`
+- **os** from `/etc/os-release` `ID` — `ubuntu` / `arch`
 
-`system/` is currently Ubuntu-flavoured (apt, and a pin for an Ubuntu kernel
-regression). The Arch side of the same hardware tuning isn't tracked yet — add
-`system-arch/` if and when it is.
+A name with no matching directory is skipped with a note rather than failing, so
+a new machine works before its package exists. Override when the guess is wrong:
+
+```
+make stow DEVICE=x1 OS=arch
+```
+
+Adding a device or an OS is just `mkdir devices/<name>` or `mkdir os/<name>` —
+detection picks it up once the directory is there. That is also how a future
+`os/macos/` appears; nothing is created before it has content.
+
+`system/` stays outside the packages on purpose: a stow package must mirror
+`$HOME`, and these are root-owned files under `/`. It is also currently
+Ubuntu-flavoured (apt, plus a pin for an Ubuntu kernel regression) — add
+`system/arch/` if the Arch side of the same hardware tuning ever gets tracked.
 
 ## Install
 
@@ -73,7 +84,7 @@ and `t480/` can each contribute without both owning `~/.bash_aliases`.
 
 **KDE config files rewrite themselves.** KConfig saves by writing a temp file and
 renaming it over the target, which replaces the symlink with a regular file — so
-`t480/.config/dolphinrc` will silently detach after KDE changes a setting. Run
+`os/ubuntu/.config/dolphinrc` will silently detach after KDE changes a setting. Run
 `make restow` to re-link it (commit the drift first if you want to keep it).
 
 ## Docs
