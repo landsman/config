@@ -14,7 +14,7 @@ lives wherever it stays true.
 | `devices/t480/` | This hardware, whichever OS is booted (Intel GPU, thinkpad_acpi) | `make stow` (auto) |
 | `os/ubuntu/` | Kubuntu userland — KDE, Dolphin, xdg portals | `make stow` (auto) |
 | `os/arch/` | Omarchy/Arch userland — Hyprland, hyprmon | `make stow` (auto) |
-| `system/` | Root-owned files under `/` — see [system/README.md](system/README.md) | `sudo cp` (root, not stowable) |
+| `devices/t480/system/` | Root-owned files under `/` for that machine — see [its README](devices/t480/system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
 | `.bashrc` | Fragment appended to the distro `~/.bashrc` | `make shell` |
 
@@ -34,10 +34,13 @@ Adding a device or an OS is just `mkdir devices/<name>` or `mkdir os/<name>` —
 detection picks it up once the directory is there. That is also how a future
 `os/macos/` appears; nothing is created before it has content.
 
-`system/` stays outside the packages on purpose: a stow package must mirror
-`$HOME`, and these are root-owned files under `/`. It is also currently
-Ubuntu-flavoured (apt, plus a pin for an Ubuntu kernel regression) — add
-`system/arch/` if the Arch side of the same hardware tuning ever gets tracked.
+A device package holds two kinds of thing: the dotfile trees that get symlinked
+into `$HOME`, and anything that does not belong there — `docs/`, and the
+root-owned `system/` tree installed with `sudo cp`. The latter must be listed in
+that package's `.stow-local-ignore`, or stow will link it into the home
+directory. `devices/t480/system/` is currently Ubuntu-flavoured (apt, plus a pin
+for an Ubuntu kernel regression); the Arch side of the same hardware tuning isn't
+tracked.
 
 ## Install
 
@@ -48,7 +51,7 @@ make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 ```
 
-For the root-owned parts, see [system/README.md](system/README.md).
+For the root-owned parts, see [devices/t480/system/README.md](devices/t480/system/README.md).
 
 ### First run: existing files
 
@@ -91,5 +94,5 @@ renaming it over the target, which replaces the symlink with a regular file — 
 
 - [ThinkPad T480](devices/t480/README.md) — hardware, known issues, kernel pin
 - [HP ProDesk 600 G3](devices/hp-prodesk-600-g3/README.md) — the pollos cluster, provisioned from [landsman/homelab](https://github.com/landsman/homelab/tree/main/pollos)
-- [System config (root-owned)](system/README.md)
+- [T480 system config (root-owned)](devices/t480/system/README.md)
 - [Claude](.claude/README.md)

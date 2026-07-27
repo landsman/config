@@ -14,12 +14,12 @@ Kubuntu 26.04 (KDE), Omarchy/Arch (Hyprland) and Windows 11.
 | Path | What |
 |------|------|
 | `devices/t480/` (this package) | Shell aliases that need this hardware — `intel_gpu_top`, `thinkpad_acpi` fan/temps |
-| [`system/`](../../system/README.md) | Root-owned tuning: thinkfan curve, RAPL/frequency caps, undervolt, i915 options |
+| [`system/`](system/README.md) | Root-owned tuning for this machine: thinkfan curve, RAPL/frequency caps, undervolt, i915 options |
 | [`os/ubuntu/`](../../os/ubuntu) | KDE-side config, used when Kubuntu is booted |
 | [`os/arch/`](../../os/arch) | Hyprland-side config, used when Omarchy is booted |
 
 Only the userland half is stowed into `$HOME`. The root-owned half is installed
-separately — see [system/README.md](../../system/README.md).
+separately — see [system/README.md](system/README.md).
 
 ## Known issues
 

@@ -87,7 +87,7 @@ Recorded with the evidence that killed them, so they aren't chased again.
   cmdline, and occur when everything works. Not to be confused with KWin's
   `Atomic modeset test failed`, which is the real signature.
 - **PSR** (`i915.enable_psr=0`) — plausible, unproven, did not fix it. Kept as a
-  harmless mitigation; see `system/etc/modprobe.d/i915-no-psr.conf`.
+  harmless mitigation; see [`system/etc/modprobe.d/i915-no-psr.conf`](../../system/etc/modprobe.d/i915-no-psr.conf).
 - **A `system-sleep` hook calling `kscreen-doctor`** — cannot work, since KWin
   has already lost the DRM device. Written, then removed.
 - **The MST dock** — the failure also occurs at session start with no suspend

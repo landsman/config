@@ -16,8 +16,8 @@ System-wide files (everything under `/`, not `$HOME`). The directory layout mirr
 ## Install
 
 ```
-sudo cp -r system/etc/. /etc/
-sudo cp -r system/usr/. /usr/
+sudo cp -r devices/t480/system/etc/. /etc/
+sudo cp -r devices/t480/system/usr/. /usr/
 sudo chmod +x /usr/lib/systemd/system-sleep/fix-validity-fingerprint
 sudo modprobe -r thinkpad_acpi && sudo modprobe thinkpad_acpi
 sudo systemctl daemon-reload
@@ -38,7 +38,7 @@ cd /tmp/intel-undervolt
 ./configure --enable-systemd --unitdir=/usr/lib/systemd/system
 make
 sudo make install   # NOTE: this overwrites /etc/intel-undervolt.conf with defaults
-sudo cp system/etc/intel-undervolt.conf /etc/intel-undervolt.conf   # restore our values
+sudo cp devices/t480/system/etc/intel-undervolt.conf /etc/intel-undervolt.conf   # restore our values
 sudo systemctl daemon-reload
 sudo systemctl enable --now intel-undervolt.service
 sudo intel-undervolt read   # verify Core/Cache -99.61 mV, GPU -49.80 mV
@@ -49,7 +49,7 @@ The service also hooks `suspend.target` and `hibernate.target` so the undervolt 
 ## Hardware context
 
 These files are all specific to the **ThinkPad T480** — see
-[devices/t480/README.md](../devices/t480/README.md) for the machine's specs, its
+[../README.md](../README.md) for the machine's specs, its
 known issues (including the kernel pin for the black-panel-on-resume regression),
 and what else is tracked for it.
 
