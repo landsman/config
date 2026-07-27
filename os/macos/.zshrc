@@ -8,13 +8,16 @@ export PATH="$HOME/.local/bin:/opt/homebrew/opt/libpq/bin:$PATH"
 export PATH="$PATH:$HOME/.lmstudio/bin"          # LM Studio CLI (lms)
 export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
-# Completion. zsh ships `_make`, so `make <TAB>` already lists the targets of the
-# Makefile in $PWD — no plugin needed. `menu select` is what makes that list
-# arrow-navigable, the bit the JetBrains terminal has and a bare zsh doesn't.
+# Completion. zsh-autocomplete (in the Brewfile) opens the menu while you type,
+# the way the JetBrains terminal does; bare zsh only ever completes on Tab. It
+# runs compinit itself and owns the completion zstyles, so there is none of
+# either here — see its caveats: `brew info zsh-autocomplete`. fpath has to be
+# ready before it is sourced, and the fallback covers a fresh machine where
+# `make stow` landed before `make brew`.
 fpath=("$HOME/.docker/completions" $fpath)       # Docker Desktop completions
-autoload -Uz compinit && compinit
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'   # case-insensitive
+ac="$HOMEBREW_PREFIX/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
+if [ -r "$ac" ]; then source "$ac"; else autoload -Uz compinit && compinit; fi
+unset ac
 
 # Same drop-in directory the .bashrc fragment loads, so aliases work in both
 # shells. (N) is the zsh way to say "no matches is fine" — without it an empty

@@ -23,6 +23,8 @@ brew "deno"
 brew "ffmpeg"
 # GitHub command-line tool
 brew "gh"
+# Bash and zsh history suggest box
+brew "hstr"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
 # Lazier way to manage everything docker
@@ -56,6 +58,8 @@ brew "vite-plus"
 
 # Apple Silicon Monitor Top written in Go Lang
 brew "mactop" if OS.mac?
+# Real-time type-ahead completion for Zsh — the Linux boxes are bash, see .bashrc
+brew "zsh-autocomplete" if OS.mac?
 
 # GUI apps — casks are macOS-only, Homebrew on Linux has none.
 if OS.mac?
