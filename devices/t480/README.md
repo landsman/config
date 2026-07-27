@@ -1,7 +1,7 @@
 # ThinkPad T480
 
-Config specific to this laptop, independent of which OS is booted. Dual-boots
-Kubuntu 26.04 (KDE) and Omarchy/Arch (Hyprland).
+Config specific to this laptop, independent of which OS is booted. Triple-boots
+Kubuntu 26.04 (KDE), Omarchy/Arch (Hyprland) and Windows 11.
 
 ## Docs
 

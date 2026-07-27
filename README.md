@@ -4,7 +4,7 @@ My localhost configuration files.
 
 ## Layout
 
-Split on two axes — **device** and **OS** — because the same laptop dual-boots
+Split on two axes — **device** and **OS** — because the same laptop multi-boots
 Kubuntu and Arch (Omarchy), and the same OS runs on more than one machine. A file
 lives wherever it stays true.
 
