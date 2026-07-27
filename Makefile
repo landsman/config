@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help qa git git-config-validate git-config-format stow restow unstow shell
+.PHONY: help qa git git-config-validate git-config-format brew stow restow unstow shell
 
 # Dotfiles are stowed from three places, each mirroring $HOME:
 #   .           shared/   portable, any machine + any OS
@@ -13,6 +13,15 @@ SHELL := /bin/bash
 # A name with no matching directory is skipped rather than failing, so a new
 # machine works before its package exists. Override with:
 #   make stow DEVICE=x1 OS=arch
+#
+# macOS has neither of those files, so it goes first: hw.model ("Mac17,8") is
+# the only stable id, and it needs a name mapped onto it. Both are `?=`, so a
+# DEVICE= on the command line still wins.
+# ponytail: one Mac, one sed expression — add a line per machine, not a table.
+ifeq ($(shell uname -s),Darwin)
+DEVICE ?= $(shell sysctl -n hw.model | sed 's/^Mac17,8$$/macbook-pro-m5-16/')
+OS     ?= macos
+endif
 DEVICE ?= $(shell awk '{print tolower($$NF)}' /sys/class/dmi/id/product_version 2>/dev/null)
 OS     ?= $(shell . /etc/os-release 2>/dev/null && echo $$ID)
 
@@ -25,11 +34,24 @@ help: ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
 
 #
+# Packages via Homebrew — one Brewfile for macOS and Linux
+#
+
+brew: ## install Homebrew if missing, then everything in the Brewfile
+	@command -v brew >/dev/null \
+		|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+	@# A just-installed brew is not on PATH in *this* shell yet — the installer
+	@# only adds it to the shell rc — so look where the two ports put it.
+	@b=$$(command -v brew \
+		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
+		"$$b" bundle --file Brewfile
+
+#
 # Dotfiles ($HOME) via GNU stow
 #
 
 stow: ## symlink shared + device + os packages into $HOME (see README for first run)
-	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: make brew"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -d devices $(DEVICE_PKG) \
 		|| echo "no package for device '$(DEVICE)' - skipped"
@@ -38,7 +60,7 @@ stow: ## symlink shared + device + os packages into $HOME (see README for first 
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
 restow: ## re-link after adding files, or after an app replaced a symlink
-	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: make brew"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG) || true
 	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -R -d os $(OS_PKG) || true
@@ -48,10 +70,16 @@ unstow: ## remove the symlinks again
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -D -d devices $(DEVICE_PKG) || true
 	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -D -d os $(OS_PKG) || true
 
-shell: ## hook the alias loader into ~/.bashrc (idempotent)
+shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
+	@# Sourced by absolute path, the way .gitconfig is included, rather than
+	@# appended: a copy stops tracking the repo the moment the fragment changes,
+	@# and the old append-once grep would report success while doing nothing.
+	@grep -qF '$(CURDIR)/.bashrc' "$$HOME/.bashrc" \
+		|| printf '\n. "%s/.bashrc"\n' '$(CURDIR)' >> "$$HOME/.bashrc"
+	@grep -nF '$(CURDIR)/.bashrc' "$$HOME/.bashrc"
 	@grep -qF 'bash_aliases.d' "$$HOME/.bashrc" \
-		|| cat .bashrc >> "$$HOME/.bashrc"
-	@grep -nF 'bash_aliases.d' "$$HOME/.bashrc"
+		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
+		|| true
 
 #
 # GIT config
