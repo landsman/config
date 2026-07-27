@@ -2,8 +2,15 @@ SHELL := /bin/bash
 
 .PHONY: help qa git git-config-validate git-config-format stow restow unstow shell
 
-# Stow packages to link into $HOME. Add new ones here (e.g. a future `macos`).
-PACKAGES ?= shared t480
+# Stow packages to link into $HOME, on two axes:
+#   shared    portable, any machine
+#   t480      this hardware, whatever OS is booted
+#   <os-id>   OS/desktop userland — picked from /etc/os-release ID, so the same
+#             `make stow` does the right thing on Kubuntu (ubuntu) and on
+#             Omarchy/Arch (arch). Unknown or missing -> just skipped.
+OS_ID  := $(shell . /etc/os-release 2>/dev/null && echo $$ID)
+OS_PKG := $(shell test -d '$(OS_ID)' && echo '$(OS_ID)')
+PACKAGES ?= shared t480 $(OS_PKG)
 
 help: ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'

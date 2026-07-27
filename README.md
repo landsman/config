@@ -4,17 +4,29 @@ My localhost configuration files.
 
 ## Layout
 
+Split on two axes — **hardware** and **OS** — because this T480 dual-boots
+Kubuntu and Arch (Omarchy), and most config belongs to one or the other, not both.
+
 | Path | Scope | Installed by |
 |------|-------|--------------|
-| `shared/` | Portable — anything that would work on any machine | `make stow` (symlinks into `$HOME`) |
-| `t480/` | This ThinkPad: Hyprland, KDE, dock/display, Intel-specific | `make stow` (symlinks into `$HOME`) |
-| `system/` | Root-owned files under `/` — T480 hardware tuning, see [system/README.md](system/README.md) | `sudo cp` (root, not stowable) |
+| `shared/` | Portable — any machine, any OS | `make stow` |
+| `t480/` | This hardware, whichever OS is booted (Intel GPU, thinkpad_acpi) | `make stow` |
+| `ubuntu/` | Kubuntu userland — KDE, Dolphin, xdg portals | `make stow` (auto) |
+| `arch/` | Omarchy/Arch userland — Hyprland, hyprmon | `make stow` (auto) |
+| `system/` | Root-owned files under `/` — see [system/README.md](system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
 | `.bashrc` | Fragment appended to the distro `~/.bashrc` | `make shell` |
 
+The OS package is picked automatically from `/etc/os-release` `ID`, so the same
+`make stow` links `shared t480 ubuntu` on Kubuntu and `shared t480 arch` on Arch.
+An ID with no matching directory is simply skipped.
+
 There is no `macos/` yet — it gets created when there is actually a macOS file to
-put in it. To add one later: `mkdir macos`, then add it to `PACKAGES` in the
-`Makefile`.
+put in it, and auto-detection will pick it up once the directory exists.
+
+`system/` is currently Ubuntu-flavoured (apt, and a pin for an Ubuntu kernel
+regression). The Arch side of the same hardware tuning isn't tracked yet — add
+`system-arch/` if and when it is.
 
 ## Install
 
