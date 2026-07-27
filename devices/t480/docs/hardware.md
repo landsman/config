@@ -10,7 +10,7 @@
 | Storage | Samsung SSD 990 EVO Plus 2 TB NVMe (PM9C1a controller, DRAM-less), LUKS-encrypted root |
 | Display | 14" IPS FHD — 1920x1080 @60.02 Hz, LG Display (`LGD 1313`, 2016), 31 × 17 cm, sRGB, no VRR/HDR |
 | Webcam | Integrated Camera — IMC Networks `13d3:56a6` (UVC), `/dev/video0` capture + `/dev/video1` metadata |
-| Fingerprint | Synaptics Validity 06cb:009a |
+| Fingerprint | Synaptics Validity `06cb:009a` — slow/unreliable, [replacement planned](upgrades.md) |
 | Touchpad | Synaptics RMI4 |
 | Boot | Triple boot — Kubuntu 26.04 (KDE), Omarchy/Arch (Hyprland), Windows 11 |
 | Dock | DisplayPort MST — BenQ 4K 3840x2160 on DP-1 (`BNQ 31056`), Dell 2560x1440 on DP-4 (`DEL 41179`) |

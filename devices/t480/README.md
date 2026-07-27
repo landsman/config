@@ -5,7 +5,8 @@ Kubuntu 26.04 (KDE), Omarchy/Arch (Hyprland) and Windows 11.
 
 ## Docs
 
-- [Hardware](docs/hardware.md) — specs, and how to re-read them
+- [Hardware](docs/hardware.md) — specs, operating systems, and how to re-read them
+- [Upgrades / to consider](docs/upgrades.md) — planned and parked hardware changes
 - [Known issues](#known-issues)
 
 ## What lives where
