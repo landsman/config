@@ -1,6 +1,6 @@
 # Internal panel black after resume — Ubuntu kernel regression
 
-| | |
+| Field | Value |
 |---|---|
 | Status | Mitigated (pinned to kernel 7.0.0-22), upstream unfixed |
 | Affects | Kubuntu 26.04, KDE Plasma 6 (Wayland) |
