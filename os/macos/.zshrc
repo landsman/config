@@ -19,6 +19,29 @@ ac="$HOMEBREW_PREFIX/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
 if [ -r "$ac" ]; then source "$ac"; else autoload -Uz compinit && compinit; fi
 unset ac
 
+# television: Ctrl-T for context-aware completion, Ctrl-O for its history picker.
+# Both keys come from shared/.config/television/config.toml.
+command -v tv >/dev/null && eval "$(tv init zsh)"
+
+# hstr owns Ctrl-R, ahead of both zsh-autocomplete's history menu and television.
+# Has to come after the source above, because the last bindkey wins. The widget
+# body is upstream's `hstr --show-zsh-configuration`: Darwin has no TIOCSTI, so
+# the line cannot be pushed back into the input buffer and hstr's output is read
+# from a subshell instead.
+alias hh=hstr
+setopt histignorespace           # a leading space keeps a command out of history
+export HSTR_CONFIG=hicolor
+export HSTR_TIOCSTI=n
+hstr_no_tiocsti() {
+	zle -I
+	{ HSTR_OUT="$( { </dev/tty hstr -- ${BUFFER}; } 2>&1 1>&3 3>&- )"; } 3>&1
+	BUFFER="${HSTR_OUT}"
+	CURSOR=${#BUFFER}
+	zle redisplay
+}
+zle -N hstr_no_tiocsti
+bindkey '^R' hstr_no_tiocsti
+
 # Same drop-in directory the .bashrc fragment loads, so aliases work in both
 # shells. (N) is the zsh way to say "no matches is fine" — without it an empty
 # directory makes every new shell start with an error.

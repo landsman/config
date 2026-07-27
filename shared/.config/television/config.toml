@@ -1,0 +1,14 @@
+# Only what differs from television's built-in defaults — it merges this on top,
+# so there is no need to copy the whole upstream config in.
+#
+# Portable on purpose: the binary comes from the Brewfile on every machine, and
+# nothing in here is OS-specific. The `tv init` line that activates these lives
+# in the shell rc (os/macos/.zshrc).
+
+[shell_integration.keybindings]
+# Ctrl-T stays tv's, it collides with nothing worth keeping (zsh's default is
+# transpose-chars).
+"smart_autocomplete" = "ctrl-t"
+# Plain Ctrl-R belongs to hstr, which also binds it *after* this is loaded, so it
+# would win either way. Moved rather than left to lose that race silently.
+"command_history" = "ctrl-o"
