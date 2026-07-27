@@ -89,5 +89,6 @@ renaming it over the target, which replaces the symlink with a regular file — 
 
 ## Docs
 
+- [ThinkPad T480](devices/t480/README.md) — hardware, known issues, kernel pin
 - [System config (root-owned)](system/README.md)
 - [Claude](.claude/README.md)
