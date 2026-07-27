@@ -29,6 +29,8 @@ brew "hstr"
 brew "go"
 # Lazier way to manage everything docker
 brew "lazydocker"
+# TUI for logs from journalctl, file system, Docker, Podman and Kubernetes pods
+brew "lazyjournal"
 # Postgres C API library
 brew "libpq"
 # Polyglot runtime manager (asdf rust clone)
@@ -53,6 +55,8 @@ brew "stow"
 brew "tmux"
 # Extremely fast Python package installer and resolver, written in Rust
 brew "uv"
+# Blazing fast terminal file manager written in Rust, based on async I/O
+brew "yazi"
 # Unified toolchain and entry point for web development
 brew "vite-plus"
 
