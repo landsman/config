@@ -19,6 +19,7 @@ lives wherever it stays true.
 | `devices/t480/system/` | Root-owned files under `/` for that machine — see [its README](devices/t480/system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
 | `.bashrc` | Fragment appended to the distro `~/.bashrc` | `make shell` |
+| `Brewfile` | Packages — one list for every machine, macOS and Linux | `make brew` |
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
@@ -50,14 +51,24 @@ tracked.
 ## Install
 
 ```
-sudo apt install stow    # macOS: brew install stow
+make brew    # install Homebrew if missing, then the Brewfile (stow included)
 make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 ```
 
+`make brew` comes first because `stow` is in the Brewfile. Homebrew runs on
+Linux too, which is the point: one package list for every machine instead of a
+Brewfile here and an apt list there. It is heavier than `apt install stow` — a
+few hundred MB under `/home/linuxbrew` — so anything a distro does better stays
+with the distro; guard those lines with `if OS.mac?`. The shell needs to pick up
+the new `brew` before `make stow` runs: open a new terminal, or
+`eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"` (macOS:
+`/opt/homebrew/bin/brew`).
+
 `make shell` is for bash only; on macOS the stowed `~/.zshrc` sources the same
-`bash_aliases.d` drop-ins itself.
+`bash_aliases.d` drop-ins itself, and puts `brew shellenv` where the repo can
+see it instead of leaving it in an untracked `~/.zprofile`.
 
 For the root-owned parts, see [devices/t480/system/README.md](devices/t480/system/README.md).
 

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help qa git git-config-validate git-config-format stow restow unstow shell
+.PHONY: help qa git git-config-validate git-config-format brew stow restow unstow shell
 
 # Dotfiles are stowed from three places, each mirroring $HOME:
 #   .           shared/   portable, any machine + any OS
@@ -34,11 +34,24 @@ help: ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
 
 #
+# Packages via Homebrew — one Brewfile for macOS and Linux
+#
+
+brew: ## install Homebrew if missing, then everything in the Brewfile
+	@command -v brew >/dev/null \
+		|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+	@# A just-installed brew is not on PATH in *this* shell yet — the installer
+	@# only adds it to the shell rc — so look where the two ports put it.
+	@b=$$(command -v brew \
+		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
+		"$$b" bundle --file Brewfile
+
+#
 # Dotfiles ($HOME) via GNU stow
 #
 
 stow: ## symlink shared + device + os packages into $HOME (see README for first run)
-	@command -v stow >/dev/null || { echo "stow not installed: apt install stow / brew install stow"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: make brew"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -d devices $(DEVICE_PKG) \
 		|| echo "no package for device '$(DEVICE)' - skipped"
@@ -47,7 +60,7 @@ stow: ## symlink shared + device + os packages into $HOME (see README for first 
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
 restow: ## re-link after adding files, or after an app replaced a symlink
-	@command -v stow >/dev/null || { echo "stow not installed: apt install stow / brew install stow"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: make brew"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG) || true
 	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -R -d os $(OS_PKG) || true

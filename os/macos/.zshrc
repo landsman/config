@@ -1,7 +1,12 @@
 # macOS shell. Symlinked here by `make stow` — edit it in the repo, not in $HOME.
 
+# Homebrew. `make brew` installs it; without this line its PATH lives only in
+# whatever rc the installer patched, which is not tracked here.
+[ -x /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+
 export PATH="$HOME/.local/bin:/opt/homebrew/opt/libpq/bin:$PATH"
 export PATH="$PATH:$HOME/.lmstudio/bin"          # LM Studio CLI (lms)
+export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 
 # Completion. zsh ships `_make`, so `make <TAB>` already lists the targets of the
 # Makefile in $PWD — no plugin needed. `menu select` is what makes that list
