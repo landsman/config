@@ -1,9 +1,33 @@
 SHELL := /bin/bash
 
-.PHONY: help qa git git-config-validate git-config-format
+.PHONY: help qa git git-config-validate git-config-format stow restow unstow shell
+
+# Stow packages to link into $HOME. Add new ones here (e.g. a future `macos`).
+PACKAGES ?= shared t480
 
 help: ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
+
+#
+# Dotfiles ($HOME) via GNU stow
+#
+
+stow: ## symlink $(PACKAGES) into $HOME (first run: adopts existing files, see README)
+	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	stow --no-folding -t "$$HOME" $(PACKAGES)
+	@echo "linked: $(PACKAGES)"
+
+restow: ## re-link after adding files, or after an app replaced a symlink
+	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	stow --no-folding -R -t "$$HOME" $(PACKAGES)
+
+unstow: ## remove the symlinks again
+	stow -D -t "$$HOME" $(PACKAGES)
+
+shell: ## hook the alias loader into ~/.bashrc (idempotent)
+	@grep -qF 'bash_aliases.d' "$$HOME/.bashrc" \
+		|| cat .bashrc >> "$$HOME/.bashrc"
+	@grep -nF 'bash_aliases.d' "$$HOME/.bashrc"
 
 #
 # GIT config
