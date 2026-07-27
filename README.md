@@ -116,5 +116,6 @@ renaming it over the target, which replaces the symlink with a regular file — 
 - [ThinkPad T480](devices/t480/README.md) — hardware, known issues, kernel pin
 - [MacBook Pro 16" M5 Pro](devices/macbook-pro-m5-16/README.md) — hardware, what it stows
 - [HP ProDesk 600 G3](devices/hp-prodesk-600-g3/README.md) — the pollos cluster, provisioned from [landsman/homelab](https://github.com/landsman/homelab/tree/main/pollos)
+- [Omarchy/Arch userland](os/arch/README.md) — Hyprland config, and the AUR packages that stay out of the Brewfile
 - [T480 system config (root-owned)](devices/t480/system/README.md)
 - [Claude](.claude/README.md)
