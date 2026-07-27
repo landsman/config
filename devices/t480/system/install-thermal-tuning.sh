@@ -5,9 +5,9 @@
 #   - intel-undervolt with Core/Cache -100 mV, GPU -50 mV (built from source,
 #     systemd unit handles boot + resume re-apply)
 #
-# Idempotent: safe to re-run. Run from the repo root or from system/.
+# Idempotent: safe to re-run. Path-independent: it locates its own directory.
 #
-#   sudo bash system/install-thermal-tuning.sh
+#   sudo bash devices/t480/system/install-thermal-tuning.sh
 
 set -euo pipefail
 
@@ -16,8 +16,7 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SYS="$REPO_ROOT/system"
+SYS="$(cd "$(dirname "$0")" && pwd)"
 
 echo "==> [1/6] Installing packages (thinkfan, build deps)"
 apt-get update -qq
