@@ -80,7 +80,7 @@ Two things are deliberately *not* stowed, because a symlink would break them:
   `~/.bashrc` would drop everything the distro puts there.
 
 Aliases are split into drop-ins (`~/.config/bash_aliases.d/*.sh`) so `shared/`
-and `t480/` can each contribute without both owning `~/.bash_aliases`.
+and `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
 
 **KDE config files rewrite themselves.** KConfig saves by writing a temp file and
 renaming it over the target, which replaces the symlink with a regular file — so
