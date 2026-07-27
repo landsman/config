@@ -13,6 +13,15 @@ SHELL := /bin/bash
 # A name with no matching directory is skipped rather than failing, so a new
 # machine works before its package exists. Override with:
 #   make stow DEVICE=x1 OS=arch
+#
+# macOS has neither of those files, so it goes first: hw.model ("Mac17,8") is
+# the only stable id, and it needs a name mapped onto it. Both are `?=`, so a
+# DEVICE= on the command line still wins.
+# ponytail: one Mac, one sed expression — add a line per machine, not a table.
+ifeq ($(shell uname -s),Darwin)
+DEVICE ?= $(shell sysctl -n hw.model | sed 's/^Mac17,8$$/macbook-pro-m5-16/')
+OS     ?= macos
+endif
 DEVICE ?= $(shell awk '{print tolower($$NF)}' /sys/class/dmi/id/product_version 2>/dev/null)
 OS     ?= $(shell . /etc/os-release 2>/dev/null && echo $$ID)
 
@@ -29,7 +38,7 @@ help: ## show this help
 #
 
 stow: ## symlink shared + device + os packages into $HOME (see README for first run)
-	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed: apt install stow / brew install stow"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -d devices $(DEVICE_PKG) \
 		|| echo "no package for device '$(DEVICE)' - skipped"
@@ -38,7 +47,7 @@ stow: ## symlink shared + device + os packages into $HOME (see README for first 
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
 restow: ## re-link after adding files, or after an app replaced a symlink
-	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed: apt install stow / brew install stow"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG) || true
 	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -R -d os $(OS_PKG) || true
