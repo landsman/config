@@ -1,0 +1,11 @@
+# Never symlink these into $HOME. Only the dotfile trees in this package belong
+# there; docs do not. Stow ignores `^/README.*` by default, but a local ignore
+# file replaces the whole default list, so the usual entries are repeated here
+# rather than assumed.
+^/README.*
+^/docs$
+^/\.stow-local-ignore$
+\.git
+\.gitignore
+.+~
+\#.*\#

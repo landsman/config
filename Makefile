@@ -1,9 +1,57 @@
 SHELL := /bin/bash
 
-.PHONY: help qa git git-config-validate git-config-format
+.PHONY: help qa git git-config-validate git-config-format stow restow unstow shell
+
+# Dotfiles are stowed from three places, each mirroring $HOME:
+#   .           shared/   portable, any machine + any OS
+#   devices/    <device>  this hardware, whatever OS is booted
+#   os/         <os-id>   OS/desktop userland
+#
+# Both are detected, so one `make stow` is correct on every install:
+#   device from DMI product_version ("ThinkPad T480" -> t480)
+#   os     from /etc/os-release ID  (ubuntu / arch)
+# A name with no matching directory is skipped rather than failing, so a new
+# machine works before its package exists. Override with:
+#   make stow DEVICE=x1 OS=arch
+DEVICE ?= $(shell awk '{print tolower($$NF)}' /sys/class/dmi/id/product_version 2>/dev/null)
+OS     ?= $(shell . /etc/os-release 2>/dev/null && echo $$ID)
+
+DEVICE_PKG := $(shell test -d 'devices/$(DEVICE)' && echo '$(DEVICE)')
+OS_PKG     := $(shell test -d 'os/$(OS)' && echo '$(OS)')
+
+STOW_FLAGS := --no-folding -t "$$HOME"
 
 help: ## show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
+
+#
+# Dotfiles ($HOME) via GNU stow
+#
+
+stow: ## symlink shared + device + os packages into $HOME (see README for first run)
+	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	stow $(STOW_FLAGS) shared
+	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -d devices $(DEVICE_PKG) \
+		|| echo "no package for device '$(DEVICE)' - skipped"
+	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -d os $(OS_PKG) \
+		|| echo "no package for os '$(OS)' - skipped"
+	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
+
+restow: ## re-link after adding files, or after an app replaced a symlink
+	@command -v stow >/dev/null || { echo "stow not installed: sudo apt install stow"; exit 1; }
+	stow $(STOW_FLAGS) -R shared
+	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG) || true
+	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -R -d os $(OS_PKG) || true
+
+unstow: ## remove the symlinks again
+	stow $(STOW_FLAGS) -D shared
+	@test -n '$(DEVICE_PKG)' && stow $(STOW_FLAGS) -D -d devices $(DEVICE_PKG) || true
+	@test -n '$(OS_PKG)' && stow $(STOW_FLAGS) -D -d os $(OS_PKG) || true
+
+shell: ## hook the alias loader into ~/.bashrc (idempotent)
+	@grep -qF 'bash_aliases.d' "$$HOME/.bashrc" \
+		|| cat .bashrc >> "$$HOME/.bashrc"
+	@grep -nF 'bash_aliases.d' "$$HOME/.bashrc"
 
 #
 # GIT config

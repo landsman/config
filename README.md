@@ -1,7 +1,94 @@
 # Config
 
-My localhost configuration files
+My localhost configuration files.
+
+## Layout
+
+Split on two axes — **device** and **OS** — because the same laptop multi-boots
+Kubuntu and Arch (Omarchy), and the same OS runs on more than one machine. A file
+lives wherever it stays true.
+
+| Path | Scope | Installed by |
+|------|-------|--------------|
+| `shared/` | Portable — any machine, any OS | `make stow` |
+| `devices/t480/` | This hardware, whichever OS is booted (Intel GPU, thinkpad_acpi) | `make stow` (auto) |
+| `os/ubuntu/` | Kubuntu userland — KDE, Dolphin, xdg portals | `make stow` (auto) |
+| `os/arch/` | Omarchy/Arch userland — Hyprland, hyprmon | `make stow` (auto) |
+| `system/` | Root-owned files under `/` — see [system/README.md](system/README.md) | `sudo cp` (root, not stowable) |
+| `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
+| `.bashrc` | Fragment appended to the distro `~/.bashrc` | `make shell` |
+
+Both packages are detected, so one `make stow` is correct everywhere:
+
+- **device** from DMI `product_version` — `ThinkPad T480` → `t480`
+- **os** from `/etc/os-release` `ID` — `ubuntu` / `arch`
+
+A name with no matching directory is skipped with a note rather than failing, so
+a new machine works before its package exists. Override when the guess is wrong:
+
+```
+make stow DEVICE=x1 OS=arch
+```
+
+Adding a device or an OS is just `mkdir devices/<name>` or `mkdir os/<name>` —
+detection picks it up once the directory is there. That is also how a future
+`os/macos/` appears; nothing is created before it has content.
+
+`system/` stays outside the packages on purpose: a stow package must mirror
+`$HOME`, and these are root-owned files under `/`. It is also currently
+Ubuntu-flavoured (apt, plus a pin for an Ubuntu kernel regression) — add
+`system/arch/` if the Arch side of the same hardware tuning ever gets tracked.
+
+## Install
+
+```
+sudo apt install stow
+make stow    # symlink shared/ + t480/ into $HOME
+make shell   # hook the alias loader into ~/.bashrc
+make git     # hook in .gitconfig, set email + commit signing
+```
+
+For the root-owned parts, see [system/README.md](system/README.md).
+
+### First run: existing files
+
+`stow` refuses to overwrite real files that are already in `$HOME`. Either move
+the conflicting file aside, or let stow take it over:
+
+```
+stow --no-folding --adopt -t "$HOME" shared t480
+git diff        # shows what the adopted files differ in — keep or discard
+```
+
+`--adopt` moves your existing file *into the repo* and replaces it with a
+symlink, so **always check `git diff` afterwards** — it can silently overwrite
+the repo's version with the machine's.
+
+## Notes
+
+`make stow` uses `--no-folding` deliberately: without it stow symlinks whole
+directories (`~/.config/hypr` → repo), and any new file an app writes there lands
+inside the repo. With it, real directories are created and only the tracked files
+are symlinked.
+
+Two things are deliberately *not* stowed, because a symlink would break them:
+
+- **`.gitconfig`** — it is included into `~/.gitconfig` rather than replacing it,
+  so machine-specific values (email, signing key) stay out of the repo. A symlink
+  would make `git config --global ...` write into the repo.
+- **`.bashrc`** — it is a fragment, not a full shell config. Symlinking it over
+  `~/.bashrc` would drop everything the distro puts there.
+
+Aliases are split into drop-ins (`~/.config/bash_aliases.d/*.sh`) so `shared/`
+and `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
+
+**KDE config files rewrite themselves.** KConfig saves by writing a temp file and
+renaming it over the target, which replaces the symlink with a regular file — so
+`os/ubuntu/.config/dolphinrc` will silently detach after KDE changes a setting. Run
+`make restow` to re-link it (commit the drift first if you want to keep it).
 
 ## Docs
 
+- [ThinkPad T480](devices/t480/README.md) — hardware, known issues, kernel pin
+- [System config (root-owned)](system/README.md)
 - [Claude](.claude/README.md)
