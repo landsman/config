@@ -51,6 +51,8 @@ brew "rclone"
 brew "rsync"
 # Symlink farm manager — this repo's `make stow` needs it
 brew "stow"
+# General purpose fuzzy finder TUI
+brew "television"
 # Terminal multiplexer
 brew "tmux"
 # Extremely fast Python package installer and resolver, written in Rust
