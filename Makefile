@@ -37,8 +37,8 @@ help: ## show this help
 # on, because CI runs the lot on macOS and Ubuntu on every pull request.
 #
 
-.PHONY: qa qa-deps lint test
-qa: qa-deps lint git-config-validate brew-check stow-check test ## run all checks — this is what CI runs
+.PHONY: qa qa-deps lint bin-test
+qa: qa-deps lint git-config-test brew-test stow-test bin-test ## run all checks — this is what CI runs
 
 qa-deps:
 	@# What the checks need, written down next to the checks, so ci.yml is just
@@ -61,7 +61,7 @@ lint: ## parse every shell file without running it
 	@# the rest (fpath arrays, autoload).
 	@echo "== os/macos/.zshrc"; zsh -n os/macos/.zshrc
 
-test: ## run every bin/*/*.test.sh — self-contained, no machine state touched
+bin-test: ## run every bin/*/*.test.sh — self-contained, no machine state touched
 	@# `|| exit 1`, because a for loop exits with the status of its *last*
 	@# iteration: without it a failure in any but the last test is reported green,
 	@# and this is what CI gates on.
@@ -73,7 +73,7 @@ test: ## run every bin/*/*.test.sh — self-contained, no machine state touched
 # Packages via Homebrew — one Brewfile for macOS and Linux
 #
 
-.PHONY: brew brew-check
+.PHONY: brew brew-test
 brew: ## install Homebrew if missing, then everything in the Brewfile
 	@command -v brew >/dev/null \
 		|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -83,7 +83,7 @@ brew: ## install Homebrew if missing, then everything in the Brewfile
 		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
 		"$$b" bundle --file Brewfile
 
-brew-check: ## parse the Brewfile without installing anything
+brew-test: ## parse the Brewfile without installing anything
 	@# The Brewfile is Ruby, and `make brew` is the first thing a new machine
 	@# runs — a syntax error there is found with no shell and no editor. `list`
 	@# parses it and prints; it installs nothing and talks to no network.
@@ -94,7 +94,7 @@ brew-check: ## parse the Brewfile without installing anything
 # Dotfiles ($HOME) via GNU stow
 #
 
-.PHONY: stow restow unstow stow-check
+.PHONY: stow restow unstow stow-test
 stow: ## symlink shared + device + os packages into $HOME (see README for first run)
 	@command -v stow >/dev/null || { echo "stow not installed - run: make brew"; exit 1; }
 	stow $(STOW_FLAGS) shared
@@ -118,7 +118,7 @@ unstow: ## remove the symlinks again
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -D -d devices $(DEVICE_PKG); fi
 	@if [ -n '$(OS_PKG)' ]; then stow $(STOW_FLAGS) -D -d os $(OS_PKG); fi
 
-stow-check: ## stow and unstow every package in the repo into a throwaway $HOME
+stow-test: ## stow and unstow every package in the repo into a throwaway $HOME
 	@# Every package, not only this host's: a PR opened from the Mac would
 	@# otherwise never look at devices/t480, and a file added to two packages is
 	@# only a conflict once stow sees them together.
@@ -167,7 +167,7 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 # GIT config
 #
 
-.PHONY: git git-config-validate git-config-format
+.PHONY: git git-config-test git-config-format
 git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
 	@git config --global --get-all include.path | grep -qxF '$(CURDIR)/.gitconfig' \
 		|| git config --global --add include.path '$(CURDIR)/.gitconfig'
@@ -193,7 +193,7 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 		cat "$$k"
 	@git config --list --show-scope
 
-git-config-validate: ## check .gitconfig parses and is tab-indented
+git-config-test: ## check .gitconfig parses and is tab-indented
 	@# validate
 	@git --no-pager config -f .gitconfig --list >/dev/null
 	@# format
