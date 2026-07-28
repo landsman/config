@@ -57,6 +57,7 @@ make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 
+make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 ```
 
@@ -116,6 +117,20 @@ Aliases are split into drop-ins (`~/.config/bash_aliases.d/*.sh`) so `shared/`
 and `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
 `os/macos/.zshrc` loads the same directory, so the drop-ins are shell-agnostic
 despite the name.
+
+**macOS System Settings are written, not stowed.** macOS keeps them in `defaults`
+(binary plists that `cfprefsd` rewrites on its own schedule, mixed in with window
+frames and analytics stamps), so there is no file to symlink. `bin/macos/defaults.sh`
+writes only the keys this repo names and leaves the rest of the machine alone.
+To add one: change it in System Settings, then diff what moved —
+
+```
+defaults read > /tmp/before   # …click the thing…   defaults read > /tmp/after
+diff /tmp/before /tmp/after
+```
+
+and paste the key into the script with the type `defaults read-type <domain> <key>`
+reports. `./bin/macos/defaults.sh --dry-run` prints every write without doing any.
 
 **JetBrains vmoptions are patched, not stowed** — Toolbox rewrites that file on
 every launch with per-machine values, so a symlink into the repo would push them

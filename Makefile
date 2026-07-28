@@ -168,6 +168,14 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 	@echo "plugins: open $(CURDIR) in the IDE and accept the 'required plugins' prompt"
 
 #
+# macOS System Settings — the panes stow cannot reach, see bin/macos/defaults.sh
+#
+
+.PHONY: macos
+macos: ## apply the macOS settings this repo owns (menu bar, Dock, Finder, trackpad)
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; ./bin/macos/defaults.sh
+
+#
 # GIT config
 #
 
