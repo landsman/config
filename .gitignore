@@ -1,5 +1,8 @@
-# ide
-.idea
+# ide - all of it except the plugin list, which is how a new machine gets them
+# `.idea/*`, not `.idea`: git does not descend into an ignored directory, so the
+# negation below would never be reached.
+.idea/*
+!.idea/externalDependencies.xml
 
 # deps
 node_modules

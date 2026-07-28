@@ -6,6 +6,32 @@ make jetbrains    # sets the JVM options this repo owns, in every config dir fou
 make bin-test     # runs vmoptions.test.sh, along with every other bin/*/*.test.sh
 ```
 
+## Plugins
+
+[`.idea/externalDependencies.xml`](../../.idea/externalDependencies.xml) lists the
+plugins this account uses. Open this repo in any JetBrains IDE and it offers to
+install the missing ones in a single click — plugins are installed per IDE, not per
+project, so that one prompt is the whole bootstrap. Nothing to run, nothing to keep
+in sync with a marketplace API.
+
+It is the only file under `.idea/` that is not gitignored.
+
+The list is IDs, taken from the plugins directory of the IDE they were installed
+in. To see what a machine actually has, and get the id of something new:
+
+```
+ls ~/Library/Application\ Support/JetBrains/<Version>/plugins   # macOS
+ls ~/.local/share/JetBrains/<Version>                           # Linux
+```
+
+Bundled-but-downloaded plugins (PHP, Spring, Android, Junie…) live there too and
+are listed alongside the marketplace ones, because on a fresh Ultimate they are
+just as absent. A plugin already installed is skipped silently, so an entry costs
+nothing on a machine that has it.
+
+> The prompt names them "required plugins" and the notification is dismissible;
+> it is a suggestion, not a gate. Nothing here refuses to open without them.
+
 ## Why a script and not a stow package
 
 Two files decide an IDE's JVM options, and they **merge** — the launcher

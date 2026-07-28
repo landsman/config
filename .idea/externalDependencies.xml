@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalDependenciesManager">
+    <!-- Opening this repo in a JetBrains IDE offers to install everything below,
+         IDE-wide. See bin/jetbrains/README.md. -->
+
+    <!-- editing -->
+    <extension id="com.fwdekker.randomness" />
+    <extension id="ru.adelf.idea.dotenv" />
+    <extension id="name.kropp.intellij.makefile" />
+    <extension id="com.github.l34130.mise" />
+
+    <!-- PHP -->
+    <extension id="com.jetbrains.php" />
+    <extension id="org.nette.latte" />
+
+    <!-- JVM -->
+    <extension id="com.intellij.spring.debugger" />
+    <extension id="com.intellij.spring.websocket" />
+    <extension id="com.intellij.reactivestreams" />
+    <extension id="com.vaadin.intellij-plugin" />
+    <extension id="kotest-plugin-intellij" />
+
+    <!-- mobile -->
+    <extension id="org.jetbrains.android" />
+    <extension id="androidx.compose.plugins.idea" />
+    <extension id="com.android.tools.design" />
+    <extension id="com.jetbrains.kmm" />
+
+    <!-- native -->
+    <extension id="com.intellij.nativeDebug" />
+
+    <!-- infrastructure -->
+    <extension id="org.intellij.plugins.hcl" />
+
+    <!-- BDD -->
+    <extension id="gherkin" />
+    <extension id="cucumber-java" />
+
+    <!-- AI -->
+    <extension id="org.jetbrains.junie" />
+    <extension id="com.intellij.ml.llm" />
+  </component>
+</project>
