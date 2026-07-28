@@ -3,7 +3,7 @@
 ```
 make brew         # installs the Toolbox App (macOS cask); Linux notes below
 make jetbrains    # sets the JVM options this repo owns, in every config dir found
-make test         # runs vmoptions.test.sh, along with every other bin/*/*.test.sh
+make bin-test     # runs vmoptions.test.sh, along with every other bin/*/*.test.sh
 ```
 
 ## Why a script and not a stow package
