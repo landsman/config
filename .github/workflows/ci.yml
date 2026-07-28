@@ -2,10 +2,20 @@ name: validate
 
 on:
   pull_request:
+  workflow_dispatch:   # so a run can be retried without closing and reopening the PR
 
 jobs:
-  validate-gitconfig:
-    runs-on: ubuntu-latest
+  # Both userlands, because that is where the bugs are. The scripts under bin/
+  # run on the Mac and on the ThinkPads, and BSD and GNU disagree on enough to
+  # matter: BSD grep reads `-Dawt.toolkit.name=` as an option, BSD sed reads
+  # `\|` as a literal pipe. Linux alone would have passed all three.
+  # macos-latest also gives bash 3.2, which is what Apple still ships.
+  qa:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - run: make qa

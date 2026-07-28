@@ -71,6 +71,9 @@ brew "zsh-autocomplete" if OS.mac?
 if OS.mac?
 	# Terminal emulator as alternative to Apple's Terminal app
 	cask "iterm2"
+	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so
+	# the heap this repo wants is applied by `make jetbrains` afterwards.
+	cask "jetbrains-toolbox"
 	# Open-source cross-platform alternative to AirDrop
 	cask "localsend"
 	# macOS App for monitoring power usage and charging status

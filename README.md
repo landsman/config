@@ -20,6 +20,7 @@ lives wherever it stays true.
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
 | `.bashrc` | Fragment *sourced* from the distro `~/.bashrc` by absolute path | `make shell` |
 | `Brewfile` | Packages — one list for every machine, macOS and Linux | `make brew` |
+| `bin/` | Setup that a symlink cannot express, one directory per tool, each with its own `*.test.sh` | its own `make` target |
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
@@ -109,6 +110,11 @@ and `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
 `os/macos/.zshrc` loads the same directory, so the drop-ins are shell-agnostic
 despite the name.
 
+**JetBrains vmoptions are patched, not stowed** — Toolbox rewrites that file on
+every launch with per-machine values, so a symlink into the repo would push them
+back into git. `make jetbrains` patches only the lines this repo owns; see
+[bin/jetbrains/README.md](bin/jetbrains/README.md).
+
 **KDE config files rewrite themselves.** KConfig saves by writing a temp file and
 renaming it over the target, which replaces the symlink with a regular file — so
 `os/ubuntu/.config/dolphinrc` will silently detach after KDE changes a setting. Run
@@ -121,4 +127,5 @@ renaming it over the target, which replaces the symlink with a regular file — 
 - [HP ProDesk 600 G3](devices/hp-prodesk-600-g3/README.md) — the pollos cluster, provisioned from [landsman/homelab](https://github.com/landsman/homelab/tree/main/pollos)
 - [Omarchy/Arch userland](os/arch/README.md) — Hyprland config, and the AUR packages that stay out of the Brewfile
 - [T480 system config (root-owned)](devices/t480/system/README.md)
+- [JetBrains](bin/jetbrains/README.md) — Toolbox install, and why the IDE heap is patched rather than stowed
 - [Claude](.claude/README.md)
