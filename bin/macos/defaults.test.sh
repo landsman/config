@@ -24,22 +24,34 @@ chmod +x "$tmp/defaults"
 out=$(PATH="$tmp:$PATH" "$script" --dry-run)
 
 check "dry run never calls defaults" '' "$(grep 'STUB CALLED' <<<"$out" || true)"
-check "every line is a defaults write" '0' \
-	"$(grep -cv "^defaults \(-currentHost \)\?write [^ ]* '[^']*' " <<<"$out")"
+check "every line is a defaults write or import" '0' \
+	"$(grep -cv -e "^defaults \(-currentHost \)\?write [^ ]* '[^']*' " -e '^defaults import ' <<<"$out")"
+
+# The domain import is the one line that depends on a second file: a rename or a
+# stray `git rm` turns it into a runtime failure on a fresh Mac and nowhere else.
+plist=$(sed -n 's/^defaults import [^ ]* //p' <<<"$out")
+check "imports exactly one plist" '1' "$(wc -l <<<"$plist" | tr -d ' ')"
+check "the imported plist exists" 'yes' "$([ -f "$plist" ] && echo yes || echo no)"
+check "it is the hotkeys domain" '1' "$(grep -c AppleSymbolicHotKeys "$plist" || true)"
+# XML, not binary: the point of committing it is that a change shows up as a diff.
+check "the plist is XML" '1' "$(head -1 "$plist" | grep -c '^<?xml' || true)"
+if command -v plutil >/dev/null; then
+	check "the plist parses" '0' "$(plutil -lint "$plist" >/dev/null 2>&1; echo $?)"
+fi
 
 # domain + key, one per line — the quotes are what make a key with spaces
 # survive this intact.
 pairs=$(sed -n "s/^defaults write \([^ ]*\) '\([^']*\)'.*/\1 \2/p" <<<"$out")
 
-# A setting written twice is silently the last one — and with 30-odd lines in
-# seven domains, the same key landing in two sections is the way this file rots.
+# A setting written twice is silently the last one — and with 40-odd lines in
+# eleven domains, the same key landing in two sections is the way this file rots.
 check "no key written twice" '' "$(sort <<<"$pairs" | uniq -d)"
 
 check "menu bar keys survive their spaces" '4' \
 	"$(grep -c "^com.apple.controlcenter NSStatusItem Preferred Position " <<<"$pairs")"
 
 # Cheap sanity that the list is still the list, not an empty loop.
-check "writes every domain" '7' "$(cut -d' ' -f1 <<<"$pairs" | sort -u | wc -l | tr -d ' ')"
+check "writes every domain" '11' "$(cut -d' ' -f1 <<<"$pairs" | sort -u | wc -l | tr -d ' ')"
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }
 echo "all passed"

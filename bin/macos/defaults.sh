@@ -29,6 +29,13 @@ w() {
 	else defaults write "$@"; fi
 }
 
+# The -currentHost twin: same keys, but a per-machine plist under ByHost, which
+# is where the window server and Control Center actually read some of them from.
+wh() {
+	if [ -n "$DRY_RUN" ]; then printf "defaults -currentHost write %s '%s' %s\n" "$1" "$2" "${*:3}"
+	else defaults -currentHost write "$@"; fi
+}
+
 #
 # Menu bar — what is in it, and in what order
 #
@@ -44,6 +51,18 @@ w com.apple.controlcenter "NSStatusItem VisibleCC Sound"      -bool true
 w com.apple.controlcenter "NSStatusItem VisibleCC WiFi"       -bool true
 w com.apple.controlcenter "NSStatusItem VisibleCC Clock"      -bool true
 w com.apple.controlcenter "NSStatusItem VisibleCC BentoBox-0" -bool true
+
+# The modules themselves, which live per-host rather than in the domain above.
+# 8 = in Control Center only, 16 = in the menu bar too, 2 = show while active,
+# 0 = off. Anything not listed keeps whatever the machine has.
+wh com.apple.controlcenter Sound            -int 16
+wh com.apple.controlcenter ScreenMirroring  -int 2
+wh com.apple.controlcenter NowPlaying       -int 8
+wh com.apple.controlcenter FocusModes       -int 8
+wh com.apple.controlcenter KeyboardBrightness -int 8
+wh com.apple.controlcenter Spotlight        -int 8
+wh com.apple.controlcenter VoiceControl     -int 8
+wh com.apple.controlcenter Timer            -int 0
 
 # The clock: day of the week, 12-hour, no date.
 w com.apple.menuextra.clock ShowDayOfWeek -bool true
@@ -64,14 +83,35 @@ w com.apple.dock "wvous-br-corner"   -int 14
 w com.apple.dock "wvous-br-modifier" -int 0
 
 #
+# Window tiling and Stage Manager
+#
+# No gap between tiled windows — the margin is the whole reason macOS tiling
+# looks worse than a real tiler.
+w com.apple.WindowManager EnableTiledWindowMargins -bool false
+# Clicking the wallpaper reveals the desktop only in Stage Manager, not always.
+w com.apple.WindowManager HideDesktop -bool true
+w com.apple.WindowManager AutoHide -bool true
+w com.apple.WindowManager AppWindowGroupingBehavior -int 1
+
+#
 # Finder
 #
 w com.apple.finder AppleShowAllFiles -bool true
 w NSGlobalDomain AppleShowAllExtensions -bool true
+w com.apple.finder FXPreferredViewStyle -string Nlsv   # list view
+w com.apple.finder NewWindowTarget      -string PfAF   # new window opens All Files
+w com.apple.finder "_FXSortFoldersFirst" -bool true
+w com.apple.finder ShowRecentTags -bool false
+# On the desktop: mounted volumes yes, the internal disk no.
+w com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
+w com.apple.finder ShowRemovableMediaOnDesktop     -bool true
+w com.apple.finder ShowMountedServersOnDesktop     -bool true
+w com.apple.finder ShowHardDrivesOnDesktop         -bool false
 
 #
 # System-wide
 #
+w NSGlobalDomain "com.apple.swipescrolldirection" -bool false   # not "natural"
 w NSGlobalDomain AppleInterfaceStyleSwitchesAutomatically -bool true   # light/dark by time
 w NSGlobalDomain AppleMiniaturizeOnDoubleClick -bool false
 w NSGlobalDomain AppleWindowTabbingMode -string always
@@ -92,12 +132,42 @@ w com.apple.AppleMultitouchTrackpad Clicking -bool true
 w com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 # The per-host twin of the same setting; without it the tap stops working after
 # a logout, because this is the one the window server actually reads.
-if [ -n "$DRY_RUN" ]; then
-	echo "defaults -currentHost write NSGlobalDomain 'com.apple.mouse.tapBehavior' -int 1"
-else
-	defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
-fi
+wh NSGlobalDomain "com.apple.mouse.tapBehavior" -int 1
 
+#
+# Privacy
+#
+w com.apple.AdLib allowApplePersonalizedAdvertising -bool false
+w com.apple.assistant.support "Dictation Auto Punctuation Enabled" -bool false
+
+#
+# Keyboard layouts — Czech and U.S., plus the emoji picker
+#
+# An array of dicts, so it goes in as an old-style plist literal rather than as
+# one key per value. The IDs are Apple's, and the string/integer split is theirs
+# too: it is what `defaults read` shows, and the layout is not found if it is
+# normalised. The order here is the order in the input menu.
+w com.apple.HIToolbox AppleEnabledInputSources -array \
+	'{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = "-14193"; "KeyboardLayout Name" = Czech; }' \
+	'{ InputSourceKind = "Keyboard Layout"; "KeyboardLayout ID" = 0; "KeyboardLayout Name" = "U.S."; }' \
+	'{ "Bundle ID" = "com.apple.CharacterPaletteIM"; InputSourceKind = "Non Keyboard Input Method"; }'
+
+#
+# Keyboard shortcuts — 17 of the 21 system ones are off
+#
+# A whole domain, not a key list: the shortcuts are one nested dict of numeric
+# IDs, and 17 `defaults write ... -dict-add` lines would be less readable than
+# the plist itself. Exported as XML, so a change to it shows up as a diff:
+#   defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
+#   plutil -convert xml1 bin/macos/symbolichotkeys.plist
+# `import` replaces the domain outright, which is the intent — the domain holds
+# nothing but these shortcuts.
+hotkeys="$(cd "$(dirname "$0")" && pwd)/symbolichotkeys.plist"
+if [ -n "$DRY_RUN" ]; then
+	echo "defaults import com.apple.symbolichotkeys $hotkeys"
+else
+	defaults import com.apple.symbolichotkeys "$hotkeys"
+fi
 
 [ -n "$DRY_RUN" ] && exit 0
 

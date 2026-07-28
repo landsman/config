@@ -132,6 +132,16 @@ diff /tmp/before /tmp/after
 and paste the key into the script with the type `defaults read-type <domain> <key>`
 reports. `./bin/macos/defaults.sh --dry-run` prints every write without doing any.
 
+One domain is committed whole instead: `bin/macos/symbolichotkeys.plist` is the
+keyboard shortcuts, 17 of the 21 system ones turned off. That is a nested dict of
+numeric IDs, so it is exported as XML and `defaults import`ed — readable as a diff,
+where seventeen `-dict-add` lines would not be. Re-export it with:
+
+```
+defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
+plutil -convert xml1 bin/macos/symbolichotkeys.plist
+```
+
 **JetBrains vmoptions are patched, not stowed** — Toolbox rewrites that file on
 every launch with per-machine values, so a symlink into the repo would push them
 back into git. `make jetbrains` patches only the lines this repo owns; see
