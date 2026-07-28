@@ -4,7 +4,7 @@
     <!-- Opening this repo in a JetBrains IDE offers to install everything below,
          IDE-wide. See bin/jetbrains/README.md. -->
 
-    <!-- editing -->
+    <!-- editing/dependencies -->
     <extension id="com.fwdekker.randomness" />
     <extension id="ru.adelf.idea.dotenv" />
     <extension id="name.kropp.intellij.makefile" />
@@ -15,6 +15,7 @@
     <extension id="org.nette.latte" />
 
     <!-- JVM -->
+    <extension id="com.haulmont.jpab" />
     <extension id="com.intellij.spring.debugger" />
     <extension id="com.intellij.spring.websocket" />
     <extension id="com.intellij.reactivestreams" />
