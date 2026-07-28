@@ -171,9 +171,28 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 # macOS System Settings — the panes stow cannot reach, see bin/macos/defaults.sh
 #
 
-.PHONY: macos
+.PHONY: macos macos-touchid
 macos: ## apply the macOS settings this repo owns (menu bar, Dock, Finder, trackpad)
 	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; ./bin/macos/defaults.sh
+
+macos-touchid: ## authenticate sudo with Touch ID (root-owned, so its own target)
+	@# There is no System Settings toggle for this: the Touch ID pane covers the
+	@# login window and Apple Pay, and sudo is PAM only. Apple ships the line
+	@# commented out in a template that survives OS updates, so this uncomments
+	@# that rather than writing a PAM file of its own.
+	@# Not folded into `make macos`, which writes nothing outside $$HOME and asks
+	@# for no password — this is the one thing here that needs root.
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; \
+	t=/etc/pam.d/sudo_local.template; f=/etc/pam.d/sudo_local; \
+	if [ -f "$$f" ] && grep -q '^auth.*pam_tid.so' "$$f"; then echo "already enabled: $$f"; exit 0; fi; \
+	[ -f "$$t" ] || { echo "no $$t - needs macOS 14 or newer"; exit 1; }; \
+	tmp=$$(mktemp); sed 's/^#auth\(.*pam_tid\.so\)/auth\1/' "$$t" > "$$tmp"; \
+	grep -q '^auth[[:space:]]*sufficient[[:space:]]*pam_tid\.so' "$$tmp" \
+		|| { rm -f "$$tmp"; echo "the template is not what this expects - enable it by hand"; exit 1; }; \
+	echo "sudo is about to be reconfigured - keep this terminal open until it is verified"; \
+	sudo install -m 444 -o root -g wheel "$$tmp" "$$f"; rm -f "$$tmp"; \
+	cat "$$f"; \
+	sudo -k; echo "now run any sudo command - it should ask for a fingerprint"
 
 #
 # GIT config

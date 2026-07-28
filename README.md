@@ -58,6 +58,7 @@ make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats
+make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for root)
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 ```
 
@@ -141,6 +142,18 @@ where seventeen `-dict-add` lines would not be. Re-export it with:
 defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
 plutil -convert xml1 bin/macos/symbolichotkeys.plist
 ```
+
+**Touch ID for `sudo` has no GUI switch.** The Touch ID pane in System Settings
+covers the login window, Apple Pay and password autofill; `sudo` is PAM only.
+Since macOS 14 Apple ships `/etc/pam.d/sudo_local.template` with the line
+commented out, in a file that survives OS updates — `make macos-touchid`
+uncomments it, checks the result before installing it, and leaves the terminal
+open so a broken `sudo` can still be undone.
+
+It does not work inside `tmux`: a tmux pane is not attached to the session that
+owns the Touch ID prompt. `pam_reattach` fixes that, and is deliberately not here
+— it would put a `/opt/homebrew` object into root's authentication stack, and
+Homebrew's prefix is writable by the user it would be granting root to.
 
 **JetBrains vmoptions are patched, not stowed** — Toolbox rewrites that file on
 every launch with per-machine values, so a symlink into the repo would push them
