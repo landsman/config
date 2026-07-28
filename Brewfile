@@ -27,6 +27,14 @@ brew "gh"
 brew "hstr"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
+# Kubernetes package manager
+brew "helm"
+# Kubernetes CLI To Manage Your Clusters In Style!
+brew "k9s"
+# Tool that can switch between kubectl contexts easily and create aliases
+brew "kubectx"
+# Kubernetes command-line interface
+brew "kubernetes-cli"
 # Lazier way to manage everything docker
 brew "lazydocker"
 # TUI for logs from journalctl, file system, Docker, Podman and Kubernetes pods
