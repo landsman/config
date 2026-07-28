@@ -56,7 +56,14 @@ make brew    # install Homebrew if missing, then the Brewfile (stow included)
 make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
+
+make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 ```
+
+Opening this repo in a JetBrains IDE is the last step: it offers to install every
+plugin in `.idea/externalDependencies.xml` in one click, and plugins are installed
+per IDE rather than per project, so that one prompt covers every project on the
+machine. See [bin/jetbrains/README.md](bin/jetbrains/README.md).
 
 `make brew` comes first because `stow` is in the Brewfile. Homebrew runs on
 Linux too, which is the point: one package list for every machine instead of a
@@ -127,5 +134,5 @@ renaming it over the target, which replaces the symlink with a regular file — 
 - [HP ProDesk 600 G3](devices/hp-prodesk-600-g3/README.md) — the pollos cluster, provisioned from [landsman/homelab](https://github.com/landsman/homelab/tree/main/pollos)
 - [Omarchy/Arch userland](os/arch/README.md) — Hyprland config, and the AUR packages that stay out of the Brewfile
 - [T480 system config (root-owned)](devices/t480/system/README.md)
-- [JetBrains](bin/jetbrains/README.md) — Toolbox install, and why the IDE heap is patched rather than stowed
+- [JetBrains](bin/jetbrains/README.md) — Toolbox install, the plugin list, and why the IDE heap is patched rather than stowed
 - [Claude](.claude/README.md)

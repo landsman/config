@@ -162,6 +162,10 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 .PHONY: jetbrains
 jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 	./bin/jetbrains/vmoptions.sh
+	@# The plugin half has no script to run: .idea/externalDependencies.xml makes
+	@# the IDE offer to install the lot, and plugins are per IDE, not per project.
+	@echo
+	@echo "plugins: open $(CURDIR) in the IDE and accept the 'required plugins' prompt"
 
 #
 # GIT config
