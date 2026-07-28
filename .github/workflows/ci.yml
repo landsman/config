@@ -2,6 +2,7 @@ name: validate
 
 on:
   pull_request:
+  workflow_dispatch:   # so a run can be retried without closing and reopening the PR
 
 jobs:
   # Both userlands, because that is where the bugs are. The scripts under bin/
