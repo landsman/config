@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 
-.PHONY: help qa git git-config-validate git-config-format brew stow restow unstow shell
+.PHONY: help qa test git git-config-validate git-config-format brew stow restow unstow \
+	shell jetbrains
 
 # Dotfiles are stowed from three places, each mirroring $HOME:
 #   .           shared/   portable, any machine + any OS
@@ -82,10 +83,25 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 		|| true
 
 #
+# JetBrains IDEs — see bin/jetbrains/README.md for why this is a script, not stow
+#
+
+jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
+	./bin/jetbrains/vmoptions.sh
+
+#
 # GIT config
 #
 
-qa: git-config-validate ## run all checks
+qa: git-config-validate test ## run all checks — this is what CI runs
+
+test: ## run every bin/*/*.test.sh — self-contained, no machine state touched
+	@# `|| exit 1`, because a for loop exits with the status of its *last*
+	@# iteration: without it a failure in any but the last test is reported green,
+	@# and this is what CI gates on.
+	@for t in bin/*/*.test.sh; do \
+		echo "== $$t"; bash "$$t" || exit 1; \
+	done
 
 git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
 	@git config --global --get-all include.path | grep -qxF '$(CURDIR)/.gitconfig' \
