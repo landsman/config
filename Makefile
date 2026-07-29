@@ -483,6 +483,15 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 	@echo
 	@echo "plugins: open $(CURDIR) in the IDE and accept the 'required plugins' prompt"
 
+##@ Google Chrome
+#
+# The toggles Google does not sync, see bin/chrome/prefs.sh
+#
+
+.PHONY: chrome
+chrome: ## apply the Chrome settings that do not sync (vertical tabs, side panel)
+	./bin/chrome/prefs.sh
+
 ##@ macOS System Settings
 #
 # The panes stow cannot reach, see bin/macos/defaults.sh
