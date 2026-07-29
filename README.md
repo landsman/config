@@ -147,9 +147,16 @@ plutil -convert xml1 bin/macos/symbolichotkeys.plist
 silently: `mdutil -s` still says "Indexing enabled", the apps are still in
 `/Applications`, they just stop coming up in search — which is how every Homebrew
 cask on this machine went missing at once. So the script counts what is indexed
-against what is installed and prints the fix if the two disagree. It does not run
-the fix: `sudo mdutil -E /` wants root and rebuilds for the better part of an hour,
-which is not a thing a settings script should start on its own.
+against what is installed and prints the repair if the two disagree. It does not
+run it: `sudo mdutil -E /` wants root, rebuilds for the better part of an hour and
+ends in a reboot, which is not a thing a settings script should start on its own.
+
+The reboot is the part that is easy to skip and cannot be. `mdutil -E` erases the
+index without restarting the indexer, and SIP refuses
+`launchctl kickstart com.apple.metadata.mds` — so erasing and walking away leaves
+the volume with no index at all, which is worse than the stale one. If a reboot
+does not bring it back, the disk is in **System Settings → Spotlight → Search
+Privacy**, which no amount of reindexing gets past.
 
 **Touch ID for `sudo` has no GUI switch.** The Touch ID pane in System Settings
 covers the login window, Apple Pay and password autofill; `sudo` is PAM only.
