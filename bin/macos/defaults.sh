@@ -174,3 +174,26 @@ fi
 # cfprefsd caches writes, and these apps only read at launch.
 killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
 echo "applied - log out and back in for the rest"
+
+#
+# Spotlight — report a stale index, do not rebuild it
+#
+# When the index rots, macOS says nothing: `mdutil -s` still reports "Indexing
+# enabled", the apps are all still in /Applications, they just stop coming up in
+# search. Every Homebrew cask on this machine was missing that way once, and
+# neither `make brew` nor `make macos` noticed.
+#
+# ponytail: a count and a warning. Repairing it needs root, runs for an hour and
+# ends in a reboot, which is not something a settings script should do to you
+# unasked — so the steps go in the message and the choice stays yours.
+#
+# The reboot is not optional padding: `mdutil -E` erases the store but does not
+# restart the indexer, and `launchctl kickstart com.apple.metadata.mds` is
+# refused while SIP is on. Erasing without rebooting leaves the volume with no
+# index at all, which is worse than the stale one it replaced.
+have=$(find /Applications -maxdepth 1 -name '*.app' | wc -l | tr -d ' ')
+seen=$(mdfind 'kMDItemContentType == "com.apple.application-bundle"' 2>/dev/null \
+	| grep -c '^/Applications/[^/]*\.app$' || true)
+if [ "$seen" -lt $((have / 2)) ]; then
+	echo "spotlight: only $seen of $have apps indexed - run 'sudo mdutil -E /', then reboot"
+fi
