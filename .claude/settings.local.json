@@ -122,7 +122,8 @@
       "mcp__azure-devops__pipelines_get_run",
       "mcp__atlassian__getJiraIssue",
       "mcp__atlassian__searchJiraIssuesUsingJql",
-      "Bash(gh:*)"
+      "Bash(gh:*)",
+      "WebSearch"
     ],
     "deny": [
       "Bash(git push*main*)",

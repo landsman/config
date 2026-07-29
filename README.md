@@ -60,7 +60,14 @@ make git     # hook in .gitconfig, set email + commit signing
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats
 make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for root)
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
+make chrome      # Chrome's non-syncing toggles — quit Chrome first
 ```
+
+`make chrome` covers the handful of Chrome settings that stay on the machine
+instead of following the Google account: vertical tabs and which side the side
+panel opens on. Chrome rewrites `Default/Preferences` when it exits, so the
+target refuses to run while it is open — everything else in that file (site
+permissions, history, the window rectangle) is left untouched.
 
 Opening this repo in a JetBrains IDE is the last step: it offers to install every
 plugin in `.idea/externalDependencies.xml` in one click, and plugins are installed
