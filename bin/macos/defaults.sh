@@ -174,3 +174,21 @@ fi
 # cfprefsd caches writes, and these apps only read at launch.
 killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
 echo "applied - log out and back in for the rest"
+
+#
+# Spotlight — report a stale index, do not rebuild it
+#
+# When the index rots, macOS says nothing: `mdutil -s` still reports "Indexing
+# enabled", the apps are all still in /Applications, they just stop coming up in
+# search. Every Homebrew cask on this machine was missing that way once, and
+# neither `make brew` nor `make macos` noticed.
+#
+# ponytail: a count and a warning. Rebuilding needs root and runs for an hour,
+# which is not something a settings script should do to you unasked — and the
+# one command that fixes it is right there in the message.
+have=$(find /Applications -maxdepth 1 -name '*.app' | wc -l | tr -d ' ')
+seen=$(mdfind 'kMDItemContentType == "com.apple.application-bundle"' 2>/dev/null \
+	| grep -c '^/Applications/[^/]*\.app$' || true)
+if [ "$seen" -lt $((have / 2)) ]; then
+	echo "spotlight: only $seen of $have apps indexed - run: sudo mdutil -E /"
+fi

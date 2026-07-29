@@ -143,6 +143,14 @@ defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
 plutil -convert xml1 bin/macos/symbolichotkeys.plist
 ```
 
+**`make macos` also checks Spotlight, and only checks it.** A rotted index fails
+silently: `mdutil -s` still says "Indexing enabled", the apps are still in
+`/Applications`, they just stop coming up in search — which is how every Homebrew
+cask on this machine went missing at once. So the script counts what is indexed
+against what is installed and prints the fix if the two disagree. It does not run
+the fix: `sudo mdutil -E /` wants root and rebuilds for the better part of an hour,
+which is not a thing a settings script should start on its own.
+
 **Touch ID for `sudo` has no GUI switch.** The Touch ID pane in System Settings
 covers the login window, Apple Pay and password autofill; `sudo` is PAM only.
 Since macOS 14 Apple ships `/etc/pam.d/sudo_local.template` with the line
