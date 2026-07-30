@@ -86,4 +86,6 @@ if OS.mac?
 	cask "localsend"
 	# macOS App for monitoring power usage and charging status
 	cask "lzt1008/powerflow/powerflow", trusted: true
+	# Video meetings and messaging
+	cask "webex"
 end
