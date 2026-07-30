@@ -71,7 +71,11 @@ machine. See [bin/jetbrains/README.md](bin/jetbrains/README.md).
 Linux too, which is the point: one package list for every machine instead of a
 Brewfile here and an apt list there. It is heavier than `apt install stow` — a
 few hundred MB under `/home/linuxbrew` — so anything a distro does better stays
-with the distro; guard those lines with `if OS.mac?`. The shell needs to pick up
+with the distro; guard those lines with `if OS.mac?`. GUI apps are mostly that
+case, since a cask installs on Linux only when it ships a Linux build: after
+`brew bundle`, `make brew` runs `os/<os-id>/install-apps.sh` if that OS has one,
+which is where the vendor apt repos live (see
+[os/ubuntu/README.md](os/ubuntu/README.md)). The shell needs to pick up
 the new `brew` before `make stow` runs: open a new terminal, or
 `eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"` (macOS:
 `/opt/homebrew/bin/brew`).

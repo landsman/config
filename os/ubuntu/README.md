@@ -11,43 +11,36 @@ The KDE side of whichever machine boots Kubuntu — currently only the
 
 ## Packages
 
-These stay with the distro rather than going in the root `Brewfile`. Homebrew on
-Linux only installs a cask when that cask ships a Linux build, and almost none of
-the GUI apps do — `brew install --cask 1password` fails on Linux with a
-`depends_on macos` requirement, because the cask's only artifact is a macOS
-`.app`. 1Password ships a `.deb` instead, from its own signed apt repo.
+| App | Where from |
+|-----|------------|
+| 1Password (GUI) | [`install-apps.sh`](install-apps.sh), from 1Password's apt repo |
 
-Add the repo once per machine:
-
-```bash
-curl -sS https://downloads.1password.com/linux/keys/1password.asc \
-  | sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main" \
-  | sudo tee /etc/apt/sources.list.d/1password.list
-```
-
-The `.deb` is also debsig-signed, and apt refuses it without the policy in place:
+`make brew` runs [`install-apps.sh`](install-apps.sh) itself, right after
+`brew bundle`, so there is nothing extra to remember on a new machine — it looks
+for `os/$ID/install-apps.sh` using the same `/etc/os-release` detection that
+picks the stow package, and skips when there is no such file. To run it alone:
 
 ```bash
-sudo install -d /etc/debsig/policies/AC2D62742012EA22
-curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol \
-  | sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol
-sudo install -d /usr/share/debsig/keyrings/AC2D62742012EA22
-curl -sS https://downloads.1password.com/linux/keys/1password.asc \
-  | sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+bash os/ubuntu/install-apps.sh
 ```
 
-Then install the GUI, and only the GUI:
+It is idempotent and asks for root only when an app is actually missing, so
+re-running `make brew` on a provisioned machine neither reinstalls anything nor
+prompts for a password.
 
-```bash
-sudo apt update && sudo apt install -y 1password
-```
+These stay with the distro rather than going in the root `Brewfile` because
+Homebrew on Linux installs a cask only when that cask ships a Linux build, and
+almost no GUI app does. `brew install --cask 1password` fails with a
+`depends_on macos` requirement: the cask's one artifact is a macOS `.app`, and
+`appimage` — the stanza that would cover Linux — has nothing to point at,
+because 1Password publishes only `.deb`, `.rpm` and a tarball.
 
-`AC2D62742012EA22` is the long id of the signing key (full fingerprint
-`3FEF9748469ADBE15DA7CA80AC2D62742012EA22`) and has to match the `Origin id` in
-the `.pol` file — if 1Password ever rotates it, all four paths above change
-together. `arch=amd64` covers both Linux boxes here; the repo also publishes
-`arm64`.
+The `.deb` route has one wrinkle worth knowing before reading the script:
+1Password signs the repo *and* debsig-signs the package, and apt refuses to
+unpack the second without a policy under `/etc/debsig/policies/` naming the key.
+So the script installs a keyring, a sources list, a policy and a debsig keyring —
+four paths, all derived from one pinned fingerprint, which it verifies against
+the downloaded key before trusting it.
 
 Not `1password-cli` — the same apt repo carries it, but the `1password-cli` cask
 does ship a Linux build, so the [`Brewfile`](../../Brewfile) installs `op` on

@@ -82,6 +82,13 @@ brew: ## install Homebrew if missing, then everything in the Brewfile
 	@b=$$(command -v brew \
 		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
 		"$$b" bundle --file Brewfile
+	@# The GUI half of the Brewfile is `if OS.mac?`, because a cask installs on
+	@# Linux only when it ships a Linux build and almost no GUI app does. What
+	@# the distro has to supply instead lives next to that OS's dotfiles, using
+	@# the same $(OS) detection `make stow` uses. No file, nothing to do — which
+	@# is how macOS skips this without a guard.
+	@if [ -f 'os/$(OS)/install-apps.sh' ]; then bash 'os/$(OS)/install-apps.sh'; \
+		else echo "no distro apps for os '$(OS)' - skipped"; fi
 
 brew-test: ## parse the Brewfile without installing anything
 	@# The Brewfile is Ruby, and `make brew` is the first thing a new machine
