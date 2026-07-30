@@ -77,10 +77,14 @@ brew "zsh-autocomplete" if OS.mac?
 
 # GUI apps — casks are macOS-only, Homebrew on Linux has none.
 if OS.mac?
+	# Password manager
+	cask "1password"
 	# Desktop client for ChatGPT
 	cask "chatgpt"
 	# Desktop client for Claude
 	cask "claude"
+	# Database GUI for PostgreSQL, MySQL and friends
+	cask "dbeaver-community"
 	# Container engine and GUI — the engine `lazydocker` above talks to
 	cask "docker-desktop"
 	# Collaborative design and prototyping
@@ -102,6 +106,8 @@ if OS.mac?
 	cask "perplexity"
 	# Text editor for code, markup and prose
 	cask "sublime-text"
+	# Mesh VPN — the GUI app, the plain formula is CLI-only
+	cask "tailscale-app"
 	# Video meetings and messaging
 	cask "webex"
 	# Desktop client for WhatsApp messaging
