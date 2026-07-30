@@ -92,10 +92,14 @@ if OS.mac?
 	cask "localsend"
 	# macOS App for monitoring power usage and charging status
 	cask "lzt1008/powerflow/powerflow", trusted: true
+	# Team collaboration and meetings
+	cask "microsoft-teams"
 	# Text editor for code, markup and prose
 	cask "sublime-text"
 	# Video meetings and messaging
 	cask "webex"
+	# Desktop client for WhatsApp messaging
+	cask "whatsapp"
 	# Multiplayer code editor
 	cask "zed"
 end
