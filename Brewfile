@@ -77,6 +77,8 @@ brew "zsh-autocomplete" if OS.mac?
 
 # GUI apps — casks are macOS-only, Homebrew on Linux has none.
 if OS.mac?
+	# Collaborative design and prototyping
+	cask "figma"
 	# Terminal emulator as alternative to Apple's Terminal app
 	cask "iterm2"
 	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so
