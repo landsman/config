@@ -11,9 +11,33 @@ The KDE side of whichever machine boots Kubuntu — currently only the
 
 ## Packages
 
-| App | Where from |
-|-----|------------|
-| 1Password (GUI) | [`install-apps.sh`](install-apps.sh), from 1Password's apt repo |
+[`install-apps.sh`](install-apps.sh) installs these from the vendors' own apt
+repos, because the `Brewfile` cannot:
+
+| App | Package | Repo |
+|-----|---------|------|
+| 1Password | `1password` | `downloads.1password.com` — also debsig-signed, see below |
+| Sublime Text | `sublime-text` | `download.sublimetext.com` (flat repo) |
+| DBeaver CE | `dbeaver-ce` | `dbeaver.io/debs` (flat repo) |
+| Docker Engine | `docker-ce` + cli, containerd, buildx, compose | `download.docker.com` |
+| Tailscale | `tailscale` | `pkgs.tailscale.com` |
+
+Docker is the *engine*, not Docker Desktop: Desktop for Linux is a hand-download
+`.deb` with no repo behind it, and the engine is what
+[`lazydocker`](../../Brewfile) actually talks to. Two follow-ups are left to you
+on purpose — `usermod -aG docker $USER` (root-equivalent, so it should be a
+decision, not a side effect of `make brew`) and `sudo tailscale up`.
+
+### Not installable this way
+
+| App | Why |
+|-----|-----|
+| ChatGPT, Claude, Perplexity | No Linux desktop app — macOS and Windows only |
+| Figma | Browser only on Linux, no desktop build |
+| WhatsApp | No official Linux desktop app |
+| Microsoft Teams | Discontinued. `packages.microsoft.com/repos/ms-teams` still resolves, but its `Packages` index is 0 bytes and was last built in Feb 2023 |
+| iTerm2, PowerFlow | macOS-only by nature; Ghostty covers the terminal here |
+| Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
 
 `make brew` runs [`install-apps.sh`](install-apps.sh) itself, right after
 `brew bundle`, so there is nothing extra to remember on a new machine — it looks
@@ -35,12 +59,23 @@ almost no GUI app does. `brew install --cask 1password` fails with a
 `appimage` — the stanza that would cover Linux — has nothing to point at,
 because 1Password publishes only `.deb`, `.rpm` and a tarball.
 
-The `.deb` route has one wrinkle worth knowing before reading the script:
-1Password signs the repo *and* debsig-signs the package, and apt refuses to
-unpack the second without a policy under `/etc/debsig/policies/` naming the key.
-So the script installs a keyring, a sources list, a policy and a debsig keyring —
-four paths, all derived from one pinned fingerprint, which it verifies against
-the downloaded key before trusting it.
+Every signing key is **pinned by fingerprint** and checked against the download
+before it is installed. Piping `curl` straight into a keyring is what the vendor
+instructions all say, but that key then authenticates root-owned packages
+indefinitely, so a hijacked bucket or an intercepting proxy should fail the
+install rather than quietly win it. If a vendor genuinely rotates a key the
+script stops with the two fingerprints side by side; verify the new one against
+the vendor's own documentation before editing the constant.
+
+1Password needs two extra files the others do not: it signs the repo *and*
+debsig-signs the package, and apt refuses to unpack the second without a policy
+under `/etc/debsig/policies/` naming the key.
+
+[`install-apps.test.sh`](install-apps.test.sh) covers all of this with `apt`,
+`dpkg`, `curl` and `gpg` stubbed and every root-owned path redirected into a
+temp directory, so it runs on any machine — `make qa` includes it. The case it
+exists for is the mismatched fingerprint: a pin that silently passes everything
+would be worse than no pin at all.
 
 Not `1password-cli` — the same apt repo carries it, but the `1password-cli` cask
 does ship a Linux build, so the [`Brewfile`](../../Brewfile) installs `op` on

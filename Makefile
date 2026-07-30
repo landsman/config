@@ -61,11 +61,13 @@ lint: ## parse every shell file without running it
 	@# the rest (fpath arrays, autoload).
 	@echo "== os/macos/.zshrc"; zsh -n os/macos/.zshrc
 
-bin-test: ## run every bin/*/*.test.sh — self-contained, no machine state touched
+bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	@# `|| exit 1`, because a for loop exits with the status of its *last*
 	@# iteration: without it a failure in any but the last test is reported green,
 	@# and this is what CI gates on.
-	@for t in bin/*/*.test.sh; do \
+	@# os/ too, not just bin/: the distro installers stub apt and dpkg rather
+	@# than touching them, so they run anywhere, including the macOS runner.
+	@for t in bin/*/*.test.sh os/*/*.test.sh; do \
 		echo "== $$t"; bash "$$t" || exit 1; \
 	done
 
