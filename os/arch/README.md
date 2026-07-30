@@ -19,4 +19,4 @@ yay -S hyprmon-bin      # monitor manager TUI — the profiles above are its con
 ```
 
 Everything portable — the CLI tooling shared with the Mac — is in the
-[`Brewfile`](../../Brewfile) instead, installed by `make brew`.
+[`Brewfile`](../../Brewfile) instead, installed by `make apps`.
