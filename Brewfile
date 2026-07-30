@@ -77,6 +77,10 @@ brew "zsh-autocomplete" if OS.mac?
 
 # GUI apps — casks are macOS-only, Homebrew on Linux has none.
 if OS.mac?
+	# Desktop client for ChatGPT
+	cask "chatgpt"
+	# Desktop client for Claude
+	cask "claude"
 	# Container engine and GUI — the engine `lazydocker` above talks to
 	cask "docker-desktop"
 	# Collaborative design and prototyping
@@ -94,6 +98,8 @@ if OS.mac?
 	cask "lzt1008/powerflow/powerflow", trusted: true
 	# Team collaboration and meetings
 	cask "microsoft-teams"
+	# Desktop client for Perplexity AI
+	cask "perplexity"
 	# Text editor for code, markup and prose
 	cask "sublime-text"
 	# Video meetings and messaging
