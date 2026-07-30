@@ -75,7 +75,14 @@ brew "mactop" if OS.mac?
 # Real-time type-ahead completion for Zsh — the Linux boxes are bash, see .bashrc
 brew "zsh-autocomplete" if OS.mac?
 
-# GUI apps — casks are macOS-only, Homebrew on Linux has none.
+# Casks that ship a Linux build too, so they stay outside the guard below.
+# Command-line interface for 1Password
+cask "1password-cli"
+# Open-source cross-platform alternative to AirDrop
+cask "localsend"
+
+# GUI apps — nearly every cask is macOS-only, so the rest are guarded. Anything
+# the Linux boxes are better off getting from apt/pacman belongs in here too.
 if OS.mac?
 	# Password manager
 	cask "1password"
@@ -96,8 +103,6 @@ if OS.mac?
 	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so
 	# the heap this repo wants is applied by `make jetbrains` afterwards.
 	cask "jetbrains-toolbox"
-	# Open-source cross-platform alternative to AirDrop
-	cask "localsend"
 	# macOS App for monitoring power usage and charging status
 	cask "lzt1008/powerflow/powerflow", trusted: true
 	# Team collaboration and meetings
