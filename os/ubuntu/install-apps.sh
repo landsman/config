@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # GUI apps for the Kubuntu boxes that the Brewfile cannot install, from the
-# vendors' own apt repos. Run by `make brew` right after `brew bundle`, which
+# vendors' own apt repos. Run by `make apps` right after `brew bundle`, which
 # finds this file as os/$(OS)/install-apps.sh — an OS without one is skipped,
 # which is why macOS needs no guard here.
 #
@@ -11,7 +11,7 @@
 # is written down in the README next to this file.
 #
 # Idempotent, and quiet when there is nothing to do: already-installed apps are
-# skipped before anything asks for root, so a re-run of `make brew` on a
+# skipped before anything asks for root, so a re-run of `make apps` on a
 # provisioned machine neither reinstalls nor prompts for a password.
 #
 #   bash os/ubuntu/install-apps.sh

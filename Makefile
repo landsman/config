@@ -38,17 +38,17 @@ help: ## show this help
 #
 
 .PHONY: qa qa-deps lint bin-test
-qa: qa-deps lint git-config-test brew-test stow-test bin-test ## run all checks — this is what CI runs
+qa: qa-deps lint git-config-test apps-test stow-test bin-test ## run all checks — this is what CI runs
 
 qa-deps:
 	@# What the checks need, written down next to the checks, so ci.yml is just
 	@# `make qa`. No `##`: it is part of qa, not a target to reach for.
 	@# A runner is disposable and a laptop is not, so only CI gets to install
 	@# anything — anywhere else this says the same thing `make stow` says.
-	@# `brew install stow`, not `make brew`: the Brewfile is minutes of packages
+	@# `brew install stow`, not `make apps`: the Brewfile is minutes of packages
 	@# CI has no use for, and on Linux there is no brew to begin with.
 	@command -v stow >/dev/null && command -v zsh >/dev/null && exit 0; \
-	if [ -z "$$CI" ]; then echo "qa needs stow and zsh - run: make brew"; exit 1; \
+	if [ -z "$$CI" ]; then echo "qa needs stow and zsh - run: make apps"; exit 1; \
 	elif command -v brew >/dev/null; then brew install stow; \
 	else sudo apt-get update && sudo apt-get install -y stow zsh; fi
 
@@ -72,11 +72,13 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	done
 
 #
-# Packages via Homebrew — one Brewfile for macOS and Linux
+# Apps and packages — the Brewfile on every machine, plus whatever the distro
+# has to supply itself. Called `apps` rather than `brew` because Homebrew is
+# only most of it: the GUI half on Linux comes from vendor apt repos.
 #
 
-.PHONY: brew brew-test
-brew: ## install Homebrew if missing, then everything in the Brewfile
+.PHONY: apps apps-test
+apps: ## install Homebrew if missing, then the Brewfile, then the distro's own apps
 	@command -v brew >/dev/null \
 		|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 	@# A just-installed brew is not on PATH in *this* shell yet — the installer
@@ -92,8 +94,8 @@ brew: ## install Homebrew if missing, then everything in the Brewfile
 	@if [ -f 'os/$(OS)/install-apps.sh' ]; then bash 'os/$(OS)/install-apps.sh'; \
 		else echo "no distro apps for os '$(OS)' - skipped"; fi
 
-brew-test: ## parse the Brewfile without installing anything
-	@# The Brewfile is Ruby, and `make brew` is the first thing a new machine
+apps-test: ## parse the Brewfile without installing anything
+	@# The Brewfile is Ruby, and `make apps` is the first thing a new machine
 	@# runs — a syntax error there is found with no shell and no editor. `list`
 	@# parses it and prints; it installs nothing and talks to no network.
 	@command -v brew >/dev/null || { echo "brew not installed - skipped"; exit 0; }; \
@@ -105,7 +107,7 @@ brew-test: ## parse the Brewfile without installing anything
 
 .PHONY: stow restow unstow stow-test
 stow: ## symlink shared + device + os packages into $HOME (see README for first run)
-	@command -v stow >/dev/null || { echo "stow not installed - run: make brew"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@# `if`, not `test && stow || echo`: with the latter a *failing stow* falls
 	@# through to the echo and the target exits 0, reporting a conflict as
@@ -117,7 +119,7 @@ stow: ## symlink shared + device + os packages into $HOME (see README for first 
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
 restow: ## re-link after adding files, or after an app replaced a symlink
-	@command -v stow >/dev/null || { echo "stow not installed - run: make brew"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
 	@if [ -n '$(OS_PKG)' ]; then stow $(STOW_FLAGS) -R -d os $(OS_PKG); fi

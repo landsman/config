@@ -1,7 +1,7 @@
 # JetBrains
 
 ```
-make brew         # installs the Toolbox App (macOS cask); Linux notes below
+make apps         # installs the Toolbox App (macOS cask); Linux notes below
 make jetbrains    # sets the JVM options this repo owns, in every config dir found
 make bin-test     # runs vmoptions.test.sh, along with every other bin/*/*.test.sh
 ```

@@ -26,7 +26,7 @@ Docker is the *engine*, not Docker Desktop: Desktop for Linux is a hand-download
 `.deb` with no repo behind it, and the engine is what
 [`lazydocker`](../../Brewfile) actually talks to. Two follow-ups are left to you
 on purpose — `usermod -aG docker $USER` (root-equivalent, so it should be a
-decision, not a side effect of `make brew`) and `sudo tailscale up`.
+decision, not a side effect of `make apps`) and `sudo tailscale up`.
 
 ### Not installable this way
 
@@ -39,7 +39,7 @@ decision, not a side effect of `make brew`) and `sudo tailscale up`.
 | iTerm2, PowerFlow | macOS-only by nature; Ghostty covers the terminal here |
 | Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
 
-`make brew` runs [`install-apps.sh`](install-apps.sh) itself, right after
+`make apps` runs [`install-apps.sh`](install-apps.sh) itself, right after
 `brew bundle`, so there is nothing extra to remember on a new machine — it looks
 for `os/$ID/install-apps.sh` using the same `/etc/os-release` detection that
 picks the stow package, and skips when there is no such file. To run it alone:
@@ -49,7 +49,7 @@ bash os/ubuntu/install-apps.sh
 ```
 
 It is idempotent and asks for root only when an app is actually missing, so
-re-running `make brew` on a provisioned machine neither reinstalls anything nor
+re-running `make apps` on a provisioned machine neither reinstalls anything nor
 prompts for a password.
 
 These stay with the distro rather than going in the root `Brewfile` because
@@ -82,4 +82,4 @@ does ship a Linux build, so the [`Brewfile`](../../Brewfile) installs `op` on
 every machine. Taking it from apt as well would put two `op` binaries on `PATH`.
 
 Everything portable — the CLI tooling shared with the Mac — is in the
-[`Brewfile`](../../Brewfile) instead, installed by `make brew`.
+[`Brewfile`](../../Brewfile) instead, installed by `make apps`.

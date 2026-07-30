@@ -19,7 +19,7 @@ lives wherever it stays true.
 | `devices/t480/system/` | Root-owned files under `/` for that machine — see [its README](devices/t480/system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
 | `.bashrc` | Fragment *sourced* from the distro `~/.bashrc` by absolute path | `make shell` |
-| `Brewfile` | Packages — one list for every machine, macOS and Linux | `make brew` |
+| `Brewfile` | Packages — one list for every machine, macOS and Linux | `make apps` |
 | `bin/` | Setup that a symlink cannot express, one directory per tool, each with its own `*.test.sh` | its own `make` target |
 
 Both packages are detected, so one `make stow` is correct everywhere:
@@ -52,7 +52,8 @@ tracked.
 ## Install
 
 ```
-make brew    # install Homebrew if missing, then the Brewfile (stow included)
+make apps    # Homebrew if missing, then the Brewfile (stow included), then
+             # on Linux whatever the distro has to install itself
 make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
@@ -67,13 +68,13 @@ plugin in `.idea/externalDependencies.xml` in one click, and plugins are install
 per IDE rather than per project, so that one prompt covers every project on the
 machine. See [bin/jetbrains/README.md](bin/jetbrains/README.md).
 
-`make brew` comes first because `stow` is in the Brewfile. Homebrew runs on
+`make apps` comes first because `stow` is in the Brewfile. Homebrew runs on
 Linux too, which is the point: one package list for every machine instead of a
 Brewfile here and an apt list there. It is heavier than `apt install stow` — a
 few hundred MB under `/home/linuxbrew` — so anything a distro does better stays
 with the distro; guard those lines with `if OS.mac?`. GUI apps are mostly that
 case, since a cask installs on Linux only when it ships a Linux build: after
-`brew bundle`, `make brew` runs `os/<os-id>/install-apps.sh` if that OS has one,
+`brew bundle`, `make apps` runs `os/<os-id>/install-apps.sh` if that OS has one,
 which is where the vendor apt repos live (see
 [os/ubuntu/README.md](os/ubuntu/README.md)). The shell needs to pick up
 the new `brew` before `make stow` runs: open a new terminal, or
