@@ -81,6 +81,8 @@ if OS.mac?
 	cask "docker-desktop"
 	# Collaborative design and prototyping
 	cask "figma"
+	# Fast, GPU-accelerated terminal emulator
+	cask "ghostty"
 	# Terminal emulator as alternative to Apple's Terminal app
 	cask "iterm2"
 	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so
@@ -90,6 +92,10 @@ if OS.mac?
 	cask "localsend"
 	# macOS App for monitoring power usage and charging status
 	cask "lzt1008/powerflow/powerflow", trusted: true
+	# Text editor for code, markup and prose
+	cask "sublime-text"
 	# Video meetings and messaging
 	cask "webex"
+	# Multiplayer code editor
+	cask "zed"
 end
