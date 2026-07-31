@@ -92,6 +92,8 @@ if OS.mac?
 	cask "claude"
 	# Database GUI for PostgreSQL, MySQL and friends
 	cask "dbeaver-community"
+	# Voice, video and text chat
+	cask "discord"
 	# Container engine and GUI — the engine `lazydocker` above talks to
 	cask "docker-desktop"
 	# Collaborative design and prototyping
