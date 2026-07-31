@@ -35,9 +35,15 @@ DOCKER_KEY_FPR="9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
 TAILSCALE_KEY_URL="https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg"
 TAILSCALE_KEY_FPR="2596A99EAAB33821893C0A79458CA832957F5868"
 
+# Discord is the exception to all of the above, deliberately: it publishes no
+# apt repo, no checksum and no signature — the URL below redirects to whatever
+# the current .deb is, so there is nothing stable to pin even if we wanted to.
+# TLS is the only thing vouching for this one. See the README.
+DISCORD_DEB_URL="https://discord.com/api/download?platform=linux&format=deb"
+
 # The package each app is identified by. Docker pulls in its plugins too, but
 # docker-ce is what "is Docker here?" comes down to.
-PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale)
+PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord)
 
 installed() {
 	[ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = "installed" ]
@@ -158,6 +164,12 @@ for pkg in "${MISSING[@]}"; do
 			https://pkgs.tailscale.com/stable/ubuntu "$CODENAME" main
 		INSTALL+=(tailscale)
 		;;
+	discord)
+		# No repo to add, so the .deb itself is the download and apt is handed a
+		# path instead of a name — it resolves the dependencies either way.
+		curl -fsSL "$DISCORD_DEB_URL" -o "$TMP/discord.deb"
+		INSTALL+=("$TMP/discord.deb")
+		;;
 	esac
 done
 
@@ -166,7 +178,10 @@ apt-get update -qq
 apt-get install -y "${INSTALL[@]}"
 
 echo
-echo "Done. Two things this script deliberately leaves to you:"
+echo "Done. Three things this script deliberately leaves to you:"
 echo "  - docker: 'usermod -aG docker \$USER' is what lets lazydocker talk to"
 echo "    the socket without sudo, and it is root-equivalent - your call."
 echo "  - tailscale: installed but not joined, run 'sudo tailscale up'."
+echo "  - discord: no apt repo backs that .deb, so apt will never update it."
+echo "    'sudo apt-get remove discord' and re-run this to get the current one,"
+echo "    which is what an outdated client refusing to connect is telling you."

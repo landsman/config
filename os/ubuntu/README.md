@@ -11,8 +11,8 @@ The KDE side of whichever machine boots Kubuntu — currently only the
 
 ## Packages
 
-[`install-apps.sh`](install-apps.sh) installs these from the vendors' own apt
-repos, because the `Brewfile` cannot:
+[`install-apps.sh`](install-apps.sh) installs these, because the `Brewfile`
+cannot — from the vendors' own apt repos, except where the table says otherwise:
 
 | App | Package | Repo |
 |-----|---------|------|
@@ -21,12 +21,26 @@ repos, because the `Brewfile` cannot:
 | DBeaver CE | `dbeaver-ce` | `dbeaver.io/debs` (flat repo) |
 | Docker Engine | `docker-ce` + cli, containerd, buildx, compose | `download.docker.com` |
 | Tailscale | `tailscale` | `pkgs.tailscale.com` |
+| Discord | `discord` | **none** — the vendor `.deb`, see below |
 
 Docker is the *engine*, not Docker Desktop: Desktop for Linux is a hand-download
 `.deb` with no repo behind it, and the engine is what
 [`lazydocker`](../../Brewfile) actually talks to. Two follow-ups are left to you
 on purpose — `usermod -aG docker $USER` (root-equivalent, so it should be a
 decision, not a side effect of `make apps`) and `sudo tailscale up`.
+
+Discord is the one entry with no repo behind it, and it is here deliberately
+rather than by oversight. It publishes a `.deb` and nothing else: no apt repo,
+no checksum, no detached signature — every candidate URL beside the download
+answers 403, which is what that CDN returns for an object that does not exist —
+and `discord.com/api/download` redirects to whatever the current version
+happens to be, so there would be nothing stable to pin even if a digest were
+published. TLS is the only thing vouching for it, which is a genuinely weaker
+guarantee than every other row in that table gets. Two consequences worth
+knowing: apt will never update it, so `sudo apt-get remove discord` and another
+`make apps` is the upgrade path (an outdated client refusing to connect is the
+usual prompt), and this exception is per app, not a new rule — the hand-download
+apps below stay out.
 
 ### Not installable this way
 
