@@ -101,6 +101,32 @@ git diff        # shows what the adopted files differ in — keep or discard
 symlink, so **always check `git diff` afterwards** — it can silently overwrite
 the repo's version with the machine's.
 
+## The semgrep mirror
+
+`make security` scans this repo for leaked secrets and unsafe workflow config.
+It pulls the scanner from `ghcr.io/landsman/semgrep`, not from Docker Hub, which
+rate-limits anonymous pulls on the shared IPs CI runners come from.
+
+That package is published from **this** repo and read by all of them. The address
+carries no repo name, so any project pulls the same copy with no login once the
+package is public; only this repo can push to it, because a `GITHUB_TOKEN` writes
+only to packages under its own owner.
+
+To mirror a version — including one this repo does not itself use:
+
+```
+gh workflow run "semgrep mirror" -f version=1.171.0
+```
+
+It is an unmodified copy of `semgrep/semgrep`, rebuilt only to carry
+`org.opencontainers.image.source` pointing back here; upstream's label names
+semgrep's own repository, which is what GitHub reads to decide where a package
+belongs. `make semgrep-mirror` does the same thing from a laptop, given a
+`docker login ghcr.io`. **A newly created package is private**, and a private one
+is unreadable to the repos that pull it anonymously — flip it to public once, in
+the package settings. Until a version is mirrored, `make security` falls back to
+Docker Hub and says so.
+
 ## Notes
 
 `make stow` uses `--no-folding` deliberately: without it stow symlinks whole

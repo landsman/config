@@ -117,8 +117,14 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 	@#   make semgrep-mirror SEMGREP_VERSION=1.180.0
 	@# The first push creates the package as *private*; make it public once, in
 	@# the package settings, or the other repos cannot pull it anonymously.
-	docker pull $(SEMGREP_UPSTREAM)
-	docker tag $(SEMGREP_UPSTREAM) $(SEMGREP_MIRROR)
+	@# Built rather than tagged, because a tag cannot rewrite labels and the
+	@# labels are the point — upstream's image.source names semgrep's own repo,
+	@# which is what GitHub reads to decide where a package belongs. Nothing is
+	@# added to the image; see the Dockerfile. .github is the build context
+	@# because there is nothing to copy in and a context still gets uploaded.
+	docker build --pull -t $(SEMGREP_MIRROR) \
+		--build-arg SEMGREP_VERSION=$(SEMGREP_VERSION) \
+		-f .github/semgrep-mirror.Dockerfile .github
 	docker push $(SEMGREP_MIRROR)
 	@# That one rule wants every action pinned to a 40-character SHA. Actions are
 	@# referenced by major tag here instead — see CLAUDE.md — so the rule would
