@@ -1,0 +1,235 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(awk:*)",
+      "Bash(sed:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(wc:*)",
+      "Bash(diff:*)",
+      "Bash(patch:*)",
+      "Bash(tree:*)",
+      "Bash(file:*)",
+      "Bash(stat:*)",
+      "Bash(du:*)",
+      "Bash(df:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(touch:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Bash(cd:*)",
+      "Bash(pwd)",
+      "Bash(which:*)",
+      "Bash(echo:*)",
+      "Bash(printf:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(make:*)",
+      "Bash(./gradlew:*)",
+      "Bash(claude mcp:*)",
+      "Bash(cargo build*)",
+      "Bash(cargo check*)",
+      "Bash(cargo test*)",
+      "Bash(cargo clippy*)",
+      "Bash(cargo fmt*)",
+      "Bash(cargo run*)",
+      "Bash(cargo install*)",
+      "Bash(cargo update*)",
+      "Bash(cargo clean*)",
+      "Bash(rustc:*)",
+      "Bash(rustup:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(yarn:*)",
+      "Bash(node:*)",
+      "Bash(nvm:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(pipenv:*)",
+      "Bash(sqlite3:*)",
+      "Bash(diesel:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(ping:*)",
+      "Bash(nslookup:*)",
+      "Bash(dig:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)",
+      "Bash(terraform:*)",
+      "Bash(pkill:*)",
+      "Bash(ps:*)",
+      "Bash(top)",
+      "Bash(htop)",
+      "Bash(systemctl:*)",
+      "Bash(journalctl:*)",
+      "Bash(tar:*)",
+      "Bash(gzip:*)",
+      "Bash(gunzip:*)",
+      "Bash(zip:*)",
+      "Bash(unzip:*)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "mcp__atlassian__getJiraIssue",
+      "mcp__atlassian__searchJiraIssuesUsingJql",
+      "mcp__azure-devops__pipelines_get_build_changes",
+      "mcp__azure-devops__pipelines_get_build_log",
+      "mcp__azure-devops__pipelines_get_build_log_by_id",
+      "mcp__azure-devops__pipelines_get_build_status",
+      "mcp__azure-devops__pipelines_get_builds",
+      "mcp__azure-devops__pipelines_get_run",
+      "mcp__azure-devops__pipelines_list_runs",
+      "mcp__azure-devops__repo_create_pull_request",
+      "mcp__azure-devops__repo_create_pull_request_thread",
+      "mcp__azure-devops__repo_get_branch_by_name",
+      "mcp__azure-devops__repo_get_pull_request_by_id",
+      "mcp__azure-devops__repo_get_pull_request_changes",
+      "mcp__azure-devops__repo_get_repo_by_name_or_id",
+      "mcp__azure-devops__repo_list_pull_request_thread_comments",
+      "mcp__azure-devops__repo_list_pull_request_threads",
+      "mcp__azure-devops__repo_list_pull_requests_by_repo_or_project",
+      "mcp__azure-devops__repo_reply_to_comment",
+      "mcp__azure-devops__repo_update_pull_request",
+      "mcp__azure-devops__repo_update_pull_request_thread"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(git push*main*)",
+      "Bash(git push*master*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh pr close*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh release delete*)",
+      "Bash(gh secret*)",
+      "Bash(gh auth*)",
+      "Bash(gh api*-X DELETE*)",
+      "Bash(gh api*--method DELETE*)",
+      "Bash(rm -rf /*)",
+      "Bash(sudo rm -rf*)",
+      "Bash(chmod 777*)",
+      "Bash(format*)",
+      "Bash(mkfs*)",
+      "Bash(dd:*)",
+      "Bash(shutdown*)",
+      "Bash(reboot*)",
+      "Bash(halt*)",
+      "Bash(poweroff*)",
+      "Bash(init:*)",
+      "Bash(killall*)",
+      "Bash(sudo su*)",
+      "Bash(passwd*)",
+      "Bash(usermod*)",
+      "Bash(userdel*)",
+      "Bash(groupdel*)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "model": "opus[1m]",
+  "statusLine": {
+    "type": "command",
+    "command": "p=$(ls -1d \"$HOME\"/.claude/plugins/cache/ponytail/ponytail/*/hooks/ponytail-statusline.sh 2>/dev/null | tail -1); [ -n \"$p\" ] && exec bash \"$p\""
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "supabase@claude-plugins-official": true,
+    "figma@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true,
+    "gitlab@claude-plugins-official": true,
+    "jdtls-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "php-lsp@claude-plugins-official": true,
+    "caveman@caveman": false,
+    "ponytail@ponytail": true,
+    "ghostty-notify@claude-code-ghostty": true,
+    "voice@cctools-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    },
+    "claude-code-ghostty": {
+      "source": {
+        "source": "github",
+        "repo": "ishtartec/claude-code-ghostty"
+      }
+    },
+    "cctools-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "pchalasani/claude-code-tools"
+      }
+    }
+  },
+  "sandbox": {
+    "enabled": false,
+    "autoAllowBashIfSandboxed": true,
+    "network": {
+      "allowedDomains": [
+        "repo.maven.apache.org",
+        "plugins.gradle.org",
+        "services.gradle.org",
+        "registry.npmjs.org",
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "uploads.github.com",
+        "*.githubusercontent.com",
+        "vaadin.com",
+        "tools.vaadin.com"
+      ],
+      "allowUnixSockets": [
+        "~/.docker/run/docker.sock",
+        "/var/run/docker.sock"
+      ],
+      "allowLocalBinding": true
+    },
+    "excludedCommands": [
+      "git",
+      "gh"
+    ]
+  },
+  "effortLevel": "xhigh",
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": true
+  },
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark-ansi",
+  "preferredNotifChannel": "auto",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": true
+}

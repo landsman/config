@@ -21,6 +21,7 @@ lives wherever it stays true.
 | `.bashrc` | Fragment *sourced* from the distro `~/.bashrc` by absolute path | `make shell` |
 | `Brewfile` | Packages — one list for every machine, macOS and Linux | `make apps` |
 | `bin/` | Setup that a symlink cannot express, one directory per tool, each with its own `*.test.sh` | its own `make` target |
+| `.claude/` | Notes for this repo, not files for `$HOME` — [MCP servers](.claude/claude-code-mcp.md) is a `claude mcp` cheat sheet | read, not installed |
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
@@ -63,43 +64,39 @@ make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for roo
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 ```
 
-Opening this repo in a JetBrains IDE is the last step: it offers to install every
-plugin in `.idea/externalDependencies.xml` in one click, and plugins are installed
-per IDE rather than per project, so that one prompt covers every project on the
-machine. See [bin/jetbrains/README.md](bin/jetbrains/README.md).
-
-`make apps` comes first because `stow` is in the Brewfile. Homebrew runs on
-Linux too, which is the point: one package list for every machine instead of a
-Brewfile here and an apt list there. It is heavier than `apt install stow` — a
-few hundred MB under `/home/linuxbrew` — so anything a distro does better stays
-with the distro; guard those lines with `if OS.mac?`. GUI apps are mostly that
-case, since a cask installs on Linux only when it ships a Linux build: after
-`brew bundle`, `make apps` runs `os/<os-id>/install-apps.sh` if that OS has one,
-which is where the vendor apt repos live (see
-[os/ubuntu/README.md](os/ubuntu/README.md)). The shell needs to pick up
-the new `brew` before `make stow` runs: open a new terminal, or
-`eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"` (macOS:
-`/opt/homebrew/bin/brew`).
-
-`make shell` is for bash only; on macOS the stowed `~/.zshrc` sources the same
-`bash_aliases.d` drop-ins itself, and puts `brew shellenv` where the repo can
-see it instead of leaving it in an untracked `~/.zprofile`.
-
-For the root-owned parts, see [devices/t480/system/README.md](devices/t480/system/README.md).
+- **`make apps` first** — `stow` is in the Brewfile. Homebrew on Linux too, so
+  there is one package list instead of a Brewfile here and an apt list there;
+  anything a distro does better stays with the distro behind `if OS.mac?`, and
+  `os/<os-id>/install-apps.sh` picks up the GUI half that has no cask.
+- **New shell before `make stow`** — a just-installed brew is not on `PATH` yet:
+  open a terminal, or `eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"`
+  (macOS: `/opt/homebrew/bin/brew`).
+- **`make shell` is bash only** — the stowed `~/.zshrc` loads the same
+  `bash_aliases.d` drop-ins itself, and keeps `brew shellenv` where the repo can
+  see it instead of an untracked `~/.zprofile`.
+- **The IDE is last** — opening this repo offers every plugin in
+  `.idea/externalDependencies.xml` in one click, and plugins are per IDE, not per
+  project, so that one prompt covers every project on the machine.
+- **Root-owned files are not installed by any of this** — see
+  [devices/t480/system/README.md](devices/t480/system/README.md).
 
 ### First run: existing files
 
-`stow` refuses to overwrite real files that are already in `$HOME`. Either move
-the conflicting file aside, or let stow take it over:
+A real file in `$HOME` where a symlink should go is renamed to
+`<file>.bak.<timestamp>` and reported, then linked over — stow would otherwise
+refuse and abort the whole package, stopping a fresh install at the first
+hand-written dotfile. Nothing is deleted, so the machine's version is still next
+to the symlink if it was the better one. See [bin/stow/backup.sh](bin/stow/backup.sh).
+
+To keep the machine's content instead, let stow adopt it — and **always check
+`git diff` afterwards**, because this overwrites the repo's version with the
+machine's:
 
 ```
-stow --no-folding --adopt -t "$HOME" shared t480
-git diff        # shows what the adopted files differ in — keep or discard
+stow --no-folding --adopt -t "$HOME" shared
+stow --no-folding --adopt -t "$HOME" -d devices t480
+git diff        # what the adopted files differ in — keep or discard
 ```
-
-`--adopt` moves your existing file *into the repo* and replaces it with a
-symlink, so **always check `git diff` afterwards** — it can silently overwrite
-the repo's version with the machine's.
 
 ## The semgrep mirror
 
@@ -129,26 +126,28 @@ Docker Hub and says so.
 
 ## Notes
 
-`make stow` uses `--no-folding` deliberately: without it stow symlinks whole
-directories (`~/.config/hypr` → repo), and any new file an app writes there lands
-inside the repo. With it, real directories are created and only the tracked files
-are symlinked.
-
-Two things are deliberately *not* stowed, because a symlink would break them:
-
-- **`.gitconfig`** — it is included into `~/.gitconfig` rather than replacing it,
-  so machine-specific values (email, signing key) stay out of the repo. A symlink
-  would make `git config --global ...` write into the repo.
-- **`.bashrc`** — it is a fragment, not a full shell config. Symlinking it over
-  `~/.bashrc` would drop everything the distro puts there, so `make shell`
-  appends a `. <repo>/.bashrc` line instead. It used to `cat` the fragment in,
-  which meant every later edit stopped at the repo; on a machine hooked up that
-  way, delete the pasted block once and re-run `make shell`.
-
-Aliases are split into drop-ins (`~/.config/bash_aliases.d/*.sh`) so `shared/`
-and `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
-`os/macos/.zshrc` loads the same directory, so the drop-ins are shell-agnostic
-despite the name.
+- **`--no-folding` is deliberate** — without it stow symlinks whole directories
+  (`~/.config/hypr` → repo) and every file an app writes there lands in the repo.
+  With it, real directories are created and only tracked files are symlinked.
+- **`.gitconfig` is not stowed** — it is included into `~/.gitconfig` instead, so
+  machine-specific values (email, signing key) stay out of the repo. A symlink
+  would make `git config --global ...` write here.
+- **`.bashrc` is not stowed** — it is a fragment, so symlinking it over
+  `~/.bashrc` would drop everything the distro puts there. `make shell` appends a
+  `. <repo>/.bashrc` line. (It used to `cat` the fragment in, which meant later
+  edits never reached the machine — delete that block once and re-run.)
+- **Aliases are drop-ins** (`~/.config/bash_aliases.d/*.sh`) so `shared/` and
+  `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
+  `os/macos/.zshrc` loads the same directory, so they are shell-agnostic.
+- **`~/.claude` is mostly runtime state** — sessions, caches, history. Only
+  `CLAUDE.md` and `settings.json` are tracked, both in `shared/`; `--no-folding`
+  keeps the directory real so nothing the tool writes lands here.
+- **`settings.json` must hold no machine-specific path** — it is one file for
+  every machine, and such a setting is not an error elsewhere, it is silently
+  ignored. `make claude-settings-test` fails on a literal `/Users/` or `/home/`;
+  use `~`. Anything genuinely local (a client checkout in
+  `additionalDirectories`) goes in the untracked `~/.claude/settings.local.json`
+  — that split is what keeps this repo safe to publish.
 
 **macOS System Settings are written, not stowed.** macOS keeps them in `defaults`
 (binary plists that `cfprefsd` rewrites on its own schedule, mixed in with window
@@ -193,8 +192,10 @@ back into git. `make jetbrains` patches only the lines this repo owns; see
 
 **KDE config files rewrite themselves.** KConfig saves by writing a temp file and
 renaming it over the target, which replaces the symlink with a regular file — so
-`os/ubuntu/.config/dolphinrc` will silently detach after KDE changes a setting. Run
-`make restow` to re-link it (commit the drift first if you want to keep it).
+`os/ubuntu/.config/dolphinrc` will silently detach after KDE changes a setting.
+`make restow` re-links it, and now backs the detached file up first rather than
+failing — so commit the drift *before* running it if you meant to keep it,
+otherwise it is a `.bak.<timestamp>` you have to go find.
 
 ## Docs
 

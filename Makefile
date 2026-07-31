@@ -38,7 +38,7 @@ help: ## show this help
 #
 
 .PHONY: qa qa-deps lint bin-test
-qa: qa-deps lint git-config-test apps-test stow-test bin-test ## run all checks — this is what CI runs
+qa: qa-deps lint git-config-test apps-test stow-test bin-test claude-settings-test ## run all checks — this is what CI runs
 
 qa-deps:
 	@# What the checks need, written down next to the checks, so ci.yml is just
@@ -167,12 +167,34 @@ apps-test: ## parse the Brewfile without installing anything
 	@command -v brew >/dev/null || { echo "brew not installed - skipped"; exit 0; }; \
 		HOMEBREW_NO_AUTO_UPDATE=1 brew bundle list --file Brewfile >/dev/null
 
+.PHONY: claude-settings-test
+claude-settings-test: ## check the stowed Claude settings parse and stay machine-independent
+	@# It is one file for every machine, so a path that only exists on one is a
+	@# bug the other machine finds silently — the setting is simply ignored
+	@# there. $$HOME instead, and anything genuinely local (a client checkout, a
+	@# per-machine socket) goes in ~/.claude/settings.local.json, which is not
+	@# tracked. That file is also why this repo being public is survivable.
+	@python3 -c 'import json;json.load(open("shared/.claude/settings.json"))'
+	@grep -nE '"[^"]*/(Users|home)/' shared/.claude/settings.json \
+		&& { echo "^ only true on one machine - use \$$HOME, or move it to ~/.claude/settings.local.json"; exit 1; } \
+		|| true
+
 #
 # Dotfiles ($HOME) via GNU stow
 #
 
-.PHONY: stow restow unstow stow-test
-stow: ## symlink shared + device + os packages into $HOME (see README for first run)
+.PHONY: stow restow unstow stow-backup stow-test
+stow-backup:
+	@# Move aside whatever the packages are about to collide with, so a real file
+	@# in $$HOME is a note rather than an aborted install. The parsing this needs
+	@# is a script with its own test, not eight escaped lines in a recipe — see
+	@# bin/stow/backup.sh. No `##`: it runs as part of stow, it is not a target
+	@# to reach for.
+	@./bin/stow/backup.sh . shared
+	@if [ -n '$(DEVICE_PKG)' ]; then ./bin/stow/backup.sh devices '$(DEVICE_PKG)'; fi
+	@if [ -n '$(OS_PKG)' ]; then ./bin/stow/backup.sh os '$(OS_PKG)'; fi
+
+stow: stow-backup ## symlink shared + device + os packages into $HOME (see README for first run)
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@# `if`, not `test && stow || echo`: with the latter a *failing stow* falls
@@ -184,7 +206,7 @@ stow: ## symlink shared + device + os packages into $HOME (see README for first 
 		else echo "no package for os '$(OS)' - skipped"; fi
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
-restow: ## re-link after adding files, or after an app replaced a symlink
+restow: stow-backup ## re-link after adding files, or after an app replaced a symlink
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
@@ -215,6 +237,7 @@ stow-test: ## stow and unstow every package in the repo into a throwaway $HOME
 	@# Once more with nothing overridden, so the DEVICE/OS detection this host
 	@# uses is exercised too, not just the packages.
 	@t=$$(mktemp -d); trap 'rm -rf "$$t"' EXIT; HOME=$$t $(MAKE) -s stow unstow
+	@# The conflict-backup half is bin/stow/backup.test.sh, which bin-test runs.
 
 #
 # Shell
