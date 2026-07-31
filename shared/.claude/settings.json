@@ -153,7 +153,7 @@
   "model": "opus[1m]",
   "statusLine": {
     "type": "command",
-    "command": "bash \"$HOME/.claude/plugins/cache/ponytail/ponytail/4.7.0/hooks/ponytail-statusline.sh\""
+    "command": "p=$(ls -1d \"$HOME\"/.claude/plugins/cache/ponytail/ponytail/*/hooks/ponytail-statusline.sh 2>/dev/null | tail -1); [ -n \"$p\" ] && exec bash \"$p\""
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
@@ -222,7 +222,7 @@
         "tools.vaadin.com"
       ],
       "allowUnixSockets": [
-        "$HOME/.docker/run/docker.sock",
+        "~/.docker/run/docker.sock",
         "/var/run/docker.sock"
       ],
       "allowLocalBinding": true
