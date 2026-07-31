@@ -49,8 +49,8 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          echo "pushed ghcr.io/${{ github.repository_owner }}/semgrep:$VERSION"
+          echo "pushed ghcr.io/${{ github.repository_owner }}/semgrep-mirror:$VERSION"
           echo
           echo "if this is the first version ever pushed, set the package to public:"
-          echo "  https://github.com/users/${{ github.repository_owner }}/packages/container/semgrep/settings"
+          echo "  https://github.com/users/${{ github.repository_owner }}/packages/container/semgrep-mirror/settings"
           echo "until then other repos fall back to docker hub."
