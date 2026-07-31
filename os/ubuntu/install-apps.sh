@@ -35,12 +35,6 @@ DOCKER_KEY_FPR="9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
 TAILSCALE_KEY_URL="https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg"
 TAILSCALE_KEY_FPR="2596A99EAAB33821893C0A79458CA832957F5868"
 
-# Discord is the exception to all of the above, deliberately: it publishes no
-# apt repo, no checksum and no signature — the URL below redirects to whatever
-# the current .deb is, so there is nothing stable to pin even if we wanted to.
-# TLS is the only thing vouching for this one. See the README.
-DISCORD_DEB_URL="https://discord.com/api/download?platform=linux&format=deb"
-
 # The package each app is identified by. Docker pulls in its plugins too, but
 # docker-ce is what "is Docker here?" comes down to.
 PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord)
@@ -165,9 +159,14 @@ for pkg in "${MISSING[@]}"; do
 		INSTALL+=(tailscale)
 		;;
 	discord)
-		# No repo to add, so the .deb itself is the download and apt is handed a
-		# path instead of a name — it resolves the dependencies either way.
-		curl -fsSL "$DISCORD_DEB_URL" -o "$TMP/discord.deb"
+		# The deliberate exception to the pinning above: no apt repo, no
+		# checksum, no signature, and this URL redirects to whatever the current
+		# .deb is — so there is nothing stable to pin and TLS is all that vouches
+		# for it. No repo to add either, so the .deb itself is the download and
+		# apt is handed a path instead of a name; it resolves the dependencies
+		# either way. The README says what that costs.
+		curl -fsSL "https://discord.com/api/download?platform=linux&format=deb" \
+			-o "$TMP/discord.deb"
 		INSTALL+=("$TMP/discord.deb")
 		;;
 	esac
