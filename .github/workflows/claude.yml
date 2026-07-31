@@ -1,33 +1,71 @@
 name: claude
 
-# issue_comment covers both issue and pull request comments — GitHub delivers a
-# comment on a PR's conversation tab as an issue_comment, not a pull_request
-# event. pull_request_review_comment is the separate one: a comment left on a
-# line of the diff during review.
+# The job itself, written once and called by every repo of mine that wants
+# @claude to answer. Same reach as the semgrep workflow next door: a reusable
+# workflow in a public repo can be called from anywhere, including a private
+# repo in another org.
+#
+# What that buys is not fewer lines — the caller stub below is about the size
+# of the standalone workflow it replaces. It is that the action version, the
+# checkout, and anything this grows later (a model pin, a settings file, a
+# network allowlist) move here once instead of once per repo. Dependabot
+# watches this file; it does not watch a copy pasted into six others.
+#
+# A repo adopts it with .github/workflows/claude-mentions.yml:
+#
+#     name: claude mentions
+#     on:
+#       issue_comment:
+#         types: [created]
+#       pull_request_review_comment:
+#         types: [created]
+#     jobs:
+#       claude:
+#         if: contains(github.event.comment.body, '@claude')
+#         uses: landsman/config/.github/workflows/claude.yml@main
+#         permissions:
+#           contents: write
+#           pull-requests: write
+#           issues: write
+#         secrets:
+#           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+#
+# The triggers and the permissions have to stay with the caller — `on:` because
+# a called workflow has none of its own, and `permissions:` because the caller's
+# grant is a ceiling this file can lower but never raise. Getting that wrong is
+# a 403 when Claude tries to push, not a startup error, so the stub says both.
+#
+# The secret stays with the caller too, and that is the part adopting this does
+# not save: a personal account has no org-level secrets, so every repo needs its
+# own CLAUDE_CODE_OAUTH_TOKEN. Passed explicitly rather than `secrets: inherit`
+# — inherit is documented for callers in the same org or enterprise, and the
+# whole point of publishing this is that a caller might be neither.
 on:
-  issue_comment:
-    types: [created]
-  pull_request_review_comment:
-    types: [created]
+  workflow_call:
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        description: >-
+          Claude subscription OAuth token from `claude setup-token`, valid a
+          year. Not an Anthropic API key — the action takes those on a separate
+          input, and one passed here bills pay-as-you-go instead of the plan.
+        required: true
 
 jobs:
   claude:
-    # The action checks the trigger phrase itself and exits early, but only after
-    # a runner has been allocated. Filtering here means an ordinary comment never
-    # starts a job at all.
-    if: contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
+    # Lowered from whatever the caller granted, so a stub that hands over
+    # write-all still only gives Claude these three.
     permissions:
       contents: write        # push the branch it works on
       pull-requests: write   # open the PR and comment on it
       issues: write          # reply on the issue it was called from
     steps:
+      # The *calling* repository, which is what makes one copy of this work for
+      # all of them.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0     # so it can branch from, and diff against, real history
 
       - uses: anthropics/claude-code-action@v1
         with:
-          # Subscription token, not an API key: the two are different inputs and
-          # the Max plan only bills through this one.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
