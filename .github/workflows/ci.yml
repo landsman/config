@@ -17,5 +17,15 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: make qa
+
+  # Its own job, not a matrix step: semgrep reads the files, not the machine, so
+  # the macOS leg would spend a second runner to reach the same verdict — and
+  # macOS runners have no Docker. Separate also means a red scan and a red test
+  # are told apart in the checks list without opening either.
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make security
