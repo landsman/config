@@ -81,14 +81,41 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 # on an unrelated PR. Bump it deliberately, the same way the Brewfile is bumped.
 SEMGREP_VERSION = 1.171.0
 
-.PHONY: security
+# One mirror for every repo of mine that scans, rather than one per repo. Docker
+# Hub rate-limits anonymous pulls and CI runners share IPs, so the upstream pull
+# is the part of this that breaks on someone else's bad afternoon.
+#
+# It is user-scoped (ghcr.io/landsman/...) and public, which is what makes it
+# shared: any repo pulls it with no login, and no repo needs write access to it.
+# Pushing is the half that does not generalise — a repo's GITHUB_TOKEN can only
+# write to packages linked to that repo — so seeding is a deliberate `make
+# semgrep-mirror` per version bump, not something CI does behind your back.
+SEMGREP_MIRROR   = ghcr.io/landsman/semgrep:$(SEMGREP_VERSION)
+SEMGREP_UPSTREAM = semgrep/semgrep:$(SEMGREP_VERSION)
+
+.PHONY: security semgrep-mirror
 security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
 	@# Docker rather than an install, because semgrep is a python toolchain and
 	@# this repo installs nothing on a laptop it is not asked to.
 	@docker info >/dev/null 2>&1 || { echo "semgrep skipped (docker not running)"; exit 0; }; \
-	docker run --rm -v "$$PWD:/src" -w /src semgrep/semgrep:$(SEMGREP_VERSION) semgrep \
+	img='$(SEMGREP_MIRROR)'; \
+	docker image inspect "$$img" >/dev/null 2>&1 || docker pull -q "$$img" >/dev/null 2>&1 || { \
+		echo "no $(SEMGREP_VERSION) in the mirror yet - using docker hub (run: make semgrep-mirror)"; \
+		img='$(SEMGREP_UPSTREAM)'; }; \
+	docker run --rm -v "$$PWD:/src" -w /src "$$img" semgrep \
 		--config=p/secrets --config=p/ci --metrics=off --error \
 		--exclude-rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+	@# Falling back to Hub rather than failing: a version bump that lands before
+	@# its mirror should cost a slow run, not a red one.
+
+semgrep-mirror: ## copy the pinned semgrep image into my GHCR (once per version bump)
+	@# Needs a `docker login ghcr.io` with a PAT that has write:packages — the
+	@# repo's own CI token cannot do this, which is the whole reason it is manual.
+	@# The first push creates the package as *private*; make it public once, in
+	@# the package settings, or the other repos cannot pull it anonymously.
+	docker pull $(SEMGREP_UPSTREAM)
+	docker tag $(SEMGREP_UPSTREAM) $(SEMGREP_MIRROR)
+	docker push $(SEMGREP_MIRROR)
 	@# That one rule wants every action pinned to a 40-character SHA. Actions are
 	@# referenced by major tag here instead — see CLAUDE.md — so the rule would
 	@# fail every run for a deliberate decision, and a check that is red on
