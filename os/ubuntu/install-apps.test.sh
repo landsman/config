@@ -90,9 +90,9 @@ run() { PATH="$BIN:$PATH" CODENAME=noble INSTALLED="$1" FPR="$2" bash "$SCRIPT" 
 
 echo "== every package already present"
 setup
-out="$(run "1password sublime-text dbeaver-ce docker-ce tailscale" deadbeef)"
+out="$(run "1password sublime-text dbeaver-ce docker-ce tailscale discord" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 5 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 6 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -101,7 +101,7 @@ echo "== nothing present, keys as expected"
 setup
 # Every stubbed key reports 1Password's fingerprint, so run 1Password alone:
 # a shared stub cannot satisfy five different pins at once.
-out="$(run "sublime-text dbeaver-ce docker-ce tailscale" 3FEF9748469ADBE15DA7CA80AC2D62742012EA22)"
+out="$(run "sublime-text dbeaver-ce docker-ce tailscale discord" 3FEF9748469ADBE15DA7CA80AC2D62742012EA22)"
 check "succeeds" "$?" "0"
 contains "1password repo added" "$ROOT/etc/apt/sources.list.d/1password.list" \
 	"https://downloads.1password.com/linux/debian/amd64 stable main"
@@ -117,11 +117,22 @@ rm -rf "$ROOT"
 echo
 echo "== a key whose fingerprint does not match"
 setup
-out="$(run "sublime-text dbeaver-ce docker-ce tailscale" 0000000000000000000000000000000000000000)"
+out="$(run "sublime-text dbeaver-ce docker-ce tailscale discord" 0000000000000000000000000000000000000000)"
 check "refuses to continue" "$?" "1"
 case "$out" in *"fingerprint mismatch"*) ok "says why" ;; *) fail "says why" ;; esac
 if [ -f "$ROOT/apt-installed" ]; then fail "installs nothing"; else ok "installs nothing"; fi
 check "and adds no repo" "$(test -d "$ROOT/etc/apt" && echo yes || echo no)" "no"
+rm -rf "$ROOT"
+
+echo
+echo "== discord, the one with no repo behind it"
+setup
+out="$(run "1password sublime-text dbeaver-ce docker-ce tailscale" deadbeef)"
+check "succeeds" "$?" "0"
+check "apt is handed the .deb itself, not a package name" \
+	"$(basename "$(cat "$ROOT/apt-installed")")" "discord.deb"
+check "and no apt repo is added for it" \
+	"$(test -d "$ROOT/etc/apt" && echo yes || echo no)" "no"
 rm -rf "$ROOT"
 
 echo

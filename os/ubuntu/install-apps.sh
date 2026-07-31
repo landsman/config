@@ -37,7 +37,7 @@ TAILSCALE_KEY_FPR="2596A99EAAB33821893C0A79458CA832957F5868"
 
 # The package each app is identified by. Docker pulls in its plugins too, but
 # docker-ce is what "is Docker here?" comes down to.
-PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale)
+PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord)
 
 installed() {
 	[ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = "installed" ]
@@ -158,6 +158,17 @@ for pkg in "${MISSING[@]}"; do
 			https://pkgs.tailscale.com/stable/ubuntu "$CODENAME" main
 		INSTALL+=(tailscale)
 		;;
+	discord)
+		# The deliberate exception to the pinning above: no apt repo, no
+		# checksum, no signature, and this URL redirects to whatever the current
+		# .deb is — so there is nothing stable to pin and TLS is all that vouches
+		# for it. No repo to add either, so the .deb itself is the download and
+		# apt is handed a path instead of a name; it resolves the dependencies
+		# either way. The README says what that costs.
+		curl -fsSL "https://discord.com/api/download?platform=linux&format=deb" \
+			-o "$TMP/discord.deb"
+		INSTALL+=("$TMP/discord.deb")
+		;;
 	esac
 done
 
@@ -166,7 +177,10 @@ apt-get update -qq
 apt-get install -y "${INSTALL[@]}"
 
 echo
-echo "Done. Two things this script deliberately leaves to you:"
+echo "Done. Three things this script deliberately leaves to you:"
 echo "  - docker: 'usermod -aG docker \$USER' is what lets lazydocker talk to"
 echo "    the socket without sudo, and it is root-equivalent - your call."
 echo "  - tailscale: installed but not joined, run 'sudo tailscale up'."
+echo "  - discord: no apt repo backs that .deb, so apt will never update it."
+echo "    'sudo apt-get remove discord' and re-run this to get the current one,"
+echo "    which is what an outdated client refusing to connect is telling you."
