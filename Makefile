@@ -72,6 +72,29 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	done
 
 #
+# Security — separate from qa because it is the same answer on every OS, so CI
+# runs it once instead of once per matrix leg, and because it needs Docker,
+# which qa deliberately does not.
+#
+
+# Pinned: an unpinned scanner turns someone else's rule release into a red build
+# on an unrelated PR. Bump it deliberately, the same way the Brewfile is bumped.
+SEMGREP_VERSION = 1.171.0
+
+.PHONY: security
+security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
+	@# Docker rather than an install, because semgrep is a python toolchain and
+	@# this repo installs nothing on a laptop it is not asked to.
+	@docker info >/dev/null 2>&1 || { echo "semgrep skipped (docker not running)"; exit 0; }; \
+	docker run --rm -v "$$PWD:/src" -w /src semgrep/semgrep:$(SEMGREP_VERSION) semgrep \
+		--config=p/secrets --config=p/ci --metrics=off --error
+	@# Two packs, both of which have something to say about a dotfiles repo:
+	@# p/secrets is the real risk here — a token pasted into .gitconfig or an rc
+	@# file is public the moment it is pushed. p/ci reads .github/workflows.
+	@# There is no bash or shell pack in the registry (p/bash and p/shell both
+	@# 404), so `make lint` remains what checks the scripts themselves.
+
+#
 # Apps and packages — the Brewfile on every machine, plus whatever the distro
 # has to supply itself. Called `apps` rather than `brew` because Homebrew is
 # only most of it: the GUI half on Linux comes from vendor apt repos.
