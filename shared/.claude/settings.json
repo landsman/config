@@ -113,7 +113,6 @@
       "mcp__azure-devops__repo_update_pull_request_thread"
     ],
     "deny": [
-      "Bash(git push*)",
       "Bash(git push*main*)",
       "Bash(git push*master*)",
       "Bash(gh pr merge*)",
