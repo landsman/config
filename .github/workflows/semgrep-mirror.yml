@@ -1,0 +1,56 @@
+name: semgrep mirror
+
+# Manual only, and deliberately so: this publishes the package every other repo
+# of mine pulls its scanner from, so it happens when a version is bumped on
+# purpose — not as a side effect of a push to a branch here. The version is an
+# input rather than this repo's SEMGREP_VERSION, because the repo that needs a
+# new one is usually not this one.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: semgrep version to mirror, e.g. 1.171.0
+        required: true
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    # packages: write to push; contents: read is the checkout's default, restated
+    # because naming any scope at all drops the rest to none.
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The repo's own CI token is enough here — it can write packages under the
+      # same owner — which is what makes this a workflow rather than something
+      # you run from a laptop with a personal access token.
+      - name: Log in to GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+
+      # Through the Makefile, so the pull/tag/push is written once and a laptop
+      # can still do it. Both values go via env: a `${{ }}` expanded straight
+      # into a run block is the script injection p/ci exists to catch, and an
+      # input is exactly the untrusted string it means.
+      - name: Mirror the image
+        env:
+          VERSION: ${{ inputs.version }}
+        run: make semgrep-mirror SEMGREP_VERSION="$VERSION"
+
+      # First push of a new package creates it private, and a private package is
+      # useless to the repos that pull it anonymously. GITHUB_TOKEN cannot change
+      # visibility, so this is the one step that stays manual — said out loud in
+      # the log rather than left in a comment nobody opens.
+      - name: Say what is still manual
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          echo "pushed ghcr.io/${{ github.repository_owner }}/semgrep:$VERSION"
+          echo
+          echo "if this is the first version ever pushed, set the package to public:"
+          echo "  https://github.com/users/${{ github.repository_owner }}/packages/container/semgrep/settings"
+          echo "until then other repos fall back to docker hub."
