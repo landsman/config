@@ -2,7 +2,6 @@
   "permissions": {
     "allow": [
       "Edit(*)",
-
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
@@ -22,7 +21,6 @@
       "Bash(stat:*)",
       "Bash(du:*)",
       "Bash(df:*)",
-
       "Bash(mkdir:*)",
       "Bash(cp:*)",
       "Bash(mv:*)",
@@ -35,13 +33,11 @@
       "Bash(which:*)",
       "Bash(echo:*)",
       "Bash(printf:*)",
-
       "Bash(git:*)",
       "Bash(gh:*)",
       "Bash(make:*)",
       "Bash(./gradlew:*)",
       "Bash(claude mcp:*)",
-
       "Bash(cargo build*)",
       "Bash(cargo check*)",
       "Bash(cargo test*)",
@@ -65,7 +61,6 @@
       "Bash(pipenv:*)",
       "Bash(sqlite3:*)",
       "Bash(diesel:*)",
-
       "Bash(curl:*)",
       "Bash(wget:*)",
       "Bash(ping:*)",
@@ -73,29 +68,22 @@
       "Bash(dig:*)",
       "Bash(ssh:*)",
       "Bash(scp:*)",
-
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
       "Bash(terraform:*)",
-      "Bash(aws:*)",
-
       "Bash(pkill:*)",
       "Bash(ps:*)",
       "Bash(top)",
       "Bash(htop)",
       "Bash(systemctl:*)",
       "Bash(journalctl:*)",
-
       "Bash(tar:*)",
       "Bash(gzip:*)",
       "Bash(gunzip:*)",
       "Bash(zip:*)",
       "Bash(unzip:*)",
-      "Bash(BASH_ENV=\"\" bash -c:*)",
-
       "WebSearch",
       "WebFetch(domain:raw.githubusercontent.com)",
-
       "mcp__atlassian__getJiraIssue",
       "mcp__atlassian__searchJiraIssuesUsingJql",
       "mcp__azure-devops__pipelines_get_build_changes",
@@ -119,6 +107,7 @@
       "mcp__azure-devops__repo_update_pull_request_thread"
     ],
     "deny": [
+      "Bash(git push*)",
       "Bash(git push*main*)",
       "Bash(git push*master*)",
       "Bash(gh pr merge*)",
@@ -129,7 +118,6 @@
       "Bash(gh auth*)",
       "Bash(gh api*-X DELETE*)",
       "Bash(gh api*--method DELETE*)",
-
       "Bash(rm -rf /*)",
       "Bash(sudo rm -rf*)",
       "Bash(chmod 777*)",
