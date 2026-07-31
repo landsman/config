@@ -23,6 +23,16 @@ introduce machinery the repo does not already have — a first flatpak, a first
 snap, a first curl-a-tarball installer — because that is a bigger decision than
 the app itself.
 
+## GitHub Actions versions
+
+Reference actions by their stable major tag — `actions/checkout@v4`, not a
+commit SHA. The major tag is the version I read, compare and bump; a SHA tells
+me nothing at a glance and turns a version bump into a lookup.
+
+This holds even when a scanner asks for the SHA. `make security` excludes that
+rule by id for exactly this reason. If a tool disagrees with something written
+down here, change the tool's configuration, not the workflow — and say so.
+
 ## Pull requests
 
 When the work is done and pushed, open the pull request. Do not ask first —
