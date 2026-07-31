@@ -13,12 +13,17 @@ so a one-platform entry is a gap someone finds later on the wrong laptop.
   [`os/ubuntu/install-apps.sh`](os/ubuntu/README.md): the vendor's apt repo with
   its key pinned by fingerprint, a row in that README's package table, and a
   case in `install-apps.test.sh`.
-- **No sane Linux path** — no Linux build at all, or only a hand-download with
-  nothing behind it to update from — then it belongs in that README's *Not
-  installable this way* table, with the reason. An unrecorded gap reads as an
-  oversight; a recorded one is a decision.
+- **Only a hand-download** — a `.deb` with no repo, no checksum, nothing to pin
+  — is still worth installing when the app is one in daily use. It goes in the
+  same script, fetched straight from the vendor, but as a *stated* exception:
+  what is missing, what is left vouching for it, and how it gets updated, spelled
+  out in the README beside it. Discord is the precedent. The exception is per
+  app — the others in the same shape stay out.
+- **No Linux build at all** — then it belongs in that README's *Not installable
+  this way* table, with the reason. An unrecorded gap reads as an oversight; a
+  recorded one is a decision.
 
-Work out which of the four applies before asking. Ask when the answer would
+Work out which of the five applies before asking. Ask when the answer would
 introduce machinery the repo does not already have — a first flatpak, a first
 snap, a first curl-a-tarball installer — because that is a bigger decision than
 the app itself.
