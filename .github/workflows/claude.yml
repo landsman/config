@@ -27,6 +27,7 @@ name: claude
 #           contents: write
 #           pull-requests: write
 #           issues: write
+#           id-token: write
 #         secrets:
 #           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 #
@@ -54,11 +55,19 @@ jobs:
   claude:
     runs-on: ubuntu-latest
     # Lowered from whatever the caller granted, so a stub that hands over
-    # write-all still only gives Claude these three.
+    # write-all still only gives Claude these four.
     permissions:
       contents: write        # push the branch it works on
       pull-requests: write   # open the PR and comment on it
       issues: write          # reply on the issue it was called from
+      # Not optional, and the failure it causes is a misleading one: with no
+      # `github_token` passed, the action trades this workflow's OIDC token for
+      # a Claude GitHub App installation token, so that its comments and pushes
+      # come from claude[bot]. Without this the run accepts the OAuth token,
+      # then dies twenty seconds later on three retries of "Unable to get
+      # ACTIONS_ID_TOKEN_REQUEST_URL" — which reads as an auth problem when it
+      # is a permissions one.
+      id-token: write
     steps:
       # The *calling* repository, which is what makes one copy of this work for
       # all of them.
