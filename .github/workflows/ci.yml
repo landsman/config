@@ -17,10 +17,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      # Pinned to a SHA, not a tag: a tag can be silently repointed by whoever
-      # owns the action, which is how the trivy-action compromise reached the
-      # people using it. This is v4.4.0 — read the tag before bumping the SHA.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@v4
       - run: make qa
 
   # Its own job, not a matrix step: semgrep reads the files, not the machine, so
@@ -30,5 +27,5 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@v4
       - run: make security

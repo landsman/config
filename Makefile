@@ -87,7 +87,13 @@ security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
 	@# this repo installs nothing on a laptop it is not asked to.
 	@docker info >/dev/null 2>&1 || { echo "semgrep skipped (docker not running)"; exit 0; }; \
 	docker run --rm -v "$$PWD:/src" -w /src semgrep/semgrep:$(SEMGREP_VERSION) semgrep \
-		--config=p/secrets --config=p/ci --metrics=off --error
+		--config=p/secrets --config=p/ci --metrics=off --error \
+		--exclude-rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+	@# That one rule wants every action pinned to a 40-character SHA. Actions are
+	@# referenced by major tag here instead — see CLAUDE.md — so the rule would
+	@# fail every run for a deliberate decision, and a check that is red on
+	@# purpose is a check nobody reads. Excluded by id rather than by dropping
+	@# p/ci, which still has plenty to say about workflow config.
 	@# Two packs, both of which have something to say about a dotfiles repo:
 	@# p/secrets is the real risk here — a token pasted into .gitconfig or an rc
 	@# file is public the moment it is pushed. p/ci reads .github/workflows.
