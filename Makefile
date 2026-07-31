@@ -190,10 +190,15 @@ stow-backup:
 	@# stow which ones those are (--simulate writes nothing), move each aside
 	@# with a timestamp and say so — losing an edit silently would be worse than
 	@# the conflict. Only real files match; an existing symlink is stow's own.
+	@# Two sed expressions because the two stow versions in CI word that same
+	@# conflict differently — 2.4 says "cannot stow X over existing target Y
+	@# since", 2.3 says "existing target is neither a link nor a directory: Y".
+	@# Matching only one of them looks fine on the machine you wrote it on.
 	@# No `##`: it runs as part of stow, it is not a target to reach for.
 	@for p in ".:shared" $(if $(DEVICE_PKG),"devices:$(DEVICE_PKG)") $(if $(OS_PKG),"os:$(OS_PKG)"); do \
 		stow $(STOW_FLAGS) -d "$${p%%:*}" --simulate "$${p#*:}" 2>&1 \
-		| sed -n 's/.* over existing target \(.*\) since neither a link.*/\1/p' \
+		| sed -n -e 's/.* over existing target \(.*\) since neither a link.*/\1/p' \
+			-e 's/.*existing target is neither a link nor a directory: //p' \
 		| while read -r f; do \
 			b="$$f.bak.$$(date +%Y%m%d%H%M%S)"; \
 			mv "$$HOME/$$f" "$$HOME/$$b"; \
@@ -245,13 +250,18 @@ stow-test: ## stow and unstow every package in the repo into a throwaway $HOME
 	@# uses is exercised too, not just the packages.
 	@t=$$(mktemp -d); trap 'rm -rf "$$t"' EXIT; HOME=$$t $(MAKE) -s stow unstow
 	@# A real file in the way is backed up and replaced, not left as a conflict.
-	@# Checked on the file that prompted it, with content, because a backup that
-	@# is empty or a symlink to itself would still pass an -e test.
+	@# Checked with content, because a backup that is empty or a symlink to
+	@# itself would still pass an -e test. Two files, not one: stow reports every
+	@# conflict in the package at once, so a pass that only handles the first
+	@# would still look green with one.
 	@t=$$(mktemp -d); trap 'rm -rf "$$t"' EXIT; \
-	mkdir -p "$$t/.claude"; echo mine > "$$t/.claude/CLAUDE.md"; \
+	mkdir -p "$$t/.claude"; \
+	for f in CLAUDE.md settings.json; do echo "mine-$$f" > "$$t/.claude/$$f"; done; \
 	HOME=$$t $(MAKE) -s stow >/dev/null; \
-	[ -L "$$t/.claude/CLAUDE.md" ] || { echo "stow did not replace the real file"; exit 1; }; \
-	grep -qxs mine "$$t"/.claude/CLAUDE.md.bak.* || { echo "the real file was not backed up"; exit 1; }; \
+	for f in CLAUDE.md settings.json; do \
+		[ -L "$$t/.claude/$$f" ] || { echo "stow did not replace the real $$f"; exit 1; }; \
+		grep -qxs "mine-$$f" "$$t"/.claude/$$f.bak.* || { echo "$$f was not backed up"; exit 1; }; \
+	done; \
 	echo "== backup on conflict"
 
 #
