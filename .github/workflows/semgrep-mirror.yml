@@ -1,16 +1,18 @@
 name: semgrep mirror
 
-# Manual only, and deliberately so: this publishes the package every other repo
-# of mine pulls its scanner from, so it happens when a version is bumped on
-# purpose — not as a side effect of a push to a branch here. The version is an
-# input rather than this repo's SEMGREP_VERSION, because the repo that needs a
-# new one is usually not this one.
+# Runs when the mirror's Dockerfile changes on main — which in practice means a
+# Dependabot bump was merged. Still deliberate: merging is the decision, and the
+# path filter means no other push here can publish. It used to be dispatch-only
+# with the version typed into a box, and that put the mirror one forgotten step
+# behind every bump, which is the whole reason this trigger exists.
+#
+# workflow_dispatch stays for re-publishing a tag without touching the file, and
+# because a workflow with no manual trigger cannot be tested without a merge.
 on:
+  push:
+    branches: [main]
+    paths: ['.github/semgrep-mirror.Dockerfile']
   workflow_dispatch:
-    inputs:
-      version:
-        description: semgrep version to mirror, e.g. 1.171.0
-        required: true
 
 jobs:
   mirror:
@@ -32,25 +34,21 @@ jobs:
           ACTOR: ${{ github.actor }}
         run: echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
 
-      # Through the Makefile, so the pull/tag/push is written once and a laptop
-      # can still do it. Both values go via env: a `${{ }}` expanded straight
-      # into a run block is the script injection p/ci exists to catch, and an
-      # input is exactly the untrusted string it means.
+      # Through the Makefile, so the pull/build/push is written once and a laptop
+      # can still do it. Nothing is passed in: the Makefile reads the version out
+      # of the Dockerfile, which also means there is no `${{ }}` expanded into a
+      # run block — the script injection p/ci exists to catch.
       - name: Mirror the image
-        env:
-          VERSION: ${{ inputs.version }}
-        run: make semgrep-mirror SEMGREP_VERSION="$VERSION"
+        run: make semgrep-mirror
 
       # First push of a new package creates it private, and a private package is
       # useless to the repos that pull it anonymously. GITHUB_TOKEN cannot change
       # visibility, so this is the one step that stays manual — said out loud in
       # the log rather than left in a comment nobody opens.
+      # The tag itself is not repeated here: `docker push` above already printed
+      # it, and a second copy is a second thing to keep true.
       - name: Say what is still manual
-        env:
-          VERSION: ${{ inputs.version }}
         run: |
-          echo "pushed ghcr.io/${{ github.repository_owner }}/semgrep-mirror:$VERSION"
-          echo
           echo "if this is the first version ever pushed, set the package to public:"
           echo "  https://github.com/users/${{ github.repository_owner }}/packages/container/semgrep-mirror/settings"
           echo "until then other repos fall back to docker hub."
