@@ -120,6 +120,15 @@ pushes to `main` touching that path, so the new tag publishes itself. To bump by
 hand, edit the `FROM` line — there is no version to type anywhere else, which is
 the point: a version passed on a command line is a version no file records.
 
+Two tags are pushed: the version, and `latest`. **The other repos pull `latest`,
+this one pins the version.** That is what makes the bump above a decision taken
+once rather than once per repo — `latest` here does not track semgrep's releases,
+it tracks what this repo last merged, so a scanner reaches those repos only after
+Dependabot proposed it, the cooldown aged it, and I approved it. The version tag
+stays because it is what makes an old scan reproducible. The cost is real and
+worth saying: merging here can turn a build red in another repo with no commit
+there to point at, and this `git log` is where that explanation lives.
+
 It is an unmodified copy of `semgrep/semgrep`, rebuilt only to carry
 `org.opencontainers.image.source` pointing back here; upstream's label names
 semgrep's own repository, which is what GitHub reads to decide where a package

@@ -97,6 +97,15 @@ SEMGREP_VERSION = $(shell sed -n 's|^FROM semgrep/semgrep:||p' .github/semgrep-m
 SEMGREP_MIRROR   = ghcr.io/landsman/semgrep-mirror:$(SEMGREP_VERSION)
 SEMGREP_UPSTREAM = semgrep/semgrep:$(SEMGREP_VERSION)
 
+# Pushed alongside the version tag, and it is what the consuming repos actually
+# pull. `latest` there does not mean "whatever semgrep released" — it means
+# "whatever this repo last merged", which is a version Dependabot proposed, a
+# cooldown aged, and I approved. That keeps the deliberate bump in one place
+# instead of one per repo, each drifting behind it at its own pace.
+# The version tag stays too: it is what makes an old scan reproducible, and what
+# this repo's own `make security` pins itself to.
+SEMGREP_LATEST   = ghcr.io/landsman/semgrep-mirror:latest
+
 .PHONY: security semgrep-mirror
 security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
 	@# Docker rather than an install, because semgrep is a python toolchain and
@@ -127,9 +136,13 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 	@# which is what GitHub reads to decide where a package belongs. Nothing is
 	@# added to the image; see the Dockerfile. .github is the build context
 	@# because there is nothing to copy in and a context still gets uploaded.
-	docker build --pull -t $(SEMGREP_MIRROR) \
+	docker build --pull -t $(SEMGREP_MIRROR) -t $(SEMGREP_LATEST) \
 		-f .github/semgrep-mirror.Dockerfile .github
+	@# Both, explicitly, rather than `docker push --all-tags`: that pushes every
+	@# tag of this image the local daemon happens to hold, which on a laptop that
+	@# has mirrored before is older versions nobody asked to republish.
 	docker push $(SEMGREP_MIRROR)
+	docker push $(SEMGREP_LATEST)
 	@# That one rule wants every action pinned to a 40-character SHA. Actions are
 	@# referenced by major tag here instead — see CLAUDE.md — so the rule would
 	@# fail every run for a deliberate decision, and a check that is red on
