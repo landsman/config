@@ -104,8 +104,8 @@ the repo's version with the machine's.
 ## The semgrep mirror
 
 `make security` scans this repo for leaked secrets and unsafe workflow config.
-It pulls the scanner from `ghcr.io/landsman/semgrep`, not from Docker Hub, which
-rate-limits anonymous pulls on the shared IPs CI runners come from.
+It pulls the scanner from `ghcr.io/landsman/semgrep-mirror`, not from Docker Hub,
+which rate-limits anonymous pulls on the shared IPs CI runners come from.
 
 That package is published from **this** repo and read by all of them. The address
 carries no repo name, so any project pulls the same copy with no login once the

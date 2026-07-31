@@ -91,7 +91,7 @@ SEMGREP_VERSION = 1.171.0
 # write to packages under its own owner — so one repo publishes and the rest
 # consume. This is that repo: .github/workflows/semgrep-mirror.yml, dispatched
 # by hand with the version to mirror.
-SEMGREP_MIRROR   = ghcr.io/landsman/semgrep:$(SEMGREP_VERSION)
+SEMGREP_MIRROR   = ghcr.io/landsman/semgrep-mirror:$(SEMGREP_VERSION)
 SEMGREP_UPSTREAM = semgrep/semgrep:$(SEMGREP_VERSION)
 
 .PHONY: security semgrep-mirror
