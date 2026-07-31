@@ -1,0 +1,102 @@
+name: commit convention
+
+# Checks the subject that will actually reach main.
+#
+# Every repo of mine is squash-only with squash_title = COMMIT_OR_PR_TITLE, so
+# GitHub takes the subject from the pull request title on any branch with more
+# than one commit, and from the single commit's subject when there is exactly
+# one. Linting branch commits alone would therefore check text that is about to
+# be thrown away — the title is the thing that lands.
+#
+# Branch commits are still checked, but only as a warning: their subjects end up
+# in the squashed body (squash_message = COMMIT_MESSAGES) and in review, so they
+# are worth keeping tidy without being worth blocking a merge over.
+#
+# A regex rather than commitlint: the types here are mine, not
+# config-conventional's, so its ruleset would have to be overridden anyway — and
+# it would mean putting Node into a Kotlin repo, a Deno repo and a shell repo to
+# run one match.
+on:
+  workflow_call:
+    inputs:
+      types:
+        description: >-
+          Allowed types, pipe-separated for the regex. Keep `build` and `ci`
+          unless every dependabot.yml in the calling repo sets
+          `commit-message.prefix`, because dependabot writes its own titles and
+          does not read CLAUDE.md — `build(deps): bump …` is its default and
+          would fail this check on every automated pull request.
+        type: string
+        default: security|deps|devops|fe|be|docs|chore|build|ci
+
+jobs:
+  subject:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # The full branch, so the commit-subject warning below has something to
+      # walk. fetch-depth 0 rather than a guess at how many commits a branch has.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # The title goes in through env and is matched with grep, never expanded
+      # into the script. A pull request title is written by whoever opened it,
+      # which makes it the untrusted string in this workflow — `${{ }}` in a run
+      # block is exactly the injection p/ci exists to catch.
+      - name: Check the pull request title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          TYPES: ${{ inputs.types }}
+        run: |
+          set -euo pipefail
+          pattern="^(${TYPES})(\([a-z0-9._/-]+\))?: [a-z].*[^.]$"
+          if printf '%s' "$TITLE" | grep -qE "$pattern"; then
+            echo "ok: $TITLE"
+            exit 0
+          fi
+          echo "The pull request title is what lands on main, and it does not match."
+          echo
+          echo "  got:      $TITLE"
+          echo "  expected: <type>(<scope>): <lowercase subject, no full stop>"
+          echo "  types:    ${TYPES//|/, }"
+          echo
+          echo "Examples:"
+          echo "  security: scan for leaked secrets in the supabase functions"
+          echo "  deps: bump the cloudflare provider to 6.0"
+          echo "  devops(pollos): watch the terraform providers, nothing tracked them"
+          echo
+          echo "Edit the title — no push needed. This re-runs if the caller lists"
+          echo "'edited' in its pull_request types."
+          exit 1
+
+      # Advisory. These subjects reach main inside the squashed body rather than
+      # as its first line, so a stale one is untidy, not wrong.
+      - name: Check the branch commit subjects
+        if: always()
+        continue-on-error: true
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          TYPES: ${{ inputs.types }}
+        run: |
+          set -euo pipefail
+          pattern="^(${TYPES})(\([a-z0-9._/-]+\))?: [a-z].*[^.]$"
+          bad=0
+          # %s is the subject alone; a body wrapped to 72 columns would otherwise
+          # be matched line by line and fail on every one of them.
+          while IFS= read -r subject; do
+            [ -z "$subject" ] && continue
+            if printf '%s' "$subject" | grep -qE "$pattern"; then
+              echo "  ok   $subject"
+            else
+              echo "  warn $subject"
+              bad=$((bad + 1))
+            fi
+          done < <(git log --format=%s "$BASE..$HEAD")
+          echo
+          if [ "$bad" -gt 0 ]; then
+            echo "$bad commit subject(s) off-convention. Not blocking: the title above"
+            echo "is what becomes main's subject. These land in the squashed body."
+          fi

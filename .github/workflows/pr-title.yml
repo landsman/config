@@ -1,0 +1,17 @@
+name: pr title
+
+# Its own file rather than a job in ci.yml, because of `edited`: the title has to
+# be re-checked when it is fixed, and a title is fixed without pushing anything.
+# Hanging that trigger on ci.yml would re-run the macOS and Linux matrix every
+# time a typo in a title or a word in a description changed.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  # `./` and not `@main`, same as the semgrep call: a relative reference resolves
+  # to the copy in this commit, so a pull request changing the check is checked
+  # by that same pull request. Every other repo calls it at
+  # landsman/config/.github/workflows/commit-convention.yml@main.
+  subject:
+    uses: ./.github/workflows/commit-convention.yml
