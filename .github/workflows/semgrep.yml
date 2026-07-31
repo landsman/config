@@ -31,6 +31,15 @@ on:
         description: Space-separated paths to skip, passed as --exclude.
         type: string
         default: ''
+      exclude-rules:
+        description: >-
+          Space-separated rule ids to skip, passed as --exclude-rule. For a rule
+          that is wrong for a repo on purpose, or a real finding being carried
+          deliberately — either way the caller should say which in a comment,
+          because a suppressed rule with no reason beside it reads as a rule
+          nobody understood.
+        type: string
+        default: ''
 
 jobs:
   semgrep:
@@ -60,11 +69,13 @@ jobs:
           PACKS: ${{ inputs.packs }}
           SCAN_PATH: ${{ inputs.path }}
           EXCLUDES: ${{ inputs.exclude }}
+          EXCLUDE_RULES: ${{ inputs.exclude-rules }}
         run: |
           set -euo pipefail
           args=()
           for p in $PACKS; do args+=(--config="$p"); done
           for e in $EXCLUDES; do args+=(--exclude="$e"); done
+          for r in $EXCLUDE_RULES; do args+=(--exclude-rule="$r"); done
           test -d "$SCAN_PATH" || { echo "path not in this repo: $SCAN_PATH"; exit 1; }
           # --error turns findings into a failed job; without it semgrep reports
           # and exits 0, which is a check that cannot fail.
