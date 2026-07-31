@@ -5,17 +5,20 @@
 # and GitHub reads that field to decide which repository a GHCR package belongs
 # to. Pushed unchanged, the package would sit in my account pointing at a repo
 # I do not own, with nothing to say why it is there.
-# Deliberately without a default, which is why buildkit warns
-# InvalidDefaultArgInFrom on every build. Do not silence it by defaulting to
-# `latest`: a forgotten --build-arg would then quietly mirror a moving tag under
-# a pinned name. Failing is the correct behaviour here.
-ARG SEMGREP_VERSION
-FROM semgrep/semgrep:${SEMGREP_VERSION}
-
-# Repeated after FROM on purpose: an ARG declared before it is only in scope for
-# the FROM line itself.
-ARG SEMGREP_VERSION
+#
+# The version is written here, literally, and nowhere else. It used to arrive as
+# a --build-arg from the workflow's dispatch input, which meant the only record
+# of what to mirror was a box someone typed into. Dependabot cannot read that,
+# and cannot read `FROM image:${ARG}` either — its tag pattern is [\w][\w.-]*,
+# so a `${` makes it skip the line without a word. A literal tag is the one form
+# it does read, so this line is what it opens pull requests against, and the
+# Makefile reads the version back out of it rather than keeping a second copy.
+FROM semgrep/semgrep:1.172.0
 
 LABEL org.opencontainers.image.source=https://github.com/landsman/config
-LABEL org.opencontainers.image.base.name=docker.io/semgrep/semgrep:${SEMGREP_VERSION}
-LABEL org.opencontainers.image.description="Unmodified mirror of semgrep/semgrep, relabelled so it links back to landsman/config. Every repo of mine that runs `make security` pulls the scanner from here instead of Docker Hub, which rate-limits anonymous pulls on the shared IPs CI runners use. Published by the semgrep-mirror workflow in landsman/config, one dispatch per version. Not a fork: to see what is in it, read semgrep's own docs for the version in the tag."
+LABEL org.opencontainers.image.description="Unmodified mirror of semgrep/semgrep, relabelled so it links back to landsman/config. Every repo of mine that runs `make security` pulls the scanner from here instead of Docker Hub, which rate-limits anonymous pulls on the shared IPs CI runners use. Published by the semgrep-mirror workflow in landsman/config, one tag per version bump. Not a fork: to see what is in it, read semgrep's own docs for the version in the tag."
+
+# There was an image.base.name label here saying docker.io/semgrep/semgrep at the
+# same version. It went with the ARG: Dependabot rewrites the FROM line and only
+# the FROM line, so a second copy of the version would sit here going stale on
+# its own. The FROM above says the same thing and cannot drift from itself.

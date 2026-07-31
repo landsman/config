@@ -78,8 +78,11 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 #
 
 # Pinned: an unpinned scanner turns someone else's rule release into a red build
-# on an unrelated PR. Bump it deliberately, the same way the Brewfile is bumped.
-SEMGREP_VERSION = 1.171.0
+# on an unrelated PR. Read out of the mirror's Dockerfile rather than written
+# here, because that FROM line is the one syntax Dependabot can bump on its own —
+# so the version has exactly one home and this file follows it. Bumping by hand
+# still works, it is just a different file to edit.
+SEMGREP_VERSION = $(shell sed -n 's|^FROM semgrep/semgrep:||p' .github/semgrep-mirror.Dockerfile)
 
 # One mirror for every repo of mine that scans, rather than one per repo. Docker
 # Hub rate-limits anonymous pulls and CI runners share IPs, so the upstream pull
@@ -89,10 +92,19 @@ SEMGREP_VERSION = 1.171.0
 # shared: any repo pulls it with no login, and no repo needs write access to it.
 # Pushing is the half that does not generalise — a repo's GITHUB_TOKEN can only
 # write to packages under its own owner — so one repo publishes and the rest
-# consume. This is that repo: .github/workflows/semgrep-mirror.yml, dispatched
-# by hand with the version to mirror.
+# consume. This is that repo: .github/workflows/semgrep-mirror.yml, which runs
+# when the Dockerfile's version changes on main.
 SEMGREP_MIRROR   = ghcr.io/landsman/semgrep-mirror:$(SEMGREP_VERSION)
 SEMGREP_UPSTREAM = semgrep/semgrep:$(SEMGREP_VERSION)
+
+# Pushed alongside the version tag, and it is what the consuming repos actually
+# pull. `latest` there does not mean "whatever semgrep released" — it means
+# "whatever this repo last merged", which is a version Dependabot proposed, a
+# cooldown aged, and I approved. That keeps the deliberate bump in one place
+# instead of one per repo, each drifting behind it at its own pace.
+# The version tag stays too: it is what makes an old scan reproducible, and what
+# this repo's own `make security` pins itself to.
+SEMGREP_LATEST   = ghcr.io/landsman/semgrep-mirror:latest
 
 .PHONY: security semgrep-mirror
 security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
@@ -110,11 +122,13 @@ security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
 	@# its mirror should cost a slow run, not a red one.
 
 semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
-	@# Normally reached by dispatching the semgrep-mirror workflow, which logs in
-	@# with the repo's own CI token. Runnable here too, after a `docker login
-	@# ghcr.io` with a PAT that has write:packages. Override the version to
-	@# mirror one this repo does not itself use:
-	@#   make semgrep-mirror SEMGREP_VERSION=1.180.0
+	@# Normally reached by the semgrep-mirror workflow, which runs itself when the
+	@# Dockerfile's FROM changes on main and logs in with the repo's own CI token.
+	@# Runnable here too, after a `docker login ghcr.io` with a PAT that has
+	@# write:packages. To mirror a different version, edit the FROM line — there
+	@# is no override, because a version passed on the command line is a version
+	@# no file records, which is what put this repo one forgotten step away from
+	@# a stale mirror in the first place.
 	@# The first push creates the package as *private*; make it public once, in
 	@# the package settings, or the other repos cannot pull it anonymously.
 	@# Built rather than tagged, because a tag cannot rewrite labels and the
@@ -122,10 +136,13 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 	@# which is what GitHub reads to decide where a package belongs. Nothing is
 	@# added to the image; see the Dockerfile. .github is the build context
 	@# because there is nothing to copy in and a context still gets uploaded.
-	docker build --pull -t $(SEMGREP_MIRROR) \
-		--build-arg SEMGREP_VERSION=$(SEMGREP_VERSION) \
+	docker build --pull -t $(SEMGREP_MIRROR) -t $(SEMGREP_LATEST) \
 		-f .github/semgrep-mirror.Dockerfile .github
+	@# Both, explicitly, rather than `docker push --all-tags`: that pushes every
+	@# tag of this image the local daemon happens to hold, which on a laptop that
+	@# has mirrored before is older versions nobody asked to republish.
 	docker push $(SEMGREP_MIRROR)
+	docker push $(SEMGREP_LATEST)
 	@# That one rule wants every action pinned to a 40-character SHA. Actions are
 	@# referenced by major tag here instead — see CLAUDE.md — so the rule would
 	@# fail every run for a deliberate decision, and a check that is red on

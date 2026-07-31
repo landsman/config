@@ -1,0 +1,32 @@
+version: 2
+
+updates:
+  # Watches the FROM line in .github/semgrep-mirror.Dockerfile, which is the only
+  # place this repo records which semgrep to mirror. `directory` is the folder the
+  # Dockerfile sits in, not the file — files are found by name, and Dependabot
+  # matches /dockerfile|containerfile/i as a substring, so semgrep-mirror.Dockerfile
+  # is picked up despite the prefix.
+  #
+  # Merging what it opens is the whole trigger: the mirror workflow watches that
+  # same path on main and publishes the new tag by itself.
+  - package-ecosystem: docker
+    directory: /.github
+    schedule:
+      interval: weekly
+    # p/ci's dependabot-missing-cooldown asked for this, and it is worth more here
+    # than in most repos: merging one of these pull requests publishes the mirror
+    # by itself, so a semgrep release pulled the hour it appeared would be pushed
+    # to the package every other repo of mine scans with. A week is long enough
+    # for a bad release to be yanked before it is my problem.
+    cooldown:
+      default-days: 7
+
+  # The workflows themselves. Actions are referenced by major tag here on purpose
+  # (see CLAUDE.md), and Dependabot respects that — it moves v7 to v8, it does not
+  # rewrite a tag into a SHA, which is what the excluded p/ci rule wanted.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

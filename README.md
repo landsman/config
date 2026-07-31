@@ -109,11 +109,25 @@ carries no repo name, so any project pulls the same copy with no login once the
 package is public; only this repo can push to it, because a `GITHUB_TOKEN` writes
 only to packages under its own owner.
 
-To mirror a version — including one this repo does not itself use:
+The version to mirror lives in one place, the `FROM` line of
+`.github/semgrep-mirror.Dockerfile`, and everything else reads it from there —
+`SEMGREP_VERSION` in the Makefile, and so the tag that gets pushed. It is written
+literally rather than passed as a build arg because that is the only form
+Dependabot can bump; it watches that file weekly and opens the pull request.
 
-```
-gh workflow run "semgrep mirror" -f version=1.171.0
-```
+Merging that pull request is the whole procedure. The mirror workflow triggers on
+pushes to `main` touching that path, so the new tag publishes itself. To bump by
+hand, edit the `FROM` line — there is no version to type anywhere else, which is
+the point: a version passed on a command line is a version no file records.
+
+Two tags are pushed: the version, and `latest`. **The other repos pull `latest`,
+this one pins the version.** That is what makes the bump above a decision taken
+once rather than once per repo — `latest` here does not track semgrep's releases,
+it tracks what this repo last merged, so a scanner reaches those repos only after
+Dependabot proposed it, the cooldown aged it, and I approved it. The version tag
+stays because it is what makes an old scan reproducible. The cost is real and
+worth saying: merging here can turn a build red in another repo with no commit
+there to point at, and this `git log` is where that explanation lives.
 
 It is an unmodified copy of `semgrep/semgrep`, rebuilt only to carry
 `org.opencontainers.image.source` pointing back here; upstream's label names
