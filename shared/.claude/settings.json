@@ -1,0 +1,107 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(make:*)",
+      "Bash(./gradlew:*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "model": "opus[1m]",
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/plugins/cache/ponytail/ponytail/4.7.0/hooks/ponytail-statusline.sh\""
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "supabase@claude-plugins-official": true,
+    "figma@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true,
+    "gitlab@claude-plugins-official": true,
+    "jdtls-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "php-lsp@claude-plugins-official": true,
+    "caveman@caveman": false,
+    "ponytail@ponytail": true,
+    "ghostty-notify@claude-code-ghostty": true,
+    "voice@cctools-plugins": false
+  },
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    },
+    "claude-code-ghostty": {
+      "source": {
+        "source": "github",
+        "repo": "ishtartec/claude-code-ghostty"
+      }
+    },
+    "cctools-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "pchalasani/claude-code-tools"
+      }
+    }
+  },
+  "sandbox": {
+    "enabled": false,
+    "autoAllowBashIfSandboxed": true,
+    "network": {
+      "allowedDomains": [
+        "repo.maven.apache.org",
+        "plugins.gradle.org",
+        "services.gradle.org",
+        "registry.npmjs.org",
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "uploads.github.com",
+        "*.githubusercontent.com",
+        "vaadin.com",
+        "tools.vaadin.com"
+      ],
+      "allowUnixSockets": [
+        "$HOME/.docker/run/docker.sock",
+        "/var/run/docker.sock"
+      ],
+      "allowLocalBinding": true
+    },
+    "excludedCommands": [
+      "git",
+      "gh"
+    ]
+  },
+  "effortLevel": "xhigh",
+  "remote": {
+    "defaultEnvironmentId": "env_013WzJHMsde2NNZvXBH6qAUC"
+  },
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": false
+  },
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark-ansi",
+  "preferredNotifChannel": "auto",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": false
+}

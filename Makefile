@@ -38,7 +38,7 @@ help: ## show this help
 #
 
 .PHONY: qa qa-deps lint bin-test
-qa: qa-deps lint git-config-test apps-test stow-test bin-test ## run all checks — this is what CI runs
+qa: qa-deps lint git-config-test apps-test stow-test bin-test claude-settings-test ## run all checks — this is what CI runs
 
 qa-deps:
 	@# What the checks need, written down next to the checks, so ci.yml is just
@@ -167,12 +167,41 @@ apps-test: ## parse the Brewfile without installing anything
 	@command -v brew >/dev/null || { echo "brew not installed - skipped"; exit 0; }; \
 		HOMEBREW_NO_AUTO_UPDATE=1 brew bundle list --file Brewfile >/dev/null
 
+.PHONY: claude-settings-test
+claude-settings-test: ## check the stowed Claude settings parse and stay machine-independent
+	@# It is one file for every machine, so a path that only exists on one is a
+	@# bug the other machine finds silently — the setting is simply ignored
+	@# there. $$HOME instead, and anything genuinely local (a client checkout, a
+	@# per-machine socket) goes in ~/.claude/settings.local.json, which is not
+	@# tracked. That file is also why this repo being public is survivable.
+	@python3 -c 'import json;json.load(open("shared/.claude/settings.json"))'
+	@grep -nE '"[^"]*/(Users|home)/' shared/.claude/settings.json \
+		&& { echo "^ only true on one machine - use \$$HOME, or move it to ~/.claude/settings.local.json"; exit 1; } \
+		|| true
+
 #
 # Dotfiles ($HOME) via GNU stow
 #
 
-.PHONY: stow restow unstow stow-test
-stow: ## symlink shared + device + os packages into $HOME (see README for first run)
+.PHONY: stow restow unstow stow-backup stow-test
+stow-backup:
+	@# stow aborts the whole package when one real file is in the way, so on a
+	@# fresh machine every install stops on the first hand-written dotfile. Ask
+	@# stow which ones those are (--simulate writes nothing), move each aside
+	@# with a timestamp and say so — losing an edit silently would be worse than
+	@# the conflict. Only real files match; an existing symlink is stow's own.
+	@# No `##`: it runs as part of stow, it is not a target to reach for.
+	@for p in ".:shared" $(if $(DEVICE_PKG),"devices:$(DEVICE_PKG)") $(if $(OS_PKG),"os:$(OS_PKG)"); do \
+		stow $(STOW_FLAGS) -d "$${p%%:*}" --simulate "$${p#*:}" 2>&1 \
+		| sed -n 's/.* over existing target \(.*\) since neither a link.*/\1/p' \
+		| while read -r f; do \
+			b="$$f.bak.$$(date +%Y%m%d%H%M%S)"; \
+			mv "$$HOME/$$f" "$$HOME/$$b"; \
+			echo "NOTE: ~/$$f was a real file - kept as ~/$$b, the repo's version is now linked there"; \
+		done; \
+	done
+
+stow: stow-backup ## symlink shared + device + os packages into $HOME (see README for first run)
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@# `if`, not `test && stow || echo`: with the latter a *failing stow* falls
@@ -184,7 +213,7 @@ stow: ## symlink shared + device + os packages into $HOME (see README for first 
 		else echo "no package for os '$(OS)' - skipped"; fi
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
-restow: ## re-link after adding files, or after an app replaced a symlink
+restow: stow-backup ## re-link after adding files, or after an app replaced a symlink
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
@@ -215,6 +244,15 @@ stow-test: ## stow and unstow every package in the repo into a throwaway $HOME
 	@# Once more with nothing overridden, so the DEVICE/OS detection this host
 	@# uses is exercised too, not just the packages.
 	@t=$$(mktemp -d); trap 'rm -rf "$$t"' EXIT; HOME=$$t $(MAKE) -s stow unstow
+	@# A real file in the way is backed up and replaced, not left as a conflict.
+	@# Checked on the file that prompted it, with content, because a backup that
+	@# is empty or a symlink to itself would still pass an -e test.
+	@t=$$(mktemp -d); trap 'rm -rf "$$t"' EXIT; \
+	mkdir -p "$$t/.claude"; echo mine > "$$t/.claude/CLAUDE.md"; \
+	HOME=$$t $(MAKE) -s stow >/dev/null; \
+	[ -L "$$t/.claude/CLAUDE.md" ] || { echo "stow did not replace the real file"; exit 1; }; \
+	grep -qxs mine "$$t"/.claude/CLAUDE.md.bak.* || { echo "the real file was not backed up"; exit 1; }; \
+	echo "== backup on conflict"
 
 #
 # Shell

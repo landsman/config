@@ -21,6 +21,7 @@ lives wherever it stays true.
 | `.bashrc` | Fragment *sourced* from the distro `~/.bashrc` by absolute path | `make shell` |
 | `Brewfile` | Packages — one list for every machine, macOS and Linux | `make apps` |
 | `bin/` | Setup that a symlink cannot express, one directory per tool, each with its own `*.test.sh` | its own `make` target |
+| `.claude/` | Notes for this repo, not files for `$HOME` — [MCP servers](.claude/claude-code-mcp.md) is a `claude mcp` cheat sheet | read, not installed |
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
@@ -89,8 +90,14 @@ For the root-owned parts, see [devices/t480/system/README.md](devices/t480/syste
 
 ### First run: existing files
 
-`stow` refuses to overwrite real files that are already in `$HOME`. Either move
-the conflicting file aside, or let stow take it over:
+`stow` refuses to overwrite real files that are already in `$HOME`, and aborts
+the whole package when it hits one — so on a fresh machine the install would
+stop on the first hand-written dotfile. `make stow` handles that itself: a real
+file in the way is renamed to `<file>.bak.<timestamp>`, the rename is printed,
+and the repo's version is linked in its place. Nothing is deleted; if the
+machine's version was the better one, it is still sitting next to the symlink.
+
+The alternative is to let stow keep the machine's content instead:
 
 ```
 stow --no-folding --adopt -t "$HOME" shared t480
@@ -144,6 +151,19 @@ Two things are deliberately *not* stowed, because a symlink would break them:
   appends a `. <repo>/.bashrc` line instead. It used to `cat` the fragment in,
   which meant every later edit stopped at the repo; on a machine hooked up that
   way, delete the pasted block once and re-run `make shell`.
+
+`~/.claude` is almost all runtime state — sessions, caches, history — and only
+two files are tracked, both in `shared/`: `CLAUDE.md` and `settings.json`.
+`--no-folding` is what makes that safe: the directory stays real and only those
+two are symlinks, so nothing the tool writes lands in the repo.
+
+`settings.json` is `shared/` rather than per-OS, so it must hold no path that is
+only true on one machine — `make claude-settings-test` fails on a literal
+`/Users/` or `/home/`, since such a setting is not an error on the other
+machine, it is just silently ignored there. `$HOME` instead. Anything genuinely
+local — a client checkout in `additionalDirectories` — goes in
+`~/.claude/settings.local.json`, which is the machine-local half by design and
+stays untracked. That split is also what makes this repo safe to keep public.
 
 Aliases are split into drop-ins (`~/.config/bash_aliases.d/*.sh`) so `shared/`
 and `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
