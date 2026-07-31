@@ -17,10 +17,20 @@ on:
 
 jobs:
   claude:
-    # The action checks the trigger phrase itself and exits early, but only
-    # after a runner has been allocated. Filtering here means an ordinary
-    # comment never starts a job at all.
-    if: contains(github.event.comment.body, '@claude')
+    # Two gates, and neither is the security boundary — the action itself
+    # refuses anyone without write access to this repo, which is what keeps a
+    # public repo's passers-by out. These are narrower than that on purpose:
+    #
+    # The login check makes it one person rather than everyone with write
+    # access, because the bill is a Claude subscription rather than a repo
+    # cost. A collaborator added later gets to push, not to spend.
+    #
+    # The phrase check is only about runner minutes. The action looks for
+    # @claude itself and exits early, but not before a runner is allocated;
+    # testing it here means an ordinary comment never starts a job at all.
+    if: >-
+      github.event.comment.user.login == 'landsman' &&
+      contains(github.event.comment.body, '@claude')
     uses: ./.github/workflows/claude.yml
     # The ceiling, not the grant — the called workflow narrows these to what it
     # actually uses. Dropping one here is how you take a capability away.

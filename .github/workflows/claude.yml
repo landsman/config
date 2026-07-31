@@ -21,7 +21,9 @@ name: claude
 #         types: [created]
 #     jobs:
 #       claude:
-#         if: contains(github.event.comment.body, '@claude')
+#         if: >-
+#           github.event.comment.user.login == 'landsman' &&
+#           contains(github.event.comment.body, '@claude')
 #         uses: landsman/config/.github/workflows/claude.yml@main
 #         permissions:
 #           contents: write
@@ -35,6 +37,14 @@ name: claude
 # a called workflow has none of its own, and `permissions:` because the caller's
 # grant is a ceiling this file can lower but never raise. Getting that wrong is
 # a 403 when Claude tries to push, not a startup error, so the stub says both.
+#
+# Who may trigger it stays with the caller as well, and the stub's login check
+# is not the thing keeping strangers out — the action refuses anyone without
+# write access to the calling repo, and that is what makes a public repo safe
+# to leave this on. The login check is narrower on purpose: write access is a
+# repo permission, but the bill is a Claude subscription, so a collaborator
+# added later should get to push without getting to spend. Swap the login when
+# adopting this somewhere else, or drop the line to allow every writer.
 #
 # The secret stays with the caller too, and that is the part adopting this does
 # not save: a personal account has no org-level secrets, so every repo needs its
