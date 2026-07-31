@@ -154,8 +154,11 @@ Docker Hub and says so.
   `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
   `os/macos/.zshrc` loads the same directory, so they are shell-agnostic.
 - **`~/.claude` is mostly runtime state** — sessions, caches, history. Only
-  `CLAUDE.md` and `settings.json` are tracked, both in `shared/`; `--no-folding`
-  keeps the directory real so nothing the tool writes lands here.
+  `CLAUDE.md`, `settings.json` and `voice.local.md` are tracked, all in
+  `shared/`; `--no-folding` keeps the directory real so nothing the tool writes
+  lands here. `voice.local.md` is the odd one: the voice plugin rewrites it in
+  place when you toggle voice, so a diff there is usually a toggle rather than a
+  change worth committing.
 - **`settings.json` must hold no machine-specific path** — it is one file for
   every machine, and such a setting is not an error elsewhere, it is silently
   ignored. `make claude-settings-test` fails on a literal `/Users/` or `/home/`;
