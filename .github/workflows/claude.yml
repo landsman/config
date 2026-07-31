@@ -1,0 +1,33 @@
+name: claude
+
+# issue_comment covers both issue and pull request comments — GitHub delivers a
+# comment on a PR's conversation tab as an issue_comment, not a pull_request
+# event. pull_request_review_comment is the separate one: a comment left on a
+# line of the diff during review.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  claude:
+    # The action checks the trigger phrase itself and exits early, but only after
+    # a runner has been allocated. Filtering here means an ordinary comment never
+    # starts a job at all.
+    if: contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the branch it works on
+      pull-requests: write   # open the PR and comment on it
+      issues: write          # reply on the issue it was called from
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0     # so it can branch from, and diff against, real history
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # Subscription token, not an API key: the two are different inputs and
+          # the Max plan only bills through this one.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
