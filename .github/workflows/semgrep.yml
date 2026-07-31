@@ -1,0 +1,73 @@
+name: semgrep
+
+# The scan itself, written once and called by every repo of mine that wants it.
+# `workflow_call` and a public repo is what makes that reach across accounts:
+# a reusable workflow in a public repo can be called from anywhere, including a
+# private repo in another org, with nothing to configure at either end.
+#
+# So a repo adopting this adds a job, not a scanner: no image name, no pack list
+# to keep in step, no `docker run` to get the volume mount right in. When the
+# scanner moves — a new semgrep, a different registry, an extra default pack —
+# it moves here, and every caller has it on their next run.
+#
+# What stays with the caller is the only thing it knows better than this file:
+# which packs its language needs, and which directory of a monorepo is its own.
+on:
+  workflow_call:
+    inputs:
+      packs:
+        description: >-
+          Space-separated semgrep registry packs. Check one exists before adding
+          it — the registry 404s rather than ignoring an unknown name, and that
+          fails the run. p/gradle, p/deno and p/bash do not exist; p/typescript
+          covers Deno, and p/java plus p/kotlin cover a Gradle project.
+        type: string
+        default: p/secrets
+      path:
+        description: Directory to scan, relative to the repo root.
+        type: string
+        default: .
+      exclude:
+        description: Space-separated paths to skip, passed as --exclude.
+        type: string
+        default: ''
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    # The caller's code, and nothing else. Naming any scope drops the rest to
+    # none, which is the point: a scanner reads, it does not need to write.
+    permissions:
+      contents: read
+    steps:
+      # Checks out the *calling* repository, which is what makes one copy of
+      # this file work for all of them.
+      - uses: actions/checkout@v7
+
+      # Every input arrives as an env var rather than being expanded into the
+      # script. A `${{ }}` written straight into a run block is the script
+      # injection p/ci exists to catch, and these are strings someone else's
+      # workflow supplies.
+      #
+      # Docker is already on the runner and the image is public, so there is
+      # nothing to install and no login. It is the mirror rather than Docker
+      # Hub because Hub rate-limits anonymous pulls on the shared IPs runners
+      # come from, and `latest` there means the version landsman/config last
+      # merged — Dependabot proposed it, a week of cooldown aged it, and it was
+      # approved — not whatever semgrep shipped this morning.
+      - name: Scan
+        env:
+          PACKS: ${{ inputs.packs }}
+          SCAN_PATH: ${{ inputs.path }}
+          EXCLUDES: ${{ inputs.exclude }}
+        run: |
+          set -euo pipefail
+          args=()
+          for p in $PACKS; do args+=(--config="$p"); done
+          for e in $EXCLUDES; do args+=(--exclude="$e"); done
+          test -d "$SCAN_PATH" || { echo "path not in this repo: $SCAN_PATH"; exit 1; }
+          # --error turns findings into a failed job; without it semgrep reports
+          # and exits 0, which is a check that cannot fail.
+          docker run --rm -v "$PWD:/src" -w /src \
+            ghcr.io/landsman/semgrep-mirror:latest \
+            semgrep "${args[@]}" --metrics=off --error "$SCAN_PATH"
