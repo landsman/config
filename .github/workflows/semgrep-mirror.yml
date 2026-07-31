@@ -21,7 +21,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The repo's own CI token is enough here — it can write packages under the
       # same owner — which is what makes this a workflow rather than something
