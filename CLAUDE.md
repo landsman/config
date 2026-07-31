@@ -22,3 +22,12 @@ Work out which of the four applies before asking. Ask when the answer would
 introduce machinery the repo does not already have — a first flatpak, a first
 snap, a first curl-a-tarball installer — because that is a bigger decision than
 the app itself.
+
+## Pull requests
+
+When the work is done and pushed, open the pull request. Do not ask first —
+this is standing permission for this repo, so that the last step of a change
+is not a round trip to hear "yes".
+
+Opening only. Merging stays a decision I make, and so does anything that
+touches a branch other than the one being worked on.
