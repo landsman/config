@@ -170,7 +170,7 @@
     "caveman@caveman": false,
     "ponytail@ponytail": true,
     "ghostty-notify@claude-code-ghostty": true,
-    "voice@cctools-plugins": false
+    "voice@cctools-plugins": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
@@ -233,12 +233,9 @@
     ]
   },
   "effortLevel": "xhigh",
-  "remote": {
-    "defaultEnvironmentId": "env_013WzJHMsde2NNZvXBH6qAUC"
-  },
   "tui": "fullscreen",
   "voice": {
-    "enabled": false
+    "enabled": true
   },
   "skipWorkflowUsageWarning": true,
   "theme": "dark-ansi",
@@ -246,5 +243,5 @@
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "voiceEnabled": false
+  "voiceEnabled": true
 }
