@@ -289,8 +289,11 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 #
 
 .PHONY: macos macos-touchid
-macos: ## apply the macOS settings this repo owns (menu bar, Dock, Finder, trackpad)
+macos: ## apply the macOS settings this repo owns (menu bar, Dock, Finder, trackpad, file associations)
 	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; ./bin/macos/defaults.sh
+	@# Its own script and not a `defaults write` line: the associations live in one
+	@# array that has to be merged, not overwritten. See bin/macos/file-associations.sh.
+	@[ "$$(uname -s)" = Darwin ] || exit 0; ./bin/macos/file-associations.sh
 
 macos-touchid: ## authenticate sudo with Touch ID (root-owned, so its own target)
 	@# There is no System Settings toggle for this: the Touch ID pane covers the

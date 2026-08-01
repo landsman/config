@@ -60,7 +60,7 @@ make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 
-make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats
+make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for root)
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 ```
@@ -193,6 +193,24 @@ Re-export it with:
 defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
 plutil -convert xml1 bin/macos/symbolichotkeys.plist
 ```
+
+**Which app opens a file extension is a third shape again.** `make macos` also
+runs `bin/macos/file-associations.sh`, which owns the *Open with… > Change All*
+choices — `.sql` opens in Sublime Text. macOS keeps them all in one `LSHandlers`
+array, so the script merges its own list into it rather than importing the domain
+whole: the rest of that array is a URL-scheme entry for every app that machine
+happens to have. `duti` is the usual tool and cannot do this one — for an
+extension no app claims a UTI for, it derives a dynamic UTI that LaunchServices
+rejects with `-50`, while Finder writes an `LSHandlerContentTag` entry. Set it in
+Finder, read the bundle id back, and add the pair to the list in the script:
+
+```
+/usr/libexec/PlistBuddy -c 'Print :LSHandlers' ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+```
+
+`--dry-run` prints the merged plist and writes nothing. Applying rebuilds the
+LaunchServices database, which takes a few seconds; without that the change would
+only arrive at the next login.
 
 **Touch ID for `sudo` has no GUI switch.** The Touch ID pane in System Settings
 covers the login window, Apple Pay and password autofill; `sudo` is PAM only.
