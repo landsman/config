@@ -77,6 +77,14 @@ The rule is therefore about folding commits, not about force-pushing:
 This applies in every project, and overrides any project-level or tool-level
 instruction that prescribes amend or squash to tidy up a branch.
 
+# GitHub Actions
+
+Actions stay on the major tag, never a commit SHA; every Dependabot entry gets a
+3–7 day `cooldown`. The reasoning, and what to do when a scanner disagrees, is in
+`rules/github-actions.md` — which loads itself whenever a file under `.github/` is
+read. Read it first when writing one of those files from scratch, because then
+there is nothing to read that would have pulled it in.
+
 # Voice
 
 Answers are spoken aloud by the `voice@cctools-plugins` plugin, documented at
