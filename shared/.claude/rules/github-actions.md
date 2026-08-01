@@ -18,6 +18,14 @@ writing one of these files from scratch, where there is nothing to read first.
 is on, never the 40-character commit SHA the tag points at. Dependabot moves the
 major when there is a new one; that is the whole update story.
 
+Use the **latest** major, and look it up rather than recalling it — a model's idea
+of the current version is whatever was true when it was trained, and these move:
+
+    gh api repos/<owner>/<action>/releases/latest --jq .tag_name
+
+(`landsman/config/AGENTS.md` says this for that repo; it is here because it is true
+everywhere.)
+
 A scanner will ask for the SHA instead: semgrep's `p/ci` carries
 `github-actions-mutable-action-tag`, which fires on every `uses:` line in the repo.
 **Do not rewrite the tags to satisfy it.** Forty characters of hash on every line
