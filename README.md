@@ -21,7 +21,8 @@ lives wherever it stays true.
 | `.bashrc` | Fragment *sourced* from the distro `~/.bashrc` by absolute path | `make shell` |
 | `Brewfile` | Packages — one list for every machine, macOS and Linux | `make apps` |
 | `bin/` | Setup that a symlink cannot express, one directory per tool, each with its own `*.test.sh` | its own `make` target |
-| `.claude/` | Notes for this repo, not files for `$HOME` — [MCP servers](.claude/claude-code-mcp.md) is a `claude mcp` cheat sheet | read, not installed |
+| `AGENTS.md` | Conventions a coding agent follows here — `CLAUDE.md` is a symlink to it | loaded by the agent |
+| `.docs-llm/` | Notes for this repo, not files for `$HOME` — [MCP servers](.docs-llm/mcp-servers.md) is a `claude mcp` cheat sheet | read, not installed |
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
@@ -223,4 +224,4 @@ otherwise it is a `.bak.<timestamp>` you have to go find.
 - [Kubuntu userland](os/ubuntu/README.md) — KDE config, and the apt packages that stay out of the Brewfile (1Password)
 - [T480 system config (root-owned)](devices/t480/system/README.md)
 - [JetBrains](bin/jetbrains/README.md) — Toolbox install, the plugin list, and why the IDE heap is patched rather than stowed
-- [Claude](.claude/README.md)
+- [Coding agents](.docs-llm/README.md) — MCP server notes, and where the files an agent loads actually live

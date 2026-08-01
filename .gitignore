@@ -4,6 +4,10 @@
 .idea/*
 !.idea/externalDependencies.xml
 
+# agent scratch space - worktrees, local settings, session state. Leading slash:
+# only the one at the root, `shared/.claude/` is the payload and stays tracked.
+/.claude/
+
 # deps
 node_modules
 
