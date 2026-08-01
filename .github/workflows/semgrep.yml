@@ -17,12 +17,14 @@ on:
     inputs:
       packs:
         description: >-
-          Space-separated semgrep registry packs. Check one exists before adding
-          it — the registry 404s rather than ignoring an unknown name, and that
-          fails the run. p/gradle, p/deno and p/bash do not exist; p/typescript
-          covers Deno, and p/java plus p/kotlin cover a Gradle project.
+          Space-separated semgrep registry packs, on top of the baseline every
+          caller gets — so this is the caller's *languages* and nothing else.
+          Check one exists before adding it — the registry 404s rather than
+          ignoring an unknown name, and that fails the run. p/gradle, p/deno and
+          p/bash do not exist; p/typescript covers Deno, and p/java plus p/kotlin
+          cover a Gradle project. Naming a baseline pack again is harmless.
         type: string
-        default: p/secrets
+        default: ''
       path:
         description: Directory to scan, relative to the repo root.
         type: string
@@ -66,6 +68,17 @@ jobs:
       # approved — not whatever semgrep shipped this morning.
       - name: Scan
         env:
+          # Every caller gets these on top of its own, so no repo configures them
+          # and a change here reaches all of them on the next run. p/secrets
+          # because a leaked key is nobody's language, and p/ci because every repo
+          # has a .github/ and no language pack has ever looked inside one: it is
+          # what catches a dependabot.yml with no cooldown, and a `${{ }}`
+          # expanded straight into a run block.
+          BASE_PACKS: p/secrets p/ci
+          # The one rule off for everyone: it wants each `uses:` pinned to a commit
+          # sha rather than @vN, which trades a readable workflow for a wall of
+          # hashes. Reasoning in shared/.claude/rules/github-actions.md.
+          BASE_EXCLUDE_RULES: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
           PACKS: ${{ inputs.packs }}
           SCAN_PATH: ${{ inputs.path }}
           EXCLUDES: ${{ inputs.exclude }}
@@ -73,12 +86,20 @@ jobs:
         run: |
           set -euo pipefail
           args=()
-          for p in $PACKS; do args+=(--config="$p"); done
+          # Baseline first, caller second. A pack named twice costs nothing —
+          # semgrep loads it once and reports each finding once.
+          for p in $BASE_PACKS $PACKS; do args+=(--config="$p"); done
           for e in $EXCLUDES; do args+=(--exclude="$e"); done
-          for r in $EXCLUDE_RULES; do args+=(--exclude-rule="$r"); done
+          for r in $BASE_EXCLUDE_RULES $EXCLUDE_RULES; do args+=(--exclude-rule="$r"); done
           test -d "$SCAN_PATH" || { echo "path not in this repo: $SCAN_PATH"; exit 1; }
+          # .github/ sits at the repo root, so a caller scanning one directory of a
+          # monorepo would never reach the files p/ci is here for. Scan it too, and
+          # accept that four callers in one monorepo each report the same root-level
+          # finding — four red checks with one cause reads fine, a silent gap does not.
+          targets=("$SCAN_PATH")
+          [ "$SCAN_PATH" = . ] || [ ! -d .github ] || targets+=(.github)
           # --error turns findings into a failed job; without it semgrep reports
           # and exits 0, which is a check that cannot fail.
           docker run --rm -v "$PWD:/src" -w /src \
             ghcr.io/landsman/semgrep-mirror:latest \
-            semgrep "${args[@]}" --metrics=off --error "$SCAN_PATH"
+            semgrep "${args[@]}" --metrics=off --error "${targets[@]}"
