@@ -34,10 +34,17 @@ DOCKER_KEY_URL="https://download.docker.com/linux/ubuntu/gpg"
 DOCKER_KEY_FPR="9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
 TAILSCALE_KEY_URL="https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg"
 TAILSCALE_KEY_FPR="2596A99EAAB33821893C0A79458CA832957F5868"
+# One key signs every Google Linux repo, Chrome's included. The subkeys rotate
+# yearly and the primary is what apt verifies against, so the primary is pinned.
+GOOGLE_KEY_URL="https://dl.google.com/linux/linux_signing_key.pub"
+GOOGLE_KEY_FPR="EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796"
 
 # The package each app is identified by. Docker pulls in its plugins too, but
-# docker-ce is what "is Docker here?" comes down to.
-PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord)
+# docker-ce is what "is Docker here?" comes down to. The last two need no vendor
+# repo at all — Ubuntu ships them — but they belong in the same list, because
+# what this script answers is "are the GUI apps this repo names here yet".
+PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord
+	google-chrome-stable vlc libreoffice)
 
 installed() {
 	[ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = "installed" ]
@@ -157,6 +164,17 @@ for pkg in "${MISSING[@]}"; do
 		add_repo tailscale "$TAILSCALE_KEY_URL" "$TAILSCALE_KEY_FPR" \
 			https://pkgs.tailscale.com/stable/ubuntu "$CODENAME" main
 		INSTALL+=(tailscale)
+		;;
+	google-chrome-stable)
+		add_repo google-chrome "$GOOGLE_KEY_URL" "$GOOGLE_KEY_FPR" \
+			https://dl.google.com/linux/chrome/deb stable main
+		INSTALL+=(google-chrome-stable)
+		;;
+	vlc | libreoffice)
+		# In the Ubuntu archive, so there is nothing to configure: no repo, no
+		# key, and the distro's own signing already covers it. Listed anyway, so
+		# that a fresh machine gets them from `make apps` like everything else.
+		INSTALL+=("$pkg")
 		;;
 	discord)
 		# The deliberate exception to the pinning above: no apt repo, no

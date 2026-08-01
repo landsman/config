@@ -100,11 +100,15 @@ if OS.mac?
 	cask "figma"
 	# Fast, GPU-accelerated terminal emulator
 	cask "ghostty"
+	# Web browser — the default one, see bin/macos/file-associations.conf
+	cask "google-chrome"
 	# Terminal emulator as alternative to Apple's Terminal app
 	cask "iterm2"
 	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so
 	# the heap this repo wants is applied by `make jetbrains` afterwards.
 	cask "jetbrains-toolbox"
+	# Office suite — opens the .doc, .docx and .xlsx associations
+	cask "libreoffice"
 	# macOS App for monitoring power usage and charging status
 	cask "lzt1008/powerflow/powerflow", trusted: true
 	# Team collaboration and meetings
@@ -115,6 +119,8 @@ if OS.mac?
 	cask "sublime-text"
 	# Mesh VPN — the GUI app, the plain formula is CLI-only
 	cask "tailscale-app"
+	# Media player — opens the .mp4 and .m4a associations
+	cask "vlc"
 	# Video meetings and messaging
 	cask "webex"
 	# Desktop client for WhatsApp messaging

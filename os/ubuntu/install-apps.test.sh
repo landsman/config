@@ -88,11 +88,15 @@ FAKE_ROOT=1 exec "$@"' >"$BIN/sudo"
 
 run() { PATH="$BIN:$PATH" CODENAME=noble INSTALLED="$1" FPR="$2" bash "$SCRIPT" 2>&1; }
 
+ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice"
+# The list minus one app, so a case can be "only this one is missing".
+without() { echo "$ALL" | tr ' ' '\n' | grep -vxF -e "${1:-}" -e "${2:-}" | tr '\n' ' '; }
+
 echo "== every package already present"
 setup
-out="$(run "1password sublime-text dbeaver-ce docker-ce tailscale discord" deadbeef)"
+out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 6 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 9 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -101,7 +105,7 @@ echo "== nothing present, keys as expected"
 setup
 # Every stubbed key reports 1Password's fingerprint, so run 1Password alone:
 # a shared stub cannot satisfy five different pins at once.
-out="$(run "sublime-text dbeaver-ce docker-ce tailscale discord" 3FEF9748469ADBE15DA7CA80AC2D62742012EA22)"
+out="$(run "$(without 1password)" 3FEF9748469ADBE15DA7CA80AC2D62742012EA22)"
 check "succeeds" "$?" "0"
 contains "1password repo added" "$ROOT/etc/apt/sources.list.d/1password.list" \
 	"https://downloads.1password.com/linux/debian/amd64 stable main"
@@ -117,7 +121,7 @@ rm -rf "$ROOT"
 echo
 echo "== a key whose fingerprint does not match"
 setup
-out="$(run "sublime-text dbeaver-ce docker-ce tailscale discord" 0000000000000000000000000000000000000000)"
+out="$(run "$(without 1password)" 0000000000000000000000000000000000000000)"
 check "refuses to continue" "$?" "1"
 case "$out" in *"fingerprint mismatch"*) ok "says why" ;; *) fail "says why" ;; esac
 if [ -f "$ROOT/apt-installed" ]; then fail "installs nothing"; else ok "installs nothing"; fi
@@ -127,12 +131,36 @@ rm -rf "$ROOT"
 echo
 echo "== discord, the one with no repo behind it"
 setup
-out="$(run "1password sublime-text dbeaver-ce docker-ce tailscale" deadbeef)"
+out="$(run "$(without discord)" deadbeef)"
 check "succeeds" "$?" "0"
 check "apt is handed the .deb itself, not a package name" \
 	"$(basename "$(cat "$ROOT/apt-installed")")" "discord.deb"
 check "and no apt repo is added for it" \
 	"$(test -d "$ROOT/etc/apt" && echo yes || echo no)" "no"
+rm -rf "$ROOT"
+
+echo
+echo "== chrome, whose repo is one key for all of Google"
+setup
+out="$(run "$(without google-chrome-stable)" EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796)"
+check "succeeds" "$?" "0"
+contains "chrome repo added" "$ROOT/etc/apt/sources.list.d/google-chrome.list" \
+	"https://dl.google.com/linux/chrome/deb stable main"
+contains "signed-by points at its own keyring" "$ROOT/etc/apt/sources.list.d/google-chrome.list" \
+	"signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg"
+check "installs exactly what was missing" "$(cat "$ROOT/apt-installed")" "google-chrome-stable"
+rm -rf "$ROOT"
+
+echo
+echo "== vlc and libreoffice, which the Ubuntu archive already has"
+setup
+out="$(run "$(without vlc libreoffice)" deadbeef)"
+check "succeeds" "$?" "0"
+check "both are installed" "$(tr '\n' ' ' <"$ROOT/apt-installed")" "vlc libreoffice "
+# The point of this case: an archive package that grew a repo and a pinned key
+# would be machinery bought for nothing, and nobody would notice from the outside.
+check "and neither adds a repo or a key" \
+	"$(test -d "$ROOT/etc/apt" -o -d "$ROOT/usr/share/keyrings" && echo yes || echo no)" "no"
 rm -rf "$ROOT"
 
 echo
