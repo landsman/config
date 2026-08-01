@@ -194,15 +194,22 @@ defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
 plutil -convert xml1 bin/macos/symbolichotkeys.plist
 ```
 
-**Which app opens a file extension is a third shape again.** `make macos` also
-runs `bin/macos/file-associations.sh`, which owns the *Open with… > Change All*
-choices — `.sql` opens in Sublime Text. macOS keeps them all in one `LSHandlers`
-array, so the script merges its own list into it rather than importing the domain
-whole: the rest of that array is a URL-scheme entry for every app that machine
-happens to have. `duti` is the usual tool and cannot do this one — for an
-extension no app claims a UTI for, it derives a dynamic UTI that LaunchServices
-rejects with `-50`, while Finder writes an `LSHandlerContentTag` entry. Set it in
-Finder, read the bundle id back, and add the pair to the list in the script:
+**Which app opens what is a third shape again.** `make macos` also runs
+`bin/macos/file-associations.sh`, which owns the *Open with… > Change All*
+choices and the default browser: `.sql` in Sublime Text, `.mp4` and `.m4a` in
+VLC, `.xlsx` in LibreOffice, links and `.html` in Chrome. The list is
+`bin/macos/file-associations.conf`, a file of its own because it is the part
+worth reading — three columns, and the first says which of the three keys macOS
+matches on (`ext` an extension, `uti` a content type, `scheme` a URL scheme;
+Finder picks, so copy what it wrote).
+
+They all live in one `LSHandlers` array, so the script merges the list into it
+rather than importing the domain whole: the rest of that array is a URL-scheme
+entry for every app that machine happens to have installed, which is noise, not a
+choice. `duti` is the usual tool and cannot do all of it — for an extension no
+app claims a UTI for, it derives a dynamic UTI that LaunchServices rejects with
+`-50`, while Finder writes an `LSHandlerContentTag` entry. Set it in Finder or
+System Settings, read back what it wrote, and copy it into the list:
 
 ```
 /usr/libexec/PlistBuddy -c 'Print :LSHandlers' ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
