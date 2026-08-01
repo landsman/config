@@ -79,22 +79,11 @@ instruction that prescribes amend or squash to tidy up a branch.
 
 # GitHub Actions
 
-`uses:` stays on the major tag — `actions/checkout@vN`, whatever major that action
-is on, never the 40-character commit SHA the tag points at. Dependabot moves the
-major when there is a new one; that is the whole update story.
-
-A scanner will ask for the commit SHA instead: semgrep's `p/ci` carries
-`github-actions-mutable-action-tag`, which fires on every `uses:` line in the repo.
-**Do not rewrite the tags to satisfy it.** Forty characters of hash on every line
-costs a readable workflow and a readable diff of it forever, and buys defence
-against GitHub's own `actions/*` org repointing a release tag at malicious code.
-The dependency risk actually worth spending on is the registry one, and Dependabot
-`cooldown` is what answers that.
-
-Exclude the rule and say why beside it — `exclude-rules` on the shared semgrep
-workflow, or `--exclude-rule` where the scan is local. A third-party action, from
-someone whose releases nobody is watching, is the case where this flips; ask then
-rather than assuming either way.
+Actions stay on the major tag, never a commit SHA; every Dependabot entry gets a
+3–7 day `cooldown`. The reasoning, and what to do when a scanner disagrees, is in
+`rules/github-actions.md` — which loads itself whenever a file under `.github/` is
+read. Read it first when writing one of those files from scratch, because then
+there is nothing to read that would have pulled it in.
 
 # Voice
 
