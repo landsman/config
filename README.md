@@ -60,7 +60,7 @@ make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 
-make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats
+make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for root)
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 ```
@@ -193,6 +193,31 @@ Re-export it with:
 defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
 plutil -convert xml1 bin/macos/symbolichotkeys.plist
 ```
+
+**Which app opens what is a third shape again.** `make macos` also runs
+`bin/macos/file-associations.sh`, which owns the *Open with… > Change All*
+choices and the default browser: `.sql` in Sublime Text, `.mp4` and `.m4a` in
+VLC, `.xlsx` in LibreOffice, links and `.html` in Chrome. The list is
+`bin/macos/file-associations.conf`, a file of its own because it is the part
+worth reading — three columns, and the first says which of the three keys macOS
+matches on (`ext` an extension, `uti` a content type, `scheme` a URL scheme;
+Finder picks, so copy what it wrote).
+
+They all live in one `LSHandlers` array, so the script merges the list into it
+rather than importing the domain whole: the rest of that array is a URL-scheme
+entry for every app that machine happens to have installed, which is noise, not a
+choice. `duti` is the usual tool and cannot do all of it — for an extension no
+app claims a UTI for, it derives a dynamic UTI that LaunchServices rejects with
+`-50`, while Finder writes an `LSHandlerContentTag` entry. Set it in Finder or
+System Settings, read back what it wrote, and copy it into the list:
+
+```
+/usr/libexec/PlistBuddy -c 'Print :LSHandlers' ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist
+```
+
+`--dry-run` prints the merged plist and writes nothing. Applying rebuilds the
+LaunchServices database, which takes a few seconds; without that the change would
+only arrive at the next login.
 
 **Touch ID for `sudo` has no GUI switch.** The Touch ID pane in System Settings
 covers the login window, Apple Pay and password autofill; `sudo` is PAM only.

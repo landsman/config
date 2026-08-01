@@ -21,13 +21,23 @@ cannot — from the vendors' own apt repos, except where the table says otherwis
 | DBeaver CE | `dbeaver-ce` | `dbeaver.io/debs` (flat repo) |
 | Docker Engine | `docker-ce` + cli, containerd, buildx, compose | `download.docker.com` |
 | Tailscale | `tailscale` | `pkgs.tailscale.com` |
+| Google Chrome | `google-chrome-stable` | `dl.google.com/linux/chrome/deb` |
 | Discord | `discord` | **none** — the vendor `.deb`, see below |
+| VLC | `vlc` | **none needed** — in the Ubuntu archive |
+| LibreOffice | `libreoffice` | **none needed** — in the Ubuntu archive |
 
 Docker is the *engine*, not Docker Desktop: Desktop for Linux is a hand-download
 `.deb` with no repo behind it, and the engine is what
 [`lazydocker`](../../Brewfile) actually talks to. Two follow-ups are left to you
 on purpose — `usermod -aG docker $USER` (root-equivalent, so it should be a
 decision, not a side effect of `make apps`) and `sudo tailscale up`.
+
+The last two rows are the plain case and are here for a reason: both are in the
+Ubuntu archive, so neither needs a repo, a key or a pin, and adding any of that
+would be machinery bought for nothing. They are in the list only so that one
+`make apps` leaves a machine with the apps [the macOS file
+associations](../../bin/macos/file-associations.conf) point at — VLC for `.mp4`
+and `.m4a`, LibreOffice for `.doc`, `.docx` and `.xlsx`, Chrome for links.
 
 Discord is the one entry with no repo behind it, and it is here deliberately
 rather than by oversight. It publishes a `.deb` and nothing else: no apt repo,

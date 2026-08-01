@@ -18,6 +18,7 @@ set -eu
 
 [ "${1:-}" != "--dry-run" ] || DRY_RUN=1
 : "${DRY_RUN:=}"
+written=0   # counted by the helpers below, so the closing line can say how many
 
 # ponytail: one helper, one line per setting. No apply/verify/rollback layer —
 # `defaults write` is already idempotent, and the diff above is the review.
@@ -25,6 +26,7 @@ set -eu
 # line stays copy-pasteable, and the test can pull the key back out of it with
 # one pattern instead of guessing where a key with spaces ends.
 w() {
+	written=$((written + 1))
 	if [ -n "$DRY_RUN" ]; then printf "defaults write %s '%s' %s\n" "$1" "$2" "${*:3}"
 	else defaults write "$@"; fi
 }
@@ -32,6 +34,7 @@ w() {
 # The -currentHost twin: same keys, but a per-machine plist under ByHost, which
 # is where the window server and Control Center actually read some of them from.
 wh() {
+	written=$((written + 1))
 	if [ -n "$DRY_RUN" ]; then printf "defaults -currentHost write %s '%s' %s\n" "$1" "$2" "${*:3}"
 	else defaults -currentHost write "$@"; fi
 }
@@ -181,4 +184,4 @@ killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
 # Apple moves it, the settings are still written and a logout still applies them.
 /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u 2>/dev/null || true
 
-echo "applied"
+echo "$written settings written (menu bar, Dock, Finder, trackpad, formats, privacy) plus the keyboard shortcuts from $(basename "$hotkeys"); Dock, Finder, the menu bar and Control Center restarted, so nothing here waits for a logout"
