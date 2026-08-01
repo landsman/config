@@ -22,7 +22,7 @@ updates:
       default-days: 7
 
   # The workflows themselves. Actions are referenced by major tag here on purpose
-  # (see CLAUDE.md), and Dependabot respects that — it moves v7 to v8, it does not
+  # (see AGENTS.md), and Dependabot respects that — it moves v7 to v8, it does not
   # rewrite a tag into a SHA, which is what the excluded p/ci rule wanted.
   - package-ecosystem: github-actions
     directory: /

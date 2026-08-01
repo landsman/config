@@ -144,7 +144,7 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 	docker push $(SEMGREP_MIRROR)
 	docker push $(SEMGREP_LATEST)
 	@# That one rule wants every action pinned to a 40-character SHA. Actions are
-	@# referenced by major tag here instead — see CLAUDE.md — so the rule would
+	@# referenced by major tag here instead — see AGENTS.md — so the rule would
 	@# fail every run for a deliberate decision, and a check that is red on
 	@# purpose is a check nobody reads. Excluded by id rather than by dropping
 	@# p/ci, which still has plenty to say about workflow config.

@@ -1,6 +1,8 @@
-# Claude Code — MCP Servers
+# MCP Servers
 
-Personal setup notes for MCP servers used across projects.
+Personal setup notes for MCP servers used across projects. The servers are
+agent-agnostic; the commands below are Claude Code's, because that is the client
+in use here. Another client reads the same server URLs from its own config.
 
 Config file: `~/.claude.json` (user scope via `--scope user`).
 
