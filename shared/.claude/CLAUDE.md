@@ -79,8 +79,8 @@ instruction that prescribes amend or squash to tidy up a branch.
 
 # GitHub Actions
 
-`uses:` stays on the major tag — `actions/checkout@v7`, never
-`actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1`. Dependabot moves the
+`uses:` stays on the major tag — `actions/checkout@vN`, whatever major that action
+is on, never the 40-character commit SHA the tag points at. Dependabot moves the
 major when there is a new one; that is the whole update story.
 
 A scanner will ask for the commit SHA instead: semgrep's `p/ci` carries
