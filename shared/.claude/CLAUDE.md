@@ -77,6 +77,25 @@ The rule is therefore about folding commits, not about force-pushing:
 This applies in every project, and overrides any project-level or tool-level
 instruction that prescribes amend or squash to tidy up a branch.
 
+# GitHub Actions
+
+`uses:` stays on the major tag — `actions/checkout@v7`, never
+`actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1`. Dependabot moves the
+major when there is a new one; that is the whole update story.
+
+A scanner will ask for the commit SHA instead: semgrep's `p/ci` carries
+`github-actions-mutable-action-tag`, which fires on every `uses:` line in the repo.
+**Do not rewrite the tags to satisfy it.** Forty characters of hash on every line
+costs a readable workflow and a readable diff of it forever, and buys defence
+against GitHub's own `actions/*` org repointing a release tag at malicious code.
+The dependency risk actually worth spending on is the registry one, and Dependabot
+`cooldown` is what answers that.
+
+Exclude the rule and say why beside it — `exclude-rules` on the shared semgrep
+workflow, or `--exclude-rule` where the scan is local. A third-party action, from
+someone whose releases nobody is watching, is the case where this flips; ask then
+rather than assuming either way.
+
 # Voice
 
 Answers are spoken aloud by the `voice@cctools-plugins` plugin, documented at
