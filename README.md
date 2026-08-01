@@ -181,9 +181,12 @@ and paste the key into the script with the type `defaults read-type <domain> <ke
 reports. `./bin/macos/defaults.sh --dry-run` prints every write without doing any.
 
 One domain is committed whole instead: `bin/macos/symbolichotkeys.plist` is the
-keyboard shortcuts, 17 of the 21 system ones turned off. That is a nested dict of
+keyboard shortcuts, 16 of the 21 system ones turned off. That is a nested dict of
 numeric IDs, so it is exported as XML and `defaults import`ed — readable as a diff,
-where seventeen `-dict-add` lines would not be. Re-export it with:
+where sixteen `-dict-add` lines would not be. One of the five left on is id 60,
+*Select the previous input source*, on its stock `⌃Space` — the Czech/U.S. switch
+is otherwise the left `fn` key, which an external keyboard does not have.
+Re-export it with:
 
 ```
 defaults export com.apple.symbolichotkeys bin/macos/symbolichotkeys.plist
