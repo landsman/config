@@ -173,4 +173,12 @@ fi
 
 # cfprefsd caches writes, and these apps only read at launch.
 killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
-echo "applied - log out and back in for the rest"
+
+# The keyboard shortcuts above are read by the window server, which a killall
+# cannot reach — without this they arrive at the next login, which is a
+# surprising thing for `make macos` to say. This is what System Settings itself
+# calls to publish a change. Private, hence the full path and the `|| true`: if
+# Apple moves it, the settings are still written and a logout still applies them.
+/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u 2>/dev/null || true
+
+echo "applied"
