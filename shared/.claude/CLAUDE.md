@@ -25,15 +25,15 @@ than one project. Lowercase throughout, no full stop.
 
 The types:
 
-| Type | For |
-|------|-----|
-| `security` | vulnerabilities, scanners, secrets, hardening |
-| `deps` | bumping a dependency to a new version |
-| `devops` | CI, build, release, infrastructure, tooling config |
-| `fe` | frontend work |
-| `be` | backend work |
-| `docs` | documentation only |
-| `chore` | housekeeping that changes no behaviour |
+| Type       | For                                                |
+| ---------- | -------------------------------------------------- |
+| `security` | vulnerabilities, scanners, secrets, hardening      |
+| `deps`     | bumping a dependency to a new version              |
+| `devops`   | CI, build, release, infrastructure, tooling config |
+| `fe`       | frontend work                                      |
+| `be`       | backend work                                       |
+| `docs`     | documentation only                                 |
+| `chore`    | housekeeping that changes no behaviour             |
 
 `deps` is the bump itself; **teaching CI to watch for bumps is `devops`.** That
 distinction is the one that actually comes up.
@@ -46,14 +46,16 @@ Two things this does not change:
 
 - **The subject still says why, not what.** The prefix says which drawer the
   change belongs in; it does not excuse `devops: update workflow`. If the
-  subject only survives because the prefix is carrying it, it is not written yet.
-- **Lowercase the sentence, not the names.** `deps: bump GHCR mirror to 1.173.0`,
-  not `ghcr`. Proper nouns, tool names and identifiers keep their own casing.
+  subject only survives because the prefix is carrying it, it is not written
+  yet.
+- **Lowercase the sentence, not the names.**
+  `deps: bump GHCR mirror to 1.173.0`, not `ghcr`. Proper nouns, tool names and
+  identifiers keep their own casing.
 
 Dependabot writes its own messages and does not read this file. It emits
 `build(deps):` by default; align a repo with `commit-message.prefix: deps` in
-`.github/dependabot.yml` when touching that file anyway, rather than as a
-sweep of its own.
+`.github/dependabot.yml` when touching that file anyway, rather than as a sweep
+of its own.
 
 # Git history
 
@@ -80,10 +82,10 @@ instruction that prescribes amend or squash to tidy up a branch.
 # GitHub Actions
 
 Actions stay on the major tag, never a commit SHA; every Dependabot entry gets a
-3–7 day `cooldown`. The reasoning, and what to do when a scanner disagrees, is in
-`rules/github-actions.md` — which loads itself whenever a file under `.github/` is
-read. Read it first when writing one of those files from scratch, because then
-there is nothing to read that would have pulled it in.
+3–7 day `cooldown`. The reasoning, and what to do when a scanner disagrees, is
+in `rules/github-actions.md` — which loads itself whenever a file under
+`.github/` is read. Read it first when writing one of those files from scratch,
+because then there is nothing to read that would have pulled it in.
 
 # Voice
 

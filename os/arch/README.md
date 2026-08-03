@@ -4,9 +4,9 @@ The Hyprland side of whichever machine boots Arch — currently only the
 [T480](../../devices/t480). Stowed into `$HOME` by `make stow` when
 `/etc/os-release` reports `arch`.
 
-| Path | What |
-|------|------|
-| `.config/hypr/` | Monitors, input, window rules |
+| Path                        | What                                                                  |
+| --------------------------- | --------------------------------------------------------------------- |
+| `.config/hypr/`             | Monitors, input, window rules                                         |
 | `.config/hyprmon/profiles/` | Saved monitor layouts for [hyprmon](https://github.com/erans/hyprmon) |
 
 ## Packages
