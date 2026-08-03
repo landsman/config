@@ -60,3 +60,44 @@ is not a round trip to hear "yes".
 
 Opening only. Merging stays a decision I make, and so does anything that
 touches a branch other than the one being worked on.
+
+## Localisation
+
+When building an application, never hardcode user-facing text. Always use localization (i18n) keys. If the project does not already have a localization solution, ask the user which library or framework they want to use before introducing one.
+
+Use the localization approach that matches the project's existing technology stack:
+
+- **Java/Kotlin (Spring Boot):** typically `messages.properties` files (for example `messages.properties`, `messages_en.properties`, `messages_de.properties`) configured through Spring Boot's `MessageSource` support. Do not introduce a different solution unless requested.
+- **Java/Kotlin (non-Spring):** use the localization mechanism already present in the project, such as `ResourceBundle`.
+- **Frontend (TypeScript/JavaScript):** use the project's existing solution, such as **i18next**, **Lingui**, **FormatJS (react-intl)**, Angular i18n, or simple JSON translation files if the project already uses them. Do not replace an existing localization library.
+
+When adding new user-facing text:
+
+- Add a localization key instead of a hardcoded string.
+- Add translations for every language already supported by the application. If translations cannot be provided reliably, add the key with a placeholder value and clearly indicate which translations are still required.
+- Reuse existing keys whenever possible instead of creating duplicates.
+- Do not use localized text as identifiers, configuration values, API fields, database values, or business logic.
+
+Localization keys should:
+
+- Never contain spaces.
+- Follow the project's existing naming convention. If none exists, use `camelCase` or `snake_case`, depending on the language, framework, linters, and project conventions.
+- Be descriptive and stable. Prefer names such as `user.profile.saveButton` or `error.invalidCredentials` over generic names like `label1` or `text`.
+- Be organized by feature or domain when appropriate.
+
+### Email Templates
+
+Email localization may be implemented using localization keys, separate templates per language, or another project-specific approach. Follow the existing architecture of the project instead of introducing a new one.
+
+When creating or modifying email templates:
+
+- Never hardcode user-facing text.
+- Localize the email subject.
+- Localize the email body, including headings, paragraphs, button labels, call-to-action text, footer text, and error messages.
+- Keep dynamic values (such as user names, order numbers, dates, and links) as template placeholders rather than concatenating localized strings.
+- Use locale-aware formatting for dates, times, numbers, currencies, and pluralization where supported by the localization framework.
+- Add translations for every language already supported by the application. If translations cannot be provided reliably, add placeholder values and clearly indicate which translations are still required.
+
+Email templates should share a common base layout (header, footer, branding, styling, etc.) to maximize reuse and minimize duplication. Individual templates should contain only email-specific content. Avoid copy-pasting shared HTML or styling between templates.
+
+Avoid embedding user-facing text directly into images. Prefer HTML text whenever possible, as it is easier to localize, more accessible, and adapts better to different screen sizes and email clients. If an image must contain text (for example, a marketing banner or logo), provide localized variants for every supported language or explicitly inform the user that localized assets are required.
