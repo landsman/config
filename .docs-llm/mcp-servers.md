@@ -8,9 +8,11 @@ Config file: `~/.claude.json` (user scope via `--scope user`).
 
 ## Vaadin
 
-Docs: https://vaadin.com/docs/latest/building-apps/mcp/supported-tools/claude-code
+Docs:
+https://vaadin.com/docs/latest/building-apps/mcp/supported-tools/claude-code
 
-Correct URL is `https://mcp.vaadin.com/docs` (NOT `/mcp` — that path fails to connect).
+Correct URL is `https://mcp.vaadin.com/docs` (NOT `/mcp` — that path fails to
+connect).
 
 Install (user scope):
 
@@ -34,7 +36,7 @@ claude mcp remove vaadin
 ## Common commands
 
 | Command                    | Purpose                       |
-|----------------------------|-------------------------------|
+| -------------------------- | ----------------------------- |
 | `claude mcp list`          | List servers + health         |
 | `claude mcp list-tools`    | Show tools exposed by servers |
 | `claude mcp remove <name>` | Unregister server             |
