@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Re-wraps the markdown at 80 columns on the way in, so `make fmt` is not a step
+# to remember and a paragraph an agent left 400 columns wide never reaches a
+# diff. Same formatter as `make fmt` — see the Makefile for why it is deno.
+#
+# Installed by `make git-hooks`, which points core.hooksPath at this directory
+# rather than copying anything into .git/hooks: a copy is untracked and goes
+# stale the day this file changes.
+set -eu
+
+# No deno, no reformat. A commit is the wrong place to fail on a missing tool,
+# and `make fmt` still says so on a machine that has one.
+command -v deno >/dev/null || exit 0
+
+# -z and read -d '', because a path with a space in it is otherwise two paths.
+while IFS= read -r -d '' f; do
+	# Staged *and* unstaged edits in the same file: deno formats the working
+	# copy, so re-adding it would commit the half that was deliberately left
+	# out. Say so and leave it — `make fmt` is there once the rest is staged.
+	if ! git diff --quiet -- "$f"; then
+		echo "pre-commit: $f has unstaged changes - left unwrapped"
+		continue
+	fi
+	err=$(deno fmt "$f" 2>&1) || { echo "pre-commit: deno fmt failed on $f"; echo "$err"; exit 1; }
+	# The file now differing from the index *is* the "deno changed something"
+	# signal, so there is nothing to compare by hand — and a commit that gets
+	# rewritten underneath you should say which file it rewrote.
+	git diff --quiet -- "$f" || { echo "pre-commit: wrapped $f"; git add "$f"; }
+done < <(git diff --cached --name-only --diff-filter=ACM -z -- '*.md')

@@ -56,7 +56,9 @@ lint: ## parse every shell file without running it
 	@# -n is parse-only, so nothing here is sourced or executed. A typo in a
 	@# stowed rc file otherwise surfaces as a broken login shell on the next
 	@# machine, which is a bad place to find out.
-	@for f in $$(git ls-files '*.sh' '.bashrc'); do echo "== $$f"; bash -n "$$f" || exit 1; done
+	@# bin/git/pre-commit by name: it is a shell script with no .sh to match, and
+	@# a hook that does not parse breaks every commit rather than one run.
+	@for f in $$(git ls-files '*.sh' '.bashrc' 'bin/git/pre-commit'); do echo "== $$f"; bash -n "$$f" || exit 1; done
 	@# The zsh file gets the zsh parser: bash accepts most of it and would miss
 	@# the rest (fpath arrays, autoload).
 	@echo "== os/macos/.zshrc"; zsh -n os/macos/.zshrc
@@ -336,8 +338,16 @@ macos-touchid: ## authenticate sudo with Touch ID (root-owned, so its own target
 # GIT config
 #
 
-.PHONY: git git-config-test git-config-format
-git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
+.PHONY: git git-hooks git-config-test git-config-format
+git-hooks: ## point this clone's hooks at bin/git (pre-commit re-wraps the markdown)
+	@# core.hooksPath, not a copy into .git/hooks: the copy is untracked and goes
+	@# stale the day the script changes, silently and only on this machine.
+	@# Set on this repo rather than in .gitconfig, which is included into every
+	@# repo on the machine — none of the others have a bin/git to point at.
+	@git config core.hooksPath bin/git
+	@echo "hooks: $$(git config core.hooksPath)"
+
+git: git-hooks ## set up this machine: hook in .gitconfig, set email, set up commit signing
 	@git config --global --get-all include.path | grep -qxF '$(CURDIR)/.gitconfig' \
 		|| git config --global --add include.path '$(CURDIR)/.gitconfig'
 	@read -p "email [$$(git config --file '$(CURDIR)/.gitconfig' user.email)]: " e; \

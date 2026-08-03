@@ -58,7 +58,7 @@ make apps    # Homebrew if missing, then the Brewfile (stow included), then
              # on Linux whatever the distro has to install itself
 make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
-make git     # hook in .gitconfig, set email + commit signing
+make git     # hook in .gitconfig, set email + commit signing, install the hooks
 
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for root)
@@ -78,6 +78,10 @@ make jetbrains   # set the IDE heap; then open this repo in the IDE to get the p
 - **The IDE is last** — opening this repo offers every plugin in
   `.idea/externalDependencies.xml` in one click, and plugins are per IDE, not
   per project, so that one prompt covers every project on the machine.
+- **`make git` also points this clone at `bin/git`** — its `pre-commit` re-wraps
+  staged markdown at 80 columns, the same `make fmt` does. `make git-hooks` on
+  its own for a clone whose git identity is already set up; both are per repo,
+  because `.gitconfig` here is included into every repo on the machine.
 - **Root-owned files are not installed by any of this** — see
   [devices/t480/system/README.md](devices/t480/system/README.md).
 
