@@ -72,6 +72,24 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	done
 
 #
+# Docs — the markdown here is hard-wrapped at 80 columns, and an agent that has
+# just edited a file leaves 400-column paragraphs behind for someone to reflow
+# by hand.
+#
+
+.PHONY: fmt
+fmt: ## re-wrap every tracked markdown file at 80 columns
+	@# deno rather than prettier or mdformat: it is already in the Brewfile, so
+	@# this is a target and not a new dependency, and it needs no node_modules or
+	@# venv to run from. 80 columns and wrapped prose are its defaults, which is
+	@# why there are no flags to read here.
+	@# Not part of qa: qa is read-only and this rewrites tracked files. CI has no
+	@# deno either, so a --check leg would mean installing one to enforce a rule
+	@# that only bites the file being edited.
+	@command -v deno >/dev/null || { echo "deno not installed - run: make apps"; exit 1; }
+	@deno fmt $$(git ls-files '*.md')
+
+#
 # Security — separate from qa because it is the same answer on every OS, so CI
 # runs it once instead of once per matrix leg, and because it needs Docker,
 # which qa deliberately does not.
