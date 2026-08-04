@@ -88,7 +88,7 @@ FAKE_ROOT=1 exec "$@"' >"$BIN/sudo"
 
 run() { PATH="$BIN:$PATH" CODENAME=noble INSTALLED="$1" FPR="$2" bash "$SCRIPT" 2>&1; }
 
-ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice"
+ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe"
 # The list minus one app, so a case can be "only this one is missing".
 without() { echo "$ALL" | tr ' ' '\n' | grep -vxF -e "${1:-}" -e "${2:-}" | tr '\n' ' '; }
 
@@ -96,7 +96,7 @@ echo "== every package already present"
 setup
 out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 9 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 10 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -149,6 +149,21 @@ contains "chrome repo added" "$ROOT/etc/apt/sources.list.d/google-chrome.list" \
 contains "signed-by points at its own keyring" "$ROOT/etc/apt/sources.list.d/google-chrome.list" \
 	"signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg"
 check "installs exactly what was missing" "$(cat "$ROOT/apt-installed")" "google-chrome-stable"
+rm -rf "$ROOT"
+
+echo
+echo "== stripe, whose repo has one suite rather than a codename"
+setup
+out="$(run "$(without stripe)" 6681D7C3D103DAC65D79C25EDEEBD57F917C83E3)"
+check "succeeds" "$?" "0"
+# `stable` is the suite here, not the release codename the other repos take.
+contains "stripe repo added" "$ROOT/etc/apt/sources.list.d/stripe.list" \
+	"https://packages.stripe.dev/stripe-cli-debian-local stable main"
+case "$(cat "$ROOT/etc/apt/sources.list.d/stripe.list")" in
+*noble*) fail "does not paste the codename in" ;;
+*) ok "does not paste the codename in" ;;
+esac
+check "installs exactly what was missing" "$(cat "$ROOT/apt-installed")" "stripe"
 rm -rf "$ROOT"
 
 echo

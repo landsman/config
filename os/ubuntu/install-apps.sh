@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# GUI apps for the Kubuntu boxes that the Brewfile cannot install, from the
-# vendors' own apt repos. Run by `make apps` right after `brew bundle`, which
+# Apps for the Kubuntu boxes that the Brewfile cannot install — the GUI ones,
+# plus the odd CLI whose formula is macOS-only — from the vendors' own apt
+# repos. Run by `make apps` right after `brew bundle`, which
 # finds this file as os/$(OS)/install-apps.sh — an OS without one is skipped,
 # which is why macOS needs no guard here.
 #
@@ -34,17 +35,19 @@ DOCKER_KEY_URL="https://download.docker.com/linux/ubuntu/gpg"
 DOCKER_KEY_FPR="9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
 TAILSCALE_KEY_URL="https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg"
 TAILSCALE_KEY_FPR="2596A99EAAB33821893C0A79458CA832957F5868"
+STRIPE_KEY_URL="https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public"
+STRIPE_KEY_FPR="6681D7C3D103DAC65D79C25EDEEBD57F917C83E3"
 # One key signs every Google Linux repo, Chrome's included. The subkeys rotate
 # yearly and the primary is what apt verifies against, so the primary is pinned.
 GOOGLE_KEY_URL="https://dl.google.com/linux/linux_signing_key.pub"
 GOOGLE_KEY_FPR="EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796"
 
 # The package each app is identified by. Docker pulls in its plugins too, but
-# docker-ce is what "is Docker here?" comes down to. The last two need no vendor
+# docker-ce is what "is Docker here?" comes down to. Two of them need no vendor
 # repo at all — Ubuntu ships them — but they belong in the same list, because
-# what this script answers is "are the GUI apps this repo names here yet".
+# what this script answers is "are the apps this repo names here yet".
 PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord
-	google-chrome-stable vlc libreoffice)
+	google-chrome-stable vlc libreoffice stripe)
 
 installed() {
 	[ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = "installed" ]
@@ -164,6 +167,14 @@ for pkg in "${MISSING[@]}"; do
 		add_repo tailscale "$TAILSCALE_KEY_URL" "$TAILSCALE_KEY_FPR" \
 			https://pkgs.tailscale.com/stable/ubuntu "$CODENAME" main
 		INSTALL+=(tailscale)
+		;;
+	stripe)
+		# One codename-less suite for every release, which is why `stable` here
+		# is not $CODENAME. The Brewfile installs this one on the Mac; its tap
+		# formula is macOS-only, so Linux comes through apt instead.
+		add_repo stripe "$STRIPE_KEY_URL" "$STRIPE_KEY_FPR" \
+			https://packages.stripe.dev/stripe-cli-debian-local stable main
+		INSTALL+=(stripe)
 		;;
 	google-chrome-stable)
 		add_repo google-chrome "$GOOGLE_KEY_URL" "$GOOGLE_KEY_FPR" \

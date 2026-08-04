@@ -11,6 +11,7 @@
 
 tap "lzt1008/powerflow"
 tap "microsoft/sysinternalstap"
+tap "stripe/stripe-cli"
 
 # Microsoft Azure CLI 2.0
 brew "azure-cli"
@@ -79,6 +80,12 @@ brew "vite-plus"
 
 # Apple Silicon Monitor Top written in Go Lang
 brew "mactop" if OS.mac?
+# Stripe CLI. Guarded because the tap's formula is `depends_on :macos` — the
+# Linux boxes take it from packages.stripe.dev, see os/ubuntu/install-apps.sh.
+# It also installs its own shell completions into share/{zsh,bash}, both already
+# on the path `brew shellenv` sets up, which is why neither rc file mentions it.
+# The `stripe completion` command prints a ~/.stripe recipe instead; ignore it.
+brew "stripe/stripe-cli/stripe" if OS.mac?
 # Real-time type-ahead completion for Zsh — the Linux boxes are bash, see .bashrc
 brew "zsh-autocomplete" if OS.mac?
 
