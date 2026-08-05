@@ -14,6 +14,16 @@ export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 # either here — see its caveats: `brew info zsh-autocomplete`. fpath has to be
 # ready before it is sourced, and the fallback covers a fresh machine where
 # `make stow` landed before `make brew`.
+#
+# Only a completion Homebrew did not install needs a line here. `brew shellenv`
+# above already puts $HOMEBREW_PREFIX/share/zsh/site-functions on fpath, so
+# everything in the Brewfile completes with nothing added — worth writing down,
+# because several of those CLIs print a setup recipe that assumes you generated
+# the file by hand. `stripe completion` is the one that came up: it asks for a
+# ~/.stripe on fpath and a compinit of its own, and following it would add a
+# directory duplicating the formula's own _stripe plus a second compinit for
+# zsh-autocomplete to fight. Docker Desktop is not a brew install, which is why
+# it is the one that does get a line.
 fpath=("$HOME/.docker/completions" $fpath)       # Docker Desktop completions
 ac="$HOMEBREW_PREFIX/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh"
 if [ -r "$ac" ]; then source "$ac"; else autoload -Uz compinit && compinit; fi

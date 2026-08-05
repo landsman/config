@@ -22,6 +22,7 @@ cannot — from the vendors' own apt repos, except where the table says otherwis
 | Docker Engine | `docker-ce` + cli, containerd, buildx, compose | `download.docker.com` |
 | Tailscale | `tailscale` | `pkgs.tailscale.com` |
 | Google Chrome | `google-chrome-stable` | `dl.google.com/linux/chrome/deb` |
+| Stripe CLI | `stripe` | `packages.stripe.dev` — one `stable` suite, not a codename |
 | Discord | `discord` | **none** — the vendor `.deb`, see below |
 | VLC | `vlc` | **none needed** — in the Ubuntu archive |
 | LibreOffice | `libreoffice` | **none needed** — in the Ubuntu archive |
@@ -104,6 +105,13 @@ would be worse than no pin at all.
 Not `1password-cli` — the same apt repo carries it, but the `1password-cli` cask
 does ship a Linux build, so the [`Brewfile`](../../Brewfile) installs `op` on
 every machine. Taking it from apt as well would put two `op` binaries on `PATH`.
+
+The Stripe CLI is the one row here that is not a GUI app, and it is here for the
+same reason the rest are: `stripe/stripe-cli`'s formula is `depends_on :macos`,
+so Homebrew on Linux will not install it however portable the binary is. Its
+repo publishes a single `stable` suite for every release rather than one per
+codename, which is why that case ignores `$CODENAME` — the test asserts it, so
+that a later sweep pasting the codename in everywhere gets caught.
 
 Everything portable — the CLI tooling shared with the Mac — is in the
 [`Brewfile`](../../Brewfile) instead, installed by `make apps`.
