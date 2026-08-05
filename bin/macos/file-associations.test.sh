@@ -45,20 +45,23 @@ cat > "$tmp/fixture.plist" <<'EOF'
 ); }
 EOF
 
-# The point of the stub: --dry-run must not reach the real binary, or a broken
-# guard rewrites the file associations of whoever ran `make qa`.
+# The point of the stubs: --dry-run must reach neither the preferences nor
+# LaunchServices, or a broken guard rewrites the file associations of whoever
+# ran `make qa`.
 printf '#!/bin/sh\necho "STUB CALLED: $*"\nexit 1\n' > "$tmp/defaults"
-chmod +x "$tmp/defaults"
+cp "$tmp/defaults" "$tmp/osascript"
+chmod +x "$tmp/defaults" "$tmp/osascript"
 run() { PATH="$tmp:$PATH" LS_LIST="$1" LS_PLIST="$2" "$script" --dry-run; }
 
 run "$tmp/list.conf" "$tmp/fixture.plist" > "$tmp/out.plist"
-check "dry run never calls defaults" '' "$(grep 'STUB CALLED' "$tmp/out.plist" || true)"
+check "dry run touches nothing"      '' "$(grep 'STUB CALLED' "$tmp/out.plist" || true)"
 
-# The whole point of the merge: replace the entry that claims each thing, in
-# whichever of the three shapes macOS stored it, and keep everything else.
+# The merge is the extension half only: a UTI and a scheme are set through
+# LaunchServices afterwards, which rewrites their entries itself.
 check "the extension is taken over"  '1' "$(has "$tmp/out.plist" 'com.sublimetext.4')"
-check "the stale handlers are gone"  '0' "$(has "$tmp/out.plist" 'com.apple.TextEdit\|com.apple.Safari')"
-check "the UTI and the scheme too"   '2' "$(has "$tmp/out.plist" 'com.google.chrome')"
+check "the stale handler is gone"    '0' "$(has "$tmp/out.plist" 'com.apple.TextEdit')"
+check "the merge leaves the rest"    '2' "$(has "$tmp/out.plist" 'com.apple.Safari')"
+check "and writes no UTI or scheme"  '0' "$(has "$tmp/out.plist" 'com.google.chrome')"
 check "the untouched entry survives" '1' "$(has "$tmp/out.plist" 'org.videolan.vlc')"
 check "no entry is left over"        '4' "$(handlers "$tmp/out.plist")"
 # `.sql` instead of `sql` in the list would write an entry macOS never matches.
@@ -74,7 +77,7 @@ check "rerunning changes nothing"    '4' "$(handlers "$tmp/twice.plist")"
 
 # A Mac where nothing was ever re-assigned has no plist to merge into.
 run "$tmp/list.conf" "$tmp/none.plist" > "$tmp/fresh.plist"
-check "a missing plist is created"   '3' "$(handlers "$tmp/fresh.plist")"
+check "a missing plist is created"   '1' "$(handlers "$tmp/fresh.plist")"
 
 # A typo in the kind column would otherwise write an entry LaunchServices ignores,
 # which looks exactly like the setting not sticking.
@@ -90,8 +93,8 @@ check "every shipped line is kind + what + bundle id" '' \
 	"$(awk '/^[[:space:]]*(#|$)/ {next}
 		NF != 3 || $1 !~ /^(ext|uti|scheme)$/ || $3 !~ /\./ {print FILENAME": "$0}' "$shipped")"
 run "$shipped" "$tmp/fixture.plist" > "$tmp/shipped.plist"
-check "and the shipped list applies" "$(grep -cE '^[[:space:]]*(ext|uti|scheme)' "$shipped")" \
-	"$(plutil -p "$tmp/shipped.plist" | grep -c 'LSHandlerRoleAll" => "com\.\|LSHandlerRoleAll" => "org\.' || true)"
+check "and its extensions merge" "$(grep -cE '^[[:space:]]*ext' "$shipped")" \
+	"$(plutil -p "$tmp/shipped.plist" | grep -c 'LSHandlerContentTagClass' || true)"
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }
 echo "all passed"
