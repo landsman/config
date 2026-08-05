@@ -162,8 +162,7 @@
     "php-lsp@claude-plugins-official": true,
     "caveman@caveman": false,
     "ponytail@ponytail": true,
-    "ghostty-notify@claude-code-ghostty": true,
-    "voice@cctools-plugins": true
+    "ghostty-notify@claude-code-ghostty": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
@@ -228,7 +227,8 @@
   "effortLevel": "xhigh",
   "tui": "fullscreen",
   "voice": {
-    "enabled": true
+    "enabled": true,
+    "mode": "hold"
   },
   "skipWorkflowUsageWarning": true,
   "theme": "dark-ansi",
