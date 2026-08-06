@@ -196,8 +196,8 @@ plutil -convert xml1 bin/macos/symbolichotkeys.plist
 
 **Which app opens what is a third shape again.** `make macos` also runs
 `bin/macos/file-associations.sh`, which owns the *Open with… > Change All*
-choices: `.sql` in Sublime Text, `.mp4` and `.m4a` in VLC, `.doc`, `.docx` and
-`.xlsx` in LibreOffice, a saved `.html` in Chrome. The list is
+choices: `.sql` in Sublime Text, `.mp4` and `.m4a` in VLC, `.doc`, `.docx`,
+`.xlsx` and `.csv` in LibreOffice, a saved `.html` in Chrome. The list is
 `bin/macos/file-associations.conf`, a file of its own because it is the part
 worth reading — three columns, and the first says which of the three keys macOS
 matches on (`ext` an extension, `uti` a content type, `scheme` a URL scheme;
