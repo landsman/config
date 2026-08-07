@@ -61,6 +61,7 @@ apps below stay out.
 | WhatsApp | No official Linux desktop app |
 | Microsoft Teams | Discontinued. `packages.microsoft.com/repos/ms-teams` still resolves, but its `Packages` index is 0 bytes and was last built in Feb 2023 |
 | iTerm2, PowerFlow | macOS-only by nature; Ghostty covers the terminal here |
+| ZoomIt | Sysinternals ships it for Windows and macOS only, no Linux build |
 | Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
 
 `make apps` runs [`install-apps.sh`](install-apps.sh) itself, right after
