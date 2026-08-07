@@ -49,6 +49,8 @@ brew "mprocs"
 brew "node"
 # AI coding agent, built for the terminal
 brew "opencode"
+# CLI for Postgres with auto-completion and syntax highlighting
+brew "pgcli"
 # Fast, disk space efficient package manager
 brew "pnpm"
 # PDF rendering library (based on the xpdf-3.0 code base)
