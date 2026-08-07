@@ -13,6 +13,8 @@ tap "lzt1008/powerflow"
 
 # Microsoft Azure CLI 2.0
 brew "azure-cli"
+# Resource monitor. C++ version and continuation of bashtop and bpytop
+brew "btop"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
 # Securely send things from one computer to another
