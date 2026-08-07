@@ -10,6 +10,7 @@
 #   brew bundle dump --force --no-vscode
 
 tap "lzt1008/powerflow"
+tap "microsoft/sysinternalstap"
 
 # Microsoft Azure CLI 2.0
 brew "azure-cli"
@@ -119,6 +120,8 @@ if OS.mac?
 	cask "lzt1008/powerflow/powerflow", trusted: true
 	# Team collaboration and meetings
 	cask "microsoft-teams"
+	# Screen zoom and annotation for presentations — Sysinternals ZoomIt
+	cask "microsoft/sysinternalstap/zoomit"
 	# Desktop client for Perplexity AI
 	cask "perplexity"
 	# Text editor for code, markup and prose
