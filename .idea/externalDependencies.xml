@@ -9,6 +9,7 @@
     <extension id="ru.adelf.idea.dotenv" />
     <extension id="name.kropp.intellij.makefile" />
     <extension id="com.github.l34130.mise" />
+    <extension id="co.anbora.labs.brew-bundle" />
 
     <!-- PHP -->
     <extension id="com.jetbrains.php" />
