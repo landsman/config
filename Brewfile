@@ -13,6 +13,8 @@ tap "lzt1008/powerflow"
 
 # Microsoft Azure CLI 2.0
 brew "azure-cli"
+# Resource monitor. C++ version and continuation of bashtop and bpytop
+brew "btop"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
 # Securely send things from one computer to another
@@ -41,6 +43,8 @@ brew "lazydocker"
 brew "lazyjournal"
 # Postgres C API library
 brew "libpq"
+# Log file navigator
+brew "lnav"
 # Polyglot runtime manager (asdf rust clone)
 brew "mise"
 # Run multiple commands in parallel
@@ -49,6 +53,8 @@ brew "mprocs"
 brew "node"
 # AI coding agent, built for the terminal
 brew "opencode"
+# CLI for Postgres with auto-completion and syntax highlighting
+brew "pgcli"
 # Fast, disk space efficient package manager
 brew "pnpm"
 # PDF rendering library (based on the xpdf-3.0 code base)
