@@ -43,6 +43,8 @@ brew "lazydocker"
 brew "lazyjournal"
 # Postgres C API library
 brew "libpq"
+# Log file navigator
+brew "lnav"
 # Polyglot runtime manager (asdf rust clone)
 brew "mise"
 # Run multiple commands in parallel
