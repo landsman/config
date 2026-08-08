@@ -1,3 +1,28 @@
+# Reporting data and metrics
+
+A number from a query or a benchmark is a claim, and the method is what makes it
+true. Before reporting one, check that the method could not have produced it
+spuriously — then say what was measured and how, so it can be challenged instead
+of believed.
+
+The recurring ways a confident number turns out wrong:
+
+- **A filter that was never applied.** Rows that look like content but are
+  redirects, pointers, soft-deleted, or another type entirely. Group by the
+  discriminating column once before trusting a count.
+- **A benchmark on unrepresentative input.** Repeated or cached inputs, a warm
+  path, a single hot key — that measures the ceiling of the sample, not of the
+  system.
+- **An aggregate that hides its shape.** A mean over a bimodal set, a rate
+  averaged across a ramp-up, a total that double-counts.
+- **A reading from the wrong side.** Confirming the component already suspected
+  while the constraint sits elsewhere. Check the system's own instrumentation
+  before the host's.
+
+When a number decides something, take a second reading that could disagree: a
+different query shape, a different tool, or a spot-check of individual rows. Two
+methods agreeing is evidence; one method repeated is not.
+
 # Attribution
 
 Never mention Claude, Anthropic, AI, or this session in anything that leaves the
