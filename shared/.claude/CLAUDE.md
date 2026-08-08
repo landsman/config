@@ -23,6 +23,19 @@ When a number decides something, take a second reading that could disagree: a
 different query shape, a different tool, or a spot-check of individual rows. Two
 methods agreeing is evidence; one method repeated is not.
 
+What the difference looks like in practice — same finding, reported twice:
+
+    "1 800 records are missing content."
+    "1 800 records have no content — but that count includes redirects and
+     tombstones. Filtered to rows that should carry a body: 40."
+
+    "The service tops out at 400 requests/s."
+    "The service tops out at 400 requests/s, measured by replaying the same
+     three URLs — so that is the cache ceiling, not the service's."
+
+The second version of each is barely longer, and it is the one that gets
+corrected in a minute instead of quietly steering the next day's work.
+
 # Attribution
 
 Never mention Claude, Anthropic, AI, or this session in anything that leaves the
