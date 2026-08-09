@@ -188,9 +188,13 @@ apps: ## install Homebrew if missing, then the Brewfile, then the distro's own a
 		|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 	@# A just-installed brew is not on PATH in *this* shell yet — the installer
 	@# only adds it to the shell rc — so look where the two ports put it.
+	@# `--no-upgrade`: this target's job is to make the machine match the
+	@# Brewfile, not to be update day. Without it every run re-downloads the
+	@# casks that update themselves — brew still has them at the old version —
+	@# and adding one line costs half an hour. Upgrading is `brew upgrade`.
 	@b=$$(command -v brew \
 		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
-		"$$b" bundle --file Brewfile
+		"$$b" bundle --no-upgrade --file Brewfile
 	@# The GUI half of the Brewfile is `if OS.mac?`, because a cask installs on
 	@# Linux only when it ships a Linux build and almost no GUI app does. What
 	@# the distro has to supply instead lives next to that OS's dotfiles, using
