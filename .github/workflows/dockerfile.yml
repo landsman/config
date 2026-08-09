@@ -1,0 +1,116 @@
+name: dockerfile
+
+# The Dockerfile scan, written once and called by every repo of mine that ships
+# one. Named for what it checks rather than for trivy, which is today's tool and
+# replaceable — a caller's job says `dockerfile.yml` and keeps saying it when the
+# scanner underneath changes. Same shape as semgrep.yml beside it, and public for
+# the same reason: a reusable workflow in a public repo can be called from
+# anywhere, including a private repo in another org, with nothing to configure at
+# either end.
+#
+# So a repo adopting this adds a job, not a scanner: no action version to keep
+# in step, no severity list copied into four repos, no `image-ref` to remember
+# to bump. When the policy moves, it moves here.
+#
+# Two scans, because a Dockerfile is wrong in two unrelated ways. How it is
+# written — running as root, an unpinned `apt install`, a secret in an ENV — is
+# `config`, and it reads the file. What it is built on — the base image's own OS
+# packages — is `image`, and it reads the registry. Neither finds the other's
+# bugs, and a repo that runs only the first has a Dockerfile it has proof-read
+# sitting on an image nobody has looked inside for a year.
+#
+# Both fail the job. Trivy's own default is exit 0 with the findings printed,
+# which is a check that cannot fail — worse than no check, because it is green.
+on:
+  workflow_call:
+    inputs:
+      dockerfile:
+        description: Path to the Dockerfile, relative to the repo root.
+        type: string
+        default: Dockerfile
+      image:
+        description: >-
+          The base image, for when it cannot be read off the Dockerfile — a
+          `FROM` assembled from an ARG is the case that needs this, since there
+          is no build here to resolve it. Prefer leaving it empty: a tag written
+          both here and in the Dockerfile is a tag that drifts, and it drifts
+          green — Dependabot bumps the Dockerfile, this keeps scanning last
+          year's image and keeps passing.
+        type: string
+        default: ''
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    # The caller's code, and nothing else. Naming any scope drops the rest to
+    # none, which is the point: a scanner reads, it does not need to write.
+    permissions:
+      contents: read
+    steps:
+      # Checks out the *calling* repository, which is what makes one copy of
+      # this file work for all of them.
+      - uses: actions/checkout@v7
+
+      # The inputs arrive as env vars rather than expanded into the script. A
+      # `${{ }}` written straight into a run block is the script injection p/ci
+      # exists to catch, and these are strings someone else's workflow supplies.
+      - name: Read the base image off the Dockerfile
+        id: base
+        env:
+          DOCKERFILE: ${{ inputs.dockerfile }}
+          IMAGE: ${{ inputs.image }}
+        run: |
+          set -euo pipefail
+          test -f "$DOCKERFILE" || { echo "not in this repo: $DOCKERFILE"; exit 1; }
+          if [ -z "$IMAGE" ]; then
+            # The last FROM whose image is not an earlier stage: in a multi-stage
+            # build that is the one the container actually runs on, and the only
+            # one whose packages ship. The build stages are not scanned, and that
+            # is the intended trade — a compiler with a CVE that never leaves the
+            # builder is not a finding worth a red check.
+            IMAGE=$(awk '
+              toupper($1) == "FROM" {
+                i = 2
+                while (substr($i, 1, 2) == "--") i++   # FROM --platform=... image
+                if (!(tolower($i) in stage)) last = $i
+                if (toupper($(i + 1)) == "AS") stage[tolower($(i + 2))] = 1
+              }
+              END { print last }
+            ' "$DOCKERFILE")
+          fi
+          if [ -z "$IMAGE" ]; then echo "no FROM in $DOCKERFILE"; exit 1; fi
+          # scratch is empty by definition — no packages, nothing to report, and
+          # a scan of it errors rather than passing. Skipped, not failed.
+          if [ "$IMAGE" = scratch ]; then IMAGE=''; fi
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      # trivy-action is 0.x, so v0.36.0 *is* the major tag AGENTS.md asks for —
+      # there is no moving v0 to follow. Dependabot bumps it here, once, and
+      # every caller gets the new one on its next run.
+      - name: Scan the Dockerfile for misconfiguration
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: ${{ inputs.dockerfile }}
+          # CRITICAL,HIGH on both scans, and the same list on purpose: below that
+          # trivy's Dockerfile checks are style — no HEALTHCHECK, no explicit tag
+          # on a COPY --from — and a check that goes red on style is a check
+          # people learn to merge past.
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+
+      - name: Scan the base image for known vulnerabilities
+        if: steps.base.outputs.image != ''
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
+        with:
+          scan-type: image
+          image-ref: ${{ steps.base.outputs.image }}
+          severity: CRITICAL,HIGH
+          # OS packages only. The language dependencies inside an image are the
+          # lockfile's business, and the lockfile is in the repo where a fix can
+          # actually be committed — here they would report a vulnerability whose
+          # only remedy is "wait for upstream to rebuild".
+          vuln-type: os
+          exit-code: '1'
