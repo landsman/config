@@ -97,9 +97,9 @@ claude-settings-test: ## check the stowed Claude settings parse and stay machine
 
 ##@ Security
 #
-# Separate from qa because it is the same answer on every OS, so CI
-# runs it once instead of once per matrix leg, and because it needs Docker,
-# which qa deliberately does not.
+# Separate from qa because it is the same answer on every OS, so CI runs it once
+# instead of once per matrix leg, and because it needs Docker, which qa
+# deliberately does not.
 #
 
 # Pinned: an unpinned scanner turns someone else's rule release into a red build
@@ -181,9 +181,9 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 
 ##@ Apps and packages
 #
-# The Brewfile on every machine, plus whatever the distro
-# has to supply itself. Called `apps` rather than `brew` because Homebrew is
-# only most of it: the GUI half on Linux comes from vendor apt repos.
+# The Brewfile on every machine, plus whatever the distro has to supply itself.
+# Called `apps` rather than `brew` because Homebrew is only most of it: the GUI
+# half on Linux comes from vendor apt repos.
 #
 
 .PHONY: apps apps-test
