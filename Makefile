@@ -30,11 +30,19 @@ STOW_FLAGS := --no-folding -t "$$HOME"
 
 .PHONY: help
 help: ## show this help
-	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
+	@# Two patterns: `##@ Group` opens a section, `## text` after a target
+	@# documents it. Both are parsed out of this file, so a target is described
+	@# where it is defined and a target with no `##` stays out of the list.
+	@# ponytail: escapes inline, no tty check — `make help | less` shows the
+	@# codes as text. Gate on `test -t 1` the day anyone pipes this.
+	@awk 'BEGIN {FS = ":.*##"; print "usage: make <target>\n"} \
+		/^##@/ { printf "\n\033[1m%s:\033[0m\n", substr($$0, 5); next } \
+		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
+##@ Quality assurance
 #
-# QA — every target here is read-only: it must not touch the machine it runs
-# on, because CI runs the lot on macOS and Ubuntu on every pull request.
+# Every target here is read-only: it must not touch the machine it runs on,
+# because CI runs the lot on macOS and Ubuntu on every pull request.
 #
 
 .PHONY: qa qa-deps lint bin-test
@@ -71,10 +79,23 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 		echo "== $$t"; bash "$$t" || exit 1; \
 	done
 
+.PHONY: claude-settings-test
+claude-settings-test: ## check the stowed Claude settings parse and stay machine-independent
+	@# It is one file for every machine, so a path that only exists on one is a
+	@# bug the other machine finds silently — the setting is simply ignored
+	@# there. $$HOME instead, and anything genuinely local (a client checkout, a
+	@# per-machine socket) goes in ~/.claude/settings.local.json, which is not
+	@# tracked. That file is also why this repo being public is survivable.
+	@python3 -c 'import json;json.load(open("shared/.claude/settings.json"))'
+	@grep -nE '"[^"]*/(Users|home)/' shared/.claude/settings.json \
+		&& { echo "^ only true on one machine - use \$$HOME, or move it to ~/.claude/settings.local.json"; exit 1; } \
+		|| true
+
+##@ Security
 #
-# Security — separate from qa because it is the same answer on every OS, so CI
-# runs it once instead of once per matrix leg, and because it needs Docker,
-# which qa deliberately does not.
+# Separate from qa because it is the same answer on every OS, so CI runs it once
+# instead of once per matrix leg, and because it needs Docker, which qa
+# deliberately does not.
 #
 
 # Pinned: an unpinned scanner turns someone else's rule release into a red build
@@ -154,10 +175,11 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 	@# There is no bash or shell pack in the registry (p/bash and p/shell both
 	@# 404), so `make lint` remains what checks the scripts themselves.
 
+##@ Apps and packages
 #
-# Apps and packages — the Brewfile on every machine, plus whatever the distro
-# has to supply itself. Called `apps` rather than `brew` because Homebrew is
-# only most of it: the GUI half on Linux comes from vendor apt repos.
+# The Brewfile on every machine, plus whatever the distro has to supply itself.
+# Called `apps` rather than `brew` because Homebrew is only most of it: the GUI
+# half on Linux comes from vendor apt repos.
 #
 
 .PHONY: apps apps-test
@@ -184,21 +206,7 @@ apps-test: ## parse the Brewfile without installing anything
 	@command -v brew >/dev/null || { echo "brew not installed - skipped"; exit 0; }; \
 		HOMEBREW_NO_AUTO_UPDATE=1 brew bundle list --file Brewfile >/dev/null
 
-.PHONY: claude-settings-test
-claude-settings-test: ## check the stowed Claude settings parse and stay machine-independent
-	@# It is one file for every machine, so a path that only exists on one is a
-	@# bug the other machine finds silently — the setting is simply ignored
-	@# there. $$HOME instead, and anything genuinely local (a client checkout, a
-	@# per-machine socket) goes in ~/.claude/settings.local.json, which is not
-	@# tracked. That file is also why this repo being public is survivable.
-	@python3 -c 'import json;json.load(open("shared/.claude/settings.json"))'
-	@grep -nE '"[^"]*/(Users|home)/' shared/.claude/settings.json \
-		&& { echo "^ only true on one machine - use \$$HOME, or move it to ~/.claude/settings.local.json"; exit 1; } \
-		|| true
-
-#
-# Dotfiles ($HOME) via GNU stow
-#
+##@ Dotfiles ($HOME) via GNU stow
 
 .PHONY: stow restow unstow stow-backup stow-test
 stow-backup:
@@ -256,9 +264,7 @@ stow-test: ## stow and unstow every package in the repo into a throwaway $HOME
 	@t=$$(mktemp -d); trap 'rm -rf "$$t"' EXIT; HOME=$$t $(MAKE) -s stow unstow
 	@# The conflict-backup half is bin/stow/backup.test.sh, which bin-test runs.
 
-#
-# Shell
-#
+##@ Shell
 
 .PHONY: shell
 shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
@@ -272,8 +278,9 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
 		|| true
 
+##@ JetBrains IDEs
 #
-# JetBrains IDEs — see bin/jetbrains/README.md for why this is a script, not stow
+# See bin/jetbrains/README.md for why this is a script, not stow
 #
 
 .PHONY: jetbrains
@@ -284,8 +291,9 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 	@echo
 	@echo "plugins: open $(CURDIR) in the IDE and accept the 'required plugins' prompt"
 
+##@ macOS System Settings
 #
-# macOS System Settings — the panes stow cannot reach, see bin/macos/defaults.sh
+# The panes stow cannot reach, see bin/macos/defaults.sh
 #
 
 .PHONY: macos macos-touchid
@@ -314,9 +322,7 @@ macos-touchid: ## authenticate sudo with Touch ID (root-owned, so its own target
 	cat "$$f"; \
 	sudo -k; echo "now run any sudo command - it should ask for a fingerprint"
 
-#
-# GIT config
-#
+##@ GIT config
 
 .PHONY: git git-config-test git-config-format
 git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
