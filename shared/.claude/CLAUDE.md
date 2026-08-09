@@ -9,6 +9,7 @@ to, so they have to be in context before the mistake, not after.
 | Rule | Applies when |
 |------|--------------|
 | [Reporting data and metrics](rules/reporting-data.md) | a number gets reported — a query, a benchmark, a count |
+| [Localisation](rules/localisation.md) | user-facing text gets written — a label, an error, an email |
 | [Attribution](rules/attribution.md) | anything leaves the machine or gets committed |
 | [Commit messages](rules/commit-messages.md) | writing a commit |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
