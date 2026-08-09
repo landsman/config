@@ -9,6 +9,7 @@
 # re-add the guards afterwards:
 #   brew bundle dump --force --no-vscode
 
+tap "hashicorp/tap"
 tap "lzt1008/powerflow"
 tap "microsoft/sysinternalstap"
 tap "stripe/stripe-cli"
@@ -69,6 +70,8 @@ brew "rsync"
 brew "stow"
 # General purpose fuzzy finder TUI
 brew "television"
+# Infrastructure as code — vendor tap, homebrew-core dropped it over the BSL
+brew "hashicorp/tap/terraform"
 # Terminal multiplexer
 brew "tmux"
 # Extremely fast Python package installer and resolver, written in Rust
