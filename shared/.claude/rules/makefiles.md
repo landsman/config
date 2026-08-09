@@ -16,16 +16,22 @@ the first target, which is what makes the bare `make` print it. Set
 `help` parses the Makefile rather than repeating it, so a target is described
 where it is defined and the list cannot drift from the targets. Two markers:
 `## text` at the end of a target line documents that target, `##@ Group` opens a
-section.
+section. The colon after a heading is printed, not written — nine source lines
+cannot each remember it.
 
     ##@ Quality assurance
     lint: ## parse every shell file without running it
 
     .PHONY: help
     help: ## show this help
-    	@awk 'BEGIN {FS = ":.*##"; print "usage: make <target>\n"} \
-    		/^##@/ { printf "\n%s\n", substr($$0, 5); next } \
-    		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  %-22s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+    	@# Colour only when stdout is a tty: piped into less, or read back out
+    	@# of a CI log, the escape codes print as text.
+    	@test -t 1 && tty=1 || tty=0; \
+    	awk -v tty="$$tty" 'BEGIN { FS = ":.*##"; \
+    			if (tty) { hdr = "\033[1m"; tgt = "\033[36m"; off = "\033[0m" } \
+    			print "usage: make <target>\n" } \
+    		/^##@/ { printf "\n%s%s:%s\n", hdr, substr($$0, 5), off; next } \
+    		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  %s%-22s%s %s\n", tgt, $$1, off, $$2 }' $(MAKEFILE_LIST)
 
 Group targets by what they are *for*, not by what they call — checks, packages,
 dotfiles, deploy — and keep the file in that order, because the section a target

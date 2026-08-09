@@ -40,7 +40,7 @@ help: ## show this help
 	awk -v tty="$$tty" 'BEGIN { FS = ":.*##"; \
 			if (tty) { hdr = "\033[1m"; tgt = "\033[36m"; off = "\033[0m" } \
 			print "usage: make <target>\n" } \
-		/^##@/ { printf "\n%s%s%s\n", hdr, substr($$0, 5), off; next } \
+		/^##@/ { printf "\n%s%s:%s\n", hdr, substr($$0, 5), off; next } \
 		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  %s%-22s%s %s\n", tgt, $$1, off, $$2 }' $(MAKEFILE_LIST)
 
 ##@ Quality assurance
