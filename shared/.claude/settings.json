@@ -110,7 +110,8 @@
       "mcp__azure-devops__repo_list_pull_requests_by_repo_or_project",
       "mcp__azure-devops__repo_reply_to_comment",
       "mcp__azure-devops__repo_update_pull_request",
-      "mcp__azure-devops__repo_update_pull_request_thread"
+      "mcp__azure-devops__repo_update_pull_request_thread",
+      "mcp__pencil"
     ],
     "deny": [
       "Bash(git push*main*)",
