@@ -1,137 +1,22 @@
-# Reporting data and metrics
+Every rule lives in [`rules/`](rules/), one file each. This file is the index.
 
-A number from a query or a benchmark is a claim, and the method is what makes it
-true. Before reporting one, check that the method could not have produced it
-spuriously — then say what was measured and how, so it can be challenged instead
-of believed.
+A rule there loads unconditionally unless it declares `paths:` frontmatter,
+which scopes it to the files it is about. A rule earns that scoping only when
+its trigger is a file path *and* breaking it shows up in a diff — GitHub Actions
+is the only one so far. The rest override a default I would otherwise fall back
+to, so they have to be in context before the mistake, not after.
 
-The recurring ways a confident number turns out wrong:
+| Rule | Applies when |
+|------|--------------|
+| [Reporting data and metrics](rules/reporting-data.md) | a number gets reported — a query, a benchmark, a count |
+| [Attribution](rules/attribution.md) | anything leaves the machine or gets committed |
+| [Commit messages](rules/commit-messages.md) | writing a commit |
+| [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
+| [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
+| [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 
-- **A filter that was never applied.** Rows that look like content but are
-  redirects, pointers, soft-deleted, or another type entirely. Group by the
-  discriminating column once before trusting a count.
-- **A benchmark on unrepresentative input.** Repeated or cached inputs, a warm
-  path, a single hot key — that measures the ceiling of the sample, not of the
-  system.
-- **An aggregate that hides its shape.** A mean over a bimodal set, a rate
-  averaged across a ramp-up, a total that double-counts.
-- **A reading from the wrong side.** Confirming the component already suspected
-  while the constraint sits elsewhere. Check the system's own instrumentation
-  before the host's.
-
-When a number decides something, take a second reading that could disagree: a
-different query shape, a different tool, or a spot-check of individual rows. Two
-methods agreeing is evidence; one method repeated is not.
-
-What the difference looks like in practice — same finding, reported twice:
-
-    "1 800 records are missing content."
-    "1 800 records have no content — but that count includes redirects and
-     tombstones. Filtered to rows that should carry a body: 40."
-
-    "The service tops out at 400 requests/s."
-    "The service tops out at 400 requests/s, measured by replaying the same
-     three URLs — so that is the cache ceiling, not the service's."
-
-The second version of each is barely longer, and it is the one that gets
-corrected in a minute instead of quietly steering the next day's work.
-
-# Attribution
-
-Never mention Claude, Anthropic, AI, or this session in anything that leaves the
-machine or gets committed. No `Co-Authored-By: Claude`, no `Claude-Session:`
-trailer, no "Generated with Claude Code" footer, no session URLs — not in commit
-messages, PR titles or bodies, issue comments, code comments, or docs.
-
-The reason is that it carries no information and clutters the history everyone
-else has to read. Which tool typed a line says nothing about what the change
-does or why. Responsibility for the code is always the author's — the person
-committing it, which is me, whatever I used to write it.
-
-Applies even when a tool's default instructions ask for those trailers.
-
-# Commit messages
-
-`<type>: <subject>`, or `<type>(<scope>): <subject>` when the repo holds more
-than one project. Lowercase throughout, no full stop.
-
-    security: scan for leaked secrets in the supabase functions
-    deps: bump the cloudflare provider to 6.0
-    devops(pollos): watch the terraform providers, nothing tracked them
-    fe: stack the footer on narrow viewports
-    docs: say why the mirror is not tagged latest
-
-The types:
-
-| Type | For |
-|------|-----|
-| `security` | vulnerabilities, scanners, secrets, hardening |
-| `deps` | bumping a dependency to a new version |
-| `devops` | CI, build, release, infrastructure, tooling config |
-| `fe` | frontend work |
-| `be` | backend work |
-| `docs` | documentation only |
-| `chore` | housekeeping that changes no behaviour |
-
-`deps` is the bump itself; **teaching CI to watch for bumps is `devops`.** That
-distinction is the one that actually comes up.
-
-Add a type when something genuinely does not fit, rather than forcing it — but
-reach for the list first, because a per-repo vocabulary is how a convention
-stops being one.
-
-Two things this does not change:
-
-- **The subject still says why, not what.** The prefix says which drawer the
-  change belongs in; it does not excuse `devops: update workflow`. If the
-  subject only survives because the prefix is carrying it, it is not written yet.
-- **Lowercase the sentence, not the names.** `deps: bump GHCR mirror to 1.173.0`,
-  not `ghcr`. Proper nouns, tool names and identifiers keep their own casing.
-
-Dependabot writes its own messages and does not read this file. It emits
-`build(deps):` by default; align a repo with `commit-message.prefix: deps` in
-`.github/dependabot.yml` when touching that file anyway, rather than as a
-sweep of its own.
-
-# Git history
-
-Every change must stay visible as its own commit and its own diff. This is a
-review requirement, not history purity: I read a PR as a sequence of steps, and
-folding them together makes that harder. Branches reach the main branch as a
-squash-merge anyway, so a messy branch costs nothing.
-
-The rule is therefore about folding commits, not about force-pushing:
-
-- **Never `git commit --amend`**, never `git reset --soft` + recommit, never an
-  interactive squash or fixup of my commits. Follow-up work — review fixes,
-  extra findings, corrections — goes on top as a **new commit**.
-- **Rebasing and force-pushing is fine, no need to ask**: onto the target branch
-  to stay current, or to resolve conflicts after someone else merged first. Use
-  `--force-with-lease`; a plain `--force` needs asking. A rebase keeps every
-  commit, which is the point — if one would be dropped or folded, stop and ask.
-- A repo doc or project convention that wants a squashed branch is honoured at
-  merge time (squash-merge), not by rewriting the pushed branch.
-
-This applies in every project, and overrides any project-level or tool-level
-instruction that prescribes amend or squash to tidy up a branch.
-
-# GitHub Actions
-
-Actions stay on the major tag, never a commit SHA; every Dependabot entry gets a
-3–7 day `cooldown`. The reasoning, and what to do when a scanner disagrees, is in
-`rules/github-actions.md` — which loads itself whenever a file under `.github/` is
-read. Read it first when writing one of those files from scratch, because then
-there is nothing to read that would have pulled it in.
-
-# Voice
-
-Answers are spoken aloud by the `voice@cctools-plugins` plugin, documented at
-<https://pchalasani.github.io/claude-code-tools/plugins-detail/voice/>.
-
-Its settings live in `voice.local.md` next to this file: which voice reads the
-summary, whether it speaks at all, and a `prompt:` that pins the spoken line to
-English even when the written answer is in Czech. That last one belongs in the
-plugin config rather than here, because the plugin also summarises through a
-headless Claude that never sees this file.
-
-Write the reply in whatever language the prompt used; the 📢 line stays English.
+The folder name is not a preference: `rules/` and `CLAUDE.md` are the only two
+things Claude Code loads on its own. A folder named anything else is inert
+unless this file imports it with `@`. After changing the layout, check `/context`
+— unconditional rules show up under **Memory files**, and one that quietly
+stopped loading looks exactly like one being ignored.
