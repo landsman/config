@@ -43,7 +43,7 @@ help: ## show this help
 		/^##@/ { printf "\n%s%s%s\n", hdr, substr($$0, 5), off; next } \
 		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  %s%-22s%s %s\n", tgt, $$1, off, $$2 }' $(MAKEFILE_LIST)
 
-##@ QA
+##@ Quality assurance
 #
 # Every target here is read-only: it must not touch the machine it runs on,
 # because CI runs the lot on macOS and Ubuntu on every pull request.

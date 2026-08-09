@@ -18,7 +18,7 @@ where it is defined and the list cannot drift from the targets. Two markers:
 `## text` at the end of a target line documents that target, `##@ Group` opens a
 section.
 
-    ##@ QA
+    ##@ Quality assurance
     lint: ## parse every shell file without running it
 
     .PHONY: help
@@ -29,7 +29,9 @@ section.
 
 Group targets by what they are *for*, not by what they call — checks, packages,
 dotfiles, deploy — and keep the file in that order, because the section a target
-sits under is the section it prints under.
+sits under is the section it prints under. Spell the group name out: the heading
+is read by someone who does not yet know what `QA` stands for here, which is the
+whole reason they ran `make`.
 
 Prefix a target with its group when the bare name would collide or read
 ambiguously across groups. Three checks that each answer "does it parse" cannot
