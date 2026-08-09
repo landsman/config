@@ -23,17 +23,18 @@ cannot each remember it.
 
     .PHONY: help
     help: ## show this help
-    	@# Colour only when stdout is a tty: piped into less, or read back out
-    	@# of a CI log, the escape codes print as text.
-    	@test -t 1 && tty=1 || tty=0; \
-    	awk -v tty="$$tty" 'BEGIN { FS = ":.*##"; \
-    			if (tty) { hdr = "\033[1m"; tgt = "\033[36m"; off = "\033[0m" } \
-    			print "usage: make <target>\n" } \
-    		/^##@/ { printf "\n%s%s:%s\n", hdr, substr($$0, 5), off; next } \
-    		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  %s%-22s%s %s\n", tgt, $$1, off, $$2 }' $(MAKEFILE_LIST)
+    	@awk 'BEGIN {FS = ":.*##"; print "usage: make <target>\n"} \
+    		/^##@/ { printf "\n\033[1m%s:\033[0m\n", substr($$0, 5); next } \
+    		/^[a-zA-Z0-9_.-]+:.*##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
     ##@ Quality assurance
     lint: ## parse every shell file without running it
+
+Bold the heading, colour the target name: 30 targets in one column is the thing
+the grouping was meant to fix, and the section titles have to win over the rows
+under them. The escapes go inline in the format string rather than through
+`tput`, and there is no `test -t 1` gate — piping `make help` into `less` shows
+the codes as text, which is a cost worth one line of awk rather than five.
 
 The parser is deliberately naive — it assumes `##@ ` with the space, one `##`
 per line, and a target name inside 22 columns. Widen it when a line in the file
