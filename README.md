@@ -147,6 +147,14 @@ Docker Hub and says so.
 - **`.gitconfig` is not stowed** — it is included into `~/.gitconfig` instead, so
   machine-specific values (email, signing key) stay out of the repo. A symlink
   would make `git config --global ...` write here.
+- **Commit signing needs the agent, not the key file** — `gpg.format = ssh` signs
+  through `ssh-keygen -Y sign`, which asks ssh-agent for the private half of
+  `user.signingkey` and only reads the file (and prompts) when the agent has not
+  got it. So on macOS `make git` stores the passphrase in the login Keychain with
+  `ssh-add --apple-use-keychain`, and `os/macos/.zshrc` loads it back with
+  `--apple-load-keychain`, because every login starts with an empty agent. Drop
+  either and the first commit after a reboot asks for a passphrase — usually from
+  the IDE, which has nowhere to ask.
 - **`.bashrc` is not stowed** — it is a fragment, so symlinking it over
   `~/.bashrc` would drop everything the distro puts there. `make shell` appends a
   `. <repo>/.bashrc` line. (It used to `cat` the fragment in, which meant later
