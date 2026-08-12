@@ -58,7 +58,9 @@ brew "node"
 brew "opencode"
 # CLI for Postgres with auto-completion and syntax highlighting
 brew "pgcli"
-# Fast, disk space efficient package manager
+# Fast, disk space efficient package manager. Yarn has no line of its own here:
+# the formula is still 1.22, and corepack — the way to a Berry one — ships a
+# pnpm shim that collides with this, so `make apps` installs it out of the way.
 brew "pnpm"
 # PDF rendering library (based on the xpdf-3.0 code base)
 brew "poppler"
