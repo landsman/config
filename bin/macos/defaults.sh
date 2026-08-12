@@ -143,6 +143,39 @@ wh NSGlobalDomain "com.apple.mouse.tapBehavior" -int 1
 w com.apple.AdLib allowApplePersonalizedAdvertising -bool false
 w com.apple.assistant.support "Dictation Auto Punctuation Enabled" -bool false
 
+# "Help Apple Improve Search" in System Settings > Spotlight — the Safari, Siri,
+# Spotlight and Lookup queries Apple would otherwise collect. 2 is opted out;
+# the key is simply absent until the switch is touched, which is what makes
+# opted *in* the default. An integer and not a bool, and this is the value the
+# switch itself wrote — it appeared in `defaults read` the moment it went dark.
+w com.apple.assistant.support "Search Queries Data Sharing Status" -int 2
+
+#
+# Spotlight — what is allowed to show up in results
+#
+# One array, and its name lies: `EnabledPreferenceRules` lists what is turned
+# *off*. Every entry is a row switched off in System Settings > Spotlight, and
+# a row left at Apple's default is simply absent. Verified by diffing
+# `defaults read` across a flip of the Files and Folders switches — both
+# appeared in this array the moment they went dark.
+#
+# So this is written as one array and not per row: the whole list is the state,
+# and `-array` replaces it. Adding a row here means turning it off.
+#
+# This is a *results* filter and nothing more. `mds` keeps indexing every file
+# either way — a probe file dropped in ~/projects with Files and Folders both
+# off was still in `mdfind` twenty seconds later. Stopping the indexer is
+# `make macos-spotlight-off`, which is a different decision and a separate
+# target.
+w com.apple.Spotlight EnabledPreferenceRules -array \
+	"Custom.relatedContents" \
+	"com.apple.iBooksX" "com.apple.calculator" "com.apple.iCal" "com.apple.clock" \
+	"com.apple.AddressBook" "com.apple.Dictionary" "com.apple.FaceTime" \
+	"com.apple.Numbers" "com.apple.Pages" "com.apple.mobilephone" \
+	"com.apple.Photos" "com.apple.podcasts" "com.apple.tips" \
+	"net.whatsapp.WhatsApp" \
+	"System.files" "System.folders" "System.iphoneApps"
+
 #
 # Keyboard layouts — Czech and U.S., plus the emoji picker
 #
@@ -184,4 +217,4 @@ killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
 # Apple moves it, the settings are still written and a logout still applies them.
 /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u 2>/dev/null || true
 
-echo "$written settings written (menu bar, Dock, Finder, trackpad, formats, privacy) plus the keyboard shortcuts from $(basename "$hotkeys"); Dock, Finder, the menu bar and Control Center restarted, so nothing here waits for a logout"
+echo "$written settings written (menu bar, Dock, Finder, trackpad, formats, privacy, Spotlight results) plus the keyboard shortcuts from $(basename "$hotkeys"); Dock, Finder, the menu bar and Control Center restarted, so nothing here waits for a logout"

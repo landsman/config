@@ -320,7 +320,7 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 # The panes stow cannot reach, see bin/macos/defaults.sh
 #
 
-.PHONY: macos macos-touchid
+.PHONY: macos macos-touchid macos-spotlight-off macos-spotlight-on
 macos: ## apply the macOS settings this repo owns (menu bar, Dock, Finder, trackpad, file associations)
 	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; ./bin/macos/defaults.sh
 	@# Its own script and not a `defaults write` line: the associations live in one
@@ -345,6 +345,39 @@ macos-touchid: ## authenticate sudo with Touch ID (root-owned, so its own target
 	sudo install -m 444 -o root -g wheel "$$tmp" "$$f"; rm -f "$$tmp"; \
 	cat "$$f"; \
 	sudo -k; echo "now run any sudo command - it should ask for a fingerprint"
+
+macos-spotlight-off: ## stop indexing files on the data volume (root; see landsman/config#82)
+	@# There is no per-folder switch, which is the whole reason this is a volume
+	@# and not ~/projects. `man mdutil`, `man mds`, `man mdimport` and `man
+	@# mdfind` between them say nothing about exclusions — a volume is the only
+	@# granularity Apple documents. The two things that look like alternatives
+	@# were both tried here first: `.metadata_never_index` dropped in the folder
+	@# changed nothing (a file created after it was in `mdfind` fifteen seconds
+	@# later), and the Privacy list in System Settings does work but lives in
+	@# /System/Volumes/Data/.Spotlight-V100/VolumeConfiguration.plist, which TCC
+	@# hides even from root — PlistBuddy reports "File Doesn't Exist" for a file
+	@# `sudo mdutil -P` prints happily. Scripting that one needs Full Disk Access
+	@# handed to whichever terminal runs it, and it is undocumented besides.
+	@#
+	@# The cost is Finder's "This Mac" search and anything else that asks
+	@# Spotlight for a file; app results (Mail, Notes, Messages) come from
+	@# CoreSpotlight and are expected to survive — check, the first time.
+	@# What it buys: on 2026-08-12 the vnode table filled up while mds reindexed
+	@# a monorepo behind several coding agents, every mmapped page after that
+	@# faulted with SIGBUS, launchd took one and the kernel panicked.
+	@#
+	@# Not part of `make macos`, which writes nothing outside $$HOME and asks for
+	@# no password — same reason macos-touchid is its own target.
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }
+	sudo mdutil -i off -d /System/Volumes/Data
+	@echo "reverse with: make macos-spotlight-on"
+
+macos-spotlight-on: ## index files again (rebuilds what it missed — hours of load)
+	@# The slow half, and the one to run on purpose rather than to undo a typo:
+	@# everything that changed while indexing was off is reindexed, which is the
+	@# load the target above exists to avoid.
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }
+	sudo mdutil -i on /System/Volumes/Data
 
 ##@ GIT config
 
