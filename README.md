@@ -62,6 +62,7 @@ make git     # hook in .gitconfig, set email + commit signing
 
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for root)
+make macos-spotlight-off  # macOS only: stop indexing files (asks for root) - see the Makefile
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 ```
 
