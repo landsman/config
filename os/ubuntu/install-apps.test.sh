@@ -28,7 +28,9 @@ check() { if [ "$2" = "$3" ]; then ok "$1"; else
 	echo "       expected: $3"
 	echo "       actual:   $2"
 fi; }
-contains() { if grep -qF "$3" "$2" 2>/dev/null; then ok "$1"; else
+# `--` because a pattern starting with one, like `--if-not-exists`, is otherwise
+# read by grep as an option and the assertion silently fails on its own syntax.
+contains() { if grep -qF -- "$3" "$2" 2>/dev/null; then ok "$1"; else
 	fail "$1"
 	echo "       $2 has no line containing: $3"
 fi; }
@@ -54,7 +56,23 @@ echo amd64' >"$BIN/dpkg"
 		for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done
 		# The 1Password debsig policy is grepped for the key id, so echo one.
 		case "$out" in *.pol) echo '<Origin id="AC2D62742012EA22"/>' >"$out" ;;
+		# Flathub's key is one base64 line of the .flatpakrepo, and the script
+		# decodes it before checking the pin — so it has to survive a round trip.
+		*.flatpakrepo) printf 'Url=https://dl.flathub.org/repo/\nGPGKey=%s\n' \
+			"$(printf key-material | base64)" >"$out" ;;
 		*) echo "key-material" >"$out" ;; esac
+	STUB
+	# FLATPAK_PRESENT is the app ids `flatpak info` should claim are installed.
+	# remote-add and install both land in files, so the case can assert that the
+	# remote came from the verified local copy and not from the URL.
+	cat >"$BIN/flatpak" <<-STUB
+		#!/usr/bin/env bash
+		case "\$1" in
+		info) for a in \$FLATPAK_PRESENT; do [ "\$a" = "\$2" ] && exit 0; done; exit 1 ;;
+		remote-add) shift; printf '%s\n' "\$@" >"$ROOT/flatpak-remote" ;;
+		install) shift; printf '%s\n' "\$@" | grep -v '^-y\$' >"$ROOT/flatpak-installed" ;;
+		esac
+		exit 0
 	STUB
 	cat >"$BIN/gpg" <<-STUB
 		#!/usr/bin/env bash
@@ -86,7 +104,10 @@ FAKE_ROOT=1 exec "$@"' >"$BIN/sudo"
 	chmod +x "$BIN"/*
 }
 
-run() { PATH="$BIN:$PATH" CODENAME=noble INSTALLED="$1" FPR="$2" bash "$SCRIPT" 2>&1; }
+# The flatpak defaults to present, so every apt case below is unaffected by it
+# and only the flatpak cases have to say anything about it.
+run() { PATH="$BIN:$PATH" CODENAME=noble INSTALLED="$1" FPR="$2" \
+	FLATPAK_PRESENT="${3-org.telegram.desktop}" bash "$SCRIPT" 2>&1; }
 
 ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe"
 # The list minus one app, so a case can be "only this one is missing".
@@ -96,7 +117,7 @@ echo "== every package already present"
 setup
 out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 10 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 11 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -176,6 +197,41 @@ check "both are installed" "$(tr '\n' ' ' <"$ROOT/apt-installed")" "vlc libreoff
 # would be machinery bought for nothing, and nobody would notice from the outside.
 check "and neither adds a repo or a key" \
 	"$(test -d "$ROOT/etc/apt" -o -d "$ROOT/usr/share/keyrings" && echo yes || echo no)" "no"
+rm -rf "$ROOT"
+
+echo
+echo "== telegram, the first flatpak"
+setup
+# Every apt package present, so the only thing to do is the flatpak — which is
+# also the run that proves apt is not called with an empty argument list.
+out="$(run "$ALL" 6E5C05D979C76DAF93C081354184DD4D907A7CAE "")"
+check "succeeds" "$?" "0"
+check "apt is asked for flatpak and the Discover backend, nothing else" \
+	"$(tr '\n' ' ' <"$ROOT/apt-installed")" "flatpak plasma-discover-backend-flatpak "
+check "the app is installed from flathub" \
+	"$(tr '\n' ' ' <"$ROOT/flatpak-installed")" "flathub org.telegram.desktop "
+contains "the remote is added, and only if it is not there already" \
+	"$ROOT/flatpak-remote" "--if-not-exists"
+# The point of this one: `remote-add <url>` would re-fetch the key and trust
+# whatever came back, making the pin two lines above decorative.
+case "$(cat "$ROOT/flatpak-remote")" in
+*https://*) fail "from the checked local copy, not the URL" ;;
+*.flatpakrepo) ok "from the checked local copy, not the URL" ;;
+*) fail "from the checked local copy, not the URL" ;;
+esac
+rm -rf "$ROOT"
+
+echo
+echo "== flathub's key, when it is not the pinned one"
+setup
+out="$(run "$ALL" 0000000000000000000000000000000000000000 "")"
+check "refuses to continue" "$?" "1"
+case "$out" in *"flathub: key fingerprint mismatch"*) ok "says which key" ;;
+*) fail "says which key" ;; esac
+# apt already ran by then — flatpak itself is a legitimate install either way.
+# What must not have happened is the remote being added or the app pulled from it.
+if [ -f "$ROOT/flatpak-remote" ]; then fail "adds no remote"; else ok "adds no remote"; fi
+if [ -f "$ROOT/flatpak-installed" ]; then fail "installs no app"; else ok "installs no app"; fi
 rm -rf "$ROOT"
 
 echo

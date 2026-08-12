@@ -11,6 +11,10 @@
 # are not reachable this way — including the ones with no Linux build at all —
 # is written down in the README next to this file.
 #
+# Apt is the channel; Flathub is the exception, for an app whose Linux build is
+# real but reaches nobody through apt. Deliberately not a general escape hatch —
+# an app goes there only once apt has been ruled out and the README says why.
+#
 # Idempotent, and quiet when there is nothing to do: already-installed apps are
 # skipped before anything asks for root, so a re-run of `make apps` on a
 # provisioned machine neither reinstalls nor prompts for a password.
@@ -41,6 +45,12 @@ STRIPE_KEY_FPR="6681D7C3D103DAC65D79C25EDEEBD57F917C83E3"
 # yearly and the primary is what apt verifies against, so the primary is pinned.
 GOOGLE_KEY_URL="https://dl.google.com/linux/linux_signing_key.pub"
 GOOGLE_KEY_FPR="EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796"
+# Flathub ships its key inside the .flatpakrepo rather than as a download of its
+# own, so this pin is checked against what that file carries. Same primary key
+# as the standalone https://dl.flathub.org/repo/flathub.gpg, which is how it was
+# cross-checked; the subkey under it rotates, the primary is what signs.
+FLATHUB_REPO_URL="https://dl.flathub.org/repo/flathub.flatpakrepo"
+FLATHUB_KEY_FPR="6E5C05D979C76DAF93C081354184DD4D907A7CAE"
 
 # The package each app is identified by. Docker pulls in its plugins too, but
 # docker-ce is what "is Docker here?" comes down to. Two of them need no vendor
@@ -48,6 +58,12 @@ GOOGLE_KEY_FPR="EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796"
 # what this script answers is "are the apps this repo names here yet".
 PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord
 	google-chrome-stable vlc libreoffice stripe)
+
+# The apps that come from Flathub instead, by app id. Telegram is the only one
+# and the reason this half exists at all: it was dropped from the Ubuntu archive
+# after jammy, and upstream publishes a tarball, a Snap and a Flatpak but no apt
+# repo — so there is nothing for the machinery above to hang an app on.
+FLATPAKS=(org.telegram.desktop)
 
 installed() {
 	[ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = "installed" ]
@@ -58,12 +74,22 @@ for pkg in "${PACKAGES[@]}"; do
 	installed "$pkg" || MISSING+=("$pkg")
 done
 
-if [ ${#MISSING[@]} -eq 0 ]; then
-	echo "== distro apps: all ${#PACKAGES[@]} installed"
+# Swallows "command not found" as well as "not installed", which is what a
+# machine without flatpak yet should read as: the app is missing either way.
+MISSING_FLATPAK=()
+for app in "${FLATPAKS[@]}"; do
+	flatpak info "$app" >/dev/null 2>&1 || MISSING_FLATPAK+=("$app")
+done
+
+if [ ${#MISSING[@]} -eq 0 ] && [ ${#MISSING_FLATPAK[@]} -eq 0 ]; then
+	echo "== distro apps: all $(( ${#PACKAGES[@]} + ${#FLATPAKS[@]} )) installed"
 	exit 0
 fi
 
-echo "== distro apps: missing ${MISSING[*]}"
+# Two lines rather than one joined list: either array can be empty here, and an
+# empty one is not expandable under `set -u` on the bash the tests run under.
+[ ${#MISSING[@]} -eq 0 ] || echo "== distro apps: missing ${MISSING[*]}"
+[ ${#MISSING_FLATPAK[@]} -eq 0 ] || echo "== flatpaks: missing ${MISSING_FLATPAK[*]}"
 
 # Root is needed from here on. Re-exec rather than sudo per line, so the
 # password is asked for once and the whole run shares one timestamp. The marker
@@ -88,12 +114,14 @@ CODENAME="${CODENAME:-$(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_C
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# Fetch a signing key, refuse it unless the fingerprint matches, and leave the
-# dearmoured copy at $TMP/<name>.gpg for the caller.
-fetch_key() {
-	local name="$1" url="$2" want="$3" got
-	curl -fsS "$url" -o "$TMP/$name.key"
-	got="$(gpg --show-keys --with-colons "$TMP/$name.key" | awk -F: '/^fpr:/ { print $10; exit }')"
+# The pin itself: a key file is trusted only when its primary fingerprint is the
+# one written down at the top. Its own function because Flathub's key arrives
+# inside the .flatpakrepo rather than as a download, so apt and flatpak reach
+# this check by different routes — and one copy of it is what keeps the two
+# channels honest about the same thing.
+check_fpr() {
+	local name="$1" file="$2" want="$3" got
+	got="$(gpg --show-keys --with-colons "$file" | awk -F: '/^fpr:/ { print $10; exit }')"
 	if [ "$got" != "$want" ]; then
 		echo "$name: key fingerprint mismatch" >&2
 		echo "  expected $want" >&2
@@ -101,6 +129,14 @@ fetch_key() {
 		echo "refusing to trust it - verify against the vendor's docs first" >&2
 		exit 1
 	fi
+}
+
+# Fetch a signing key, refuse it unless the fingerprint matches, and leave the
+# dearmoured copy at $TMP/<name>.gpg for the caller.
+fetch_key() {
+	local name="$1" url="$2" want="$3"
+	curl -fsS "$url" -o "$TMP/$name.key"
+	check_fpr "$name" "$TMP/$name.key" "$want"
 	gpg --dearmor --yes --output "$TMP/$name.gpg" "$TMP/$name.key"
 }
 
@@ -138,7 +174,11 @@ setup_1password() {
 }
 
 INSTALL=()
-for pkg in "${MISSING[@]}"; do
+# `${a[@]+"${a[@]}"}` rather than a plain `"${a[@]}"`: MISSING is legitimately
+# empty on a run whose only missing app is the flatpak, and an empty array is
+# not expandable under `set -u` on bash 3.2 — which is the bash the tests run
+# under on macOS. The long form still quotes each element.
+for pkg in ${MISSING[@]+"${MISSING[@]}"}; do
 	echo "==> Configuring $pkg"
 	case "$pkg" in
 	1password)
@@ -201,15 +241,46 @@ for pkg in "${MISSING[@]}"; do
 	esac
 done
 
-echo "==> Installing ${INSTALL[*]}"
-apt-get update -qq
-apt-get install -y "${INSTALL[@]}"
+# Flatpak is not on a Kubuntu install by default, and neither is the Discover
+# backend — without that one a flatpak updates only from the command line, which
+# is the same trap the Discord .deb is already in. Both come from the archive.
+if [ ${#MISSING_FLATPAK[@]} -gt 0 ] && ! installed flatpak; then
+	echo "==> Configuring flatpak"
+	INSTALL+=(flatpak plasma-discover-backend-flatpak)
+fi
+
+# Guarded, because a run whose only missing app is a flatpak leaves this empty
+# and `apt-get install` with no arguments is an error, not a no-op.
+if [ ${#INSTALL[@]} -gt 0 ]; then
+	echo "==> Installing ${INSTALL[*]}"
+	apt-get update -qq
+	apt-get install -y "${INSTALL[@]}"
+fi
+
+if [ ${#MISSING_FLATPAK[@]} -gt 0 ]; then
+	echo "==> Configuring flathub"
+	curl -fsS "$FLATHUB_REPO_URL" -o "$TMP/flathub.flatpakrepo"
+	# The key is one base64 line of that ini file. Pull it out and hold it to the
+	# same pin as every apt key here: once the remote is added it authenticates
+	# every app and every update from it, which is the concern that made the
+	# fingerprints above worth pinning in the first place.
+	sed -n 's/^GPGKey=//p' "$TMP/flathub.flatpakrepo" | base64 -d >"$TMP/flathub.gpg"
+	check_fpr flathub "$TMP/flathub.gpg" "$FLATHUB_KEY_FPR"
+	# Added from the verified local file rather than from the URL, so the key
+	# that ends up trusted is the one just checked and not a second fetch of it.
+	flatpak remote-add --if-not-exists flathub "$TMP/flathub.flatpakrepo"
+	echo "==> Installing ${MISSING_FLATPAK[*]}"
+	flatpak install -y flathub "${MISSING_FLATPAK[@]}"
+fi
 
 echo
-echo "Done. Three things this script deliberately leaves to you:"
+echo "Done. Four things this script deliberately leaves to you:"
 echo "  - docker: 'usermod -aG docker \$USER' is what lets lazydocker talk to"
 echo "    the socket without sudo, and it is root-equivalent - your call."
 echo "  - tailscale: installed but not joined, run 'sudo tailscale up'."
 echo "  - discord: no apt repo backs that .deb, so apt will never update it."
 echo "    'sudo apt-get remove discord' and re-run this to get the current one,"
 echo "    which is what an outdated client refusing to connect is telling you."
+echo "  - telegram: a flatpak, and one only reaches the app menu once the session"
+echo "    has read /etc/profile.d/flatpak.sh - log out and back in if it is not"
+echo "    there. 'flatpak run org.telegram.desktop' works right now either way."

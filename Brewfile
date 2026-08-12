@@ -138,6 +138,9 @@ if OS.mac?
 	cask "sublime-text"
 	# Mesh VPN — the GUI app, the plain formula is CLI-only
 	cask "tailscale-app"
+	# Messaging — the native macOS client, deliberately not the `telegram-desktop`
+	# cask. The Linux boxes get the Qt one from Flathub, see os/ubuntu.
+	cask "telegram"
 	# Media player — opens the .mp4 and .m4a associations
 	cask "vlc"
 	# Video meetings and messaging

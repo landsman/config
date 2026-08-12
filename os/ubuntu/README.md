@@ -26,6 +26,7 @@ cannot — from the vendors' own apt repos, except where the table says otherwis
 | Discord | `discord` | **none** — the vendor `.deb`, see below |
 | VLC | `vlc` | **none needed** — in the Ubuntu archive |
 | LibreOffice | `libreoffice` | **none needed** — in the Ubuntu archive |
+| Telegram | `org.telegram.desktop` | **none** — Flathub, not apt at all, see below |
 
 Docker is the *engine*, not Docker Desktop: Desktop for Linux is a hand-download
 `.deb` with no repo behind it, and the engine is what
@@ -53,6 +54,27 @@ knowing: apt will never update it, so `sudo apt-get remove discord` and another
 usual prompt), and this exception is per app, not a new rule — the hand-download
 apps below stay out.
 
+Telegram is the one app that comes from neither apt nor a `.deb`.
+`telegram-desktop` was in the Ubuntu archive up to jammy and is gone from noble
+onward, and upstream publishes a tarball, a Snap and a Flatpak but no apt repo —
+so unlike Discord there is not even a hand-download `.deb` to fall back on.
+Flathub is what is left that still updates, which makes this the repo's first
+flatpak: the script installs `flatpak` and `plasma-discover-backend-flatpak` from
+the archive, adds the Flathub remote and pulls `org.telegram.desktop` system-wide.
+The Discover backend is the part worth not skipping — without it a flatpak
+updates only from the command line, which is exactly the trap Discord is in.
+
+Flathub's key is pinned like every apt key, by a slightly different route: it
+ships inline as one base64 line of `flathub.flatpakrepo` rather than as a
+download of its own, so the script decodes it, checks the fingerprint, and then
+adds the remote **from the verified local file** rather than from the URL —
+`flatpak remote-add <url>` would re-fetch the key and trust whatever came back,
+which would leave the pin decorative. The test asserts both halves.
+
+macOS deliberately runs the other client: the [`Brewfile`](../../Brewfile)
+installs the `telegram` cask, Telegram's native macOS app, rather than the Qt
+`telegram-desktop` that Linux gets. Same account, different build, on purpose.
+
 ### Not installable this way
 
 | App | Why |
@@ -64,6 +86,11 @@ apps below stay out.
 | iTerm2, PowerFlow | macOS-only by nature; Ghostty covers the terminal here |
 | ZoomIt | Sysinternals ships it for Windows and macOS only, no Linux build |
 | Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
+
+Flathub being wired up now does not empty that table by itself. It was added for
+the one app whose Linux build had no other channel left, and it stays that: an
+app earns a flatpak once apt has been ruled out and the reason is written down
+here, not because Flathub happens to carry it too.
 
 `make apps` runs [`install-apps.sh`](install-apps.sh) itself, right after
 `brew bundle`, so there is nothing extra to remember on a new machine — it looks
@@ -98,10 +125,11 @@ debsig-signs the package, and apt refuses to unpack the second without a policy
 under `/etc/debsig/policies/` naming the key.
 
 [`install-apps.test.sh`](install-apps.test.sh) covers all of this with `apt`,
-`dpkg`, `curl` and `gpg` stubbed and every root-owned path redirected into a
-temp directory, so it runs on any machine — `make qa` includes it. The case it
-exists for is the mismatched fingerprint: a pin that silently passes everything
-would be worse than no pin at all.
+`dpkg`, `curl`, `gpg` and `flatpak` stubbed and every root-owned path redirected
+into a temp directory, so it runs on any machine — `make qa` includes it. The
+case it exists for is the mismatched fingerprint, asserted for an apt key and for
+Flathub's: a pin that silently passes everything would be worse than no pin at
+all.
 
 Not `1password-cli` — the same apt repo carries it, but the `1password-cli` cask
 does ship a Linux build, so the [`Brewfile`](../../Brewfile) installs `op` on
