@@ -143,6 +143,13 @@ wh NSGlobalDomain "com.apple.mouse.tapBehavior" -int 1
 w com.apple.AdLib allowApplePersonalizedAdvertising -bool false
 w com.apple.assistant.support "Dictation Auto Punctuation Enabled" -bool false
 
+# "Help Apple Improve Search" in System Settings > Spotlight — the Safari, Siri,
+# Spotlight and Lookup queries Apple would otherwise collect. 2 is opted out;
+# the key is simply absent until the switch is touched, which is what makes
+# opted *in* the default. An integer and not a bool, and this is the value the
+# switch itself wrote — it appeared in `defaults read` the moment it went dark.
+w com.apple.assistant.support "Search Queries Data Sharing Status" -int 2
+
 #
 # Spotlight — what is allowed to show up in results
 #
