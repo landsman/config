@@ -60,4 +60,13 @@ for f in ~/.config/bash_aliases.d/*.sh(N); do
 done
 unset f
 
+# ssh-agent. macOS launches one per login session and it comes up empty — the
+# passphrases are in the login Keychain, but nothing has loaded them from there
+# since Monterey dropped that half. Nothing notices until the first commit of
+# the day: signing is SSH (`make git`), `ssh-keygen -Y sign` asks the agent for
+# the key, and an empty agent sends it back to the key file to prompt — from a
+# GUI git client, with nowhere to type. Guarded on the agent already holding
+# keys, so the usual shell pays one fork and not a Keychain round trip.
+ssh-add -l >/dev/null 2>&1 || ssh-add --apple-load-keychain 2>/dev/null
+
 eval "$(mise activate zsh)"

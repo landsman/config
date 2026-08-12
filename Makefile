@@ -334,6 +334,17 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 		|| git config --global --add include.path '$(CURDIR)/.gitconfig'
 	@read -p "email [$$(git config --file '$(CURDIR)/.gitconfig' user.email)]: " e; \
 		[ -z "$$e" ] || git config --global user.email "$$e"
+	@# Signing goes through the *agent*, not the key file: with a .pub as
+	@# user.signingkey, `ssh-keygen -Y sign` asks ssh-agent for the private
+	@# half, and only falls back to reading the file — and prompting — when the
+	@# agent has not got it. macOS starts every login with an empty agent, so
+	@# --apple-use-keychain puts the passphrase in the login Keychain here and
+	@# os/macos/.zshrc loads it back from there. Idempotent, and silent once
+	@# stored. Darwin only: the flag is Apple's, and the Linux boxes unlock
+	@# their agent through the desktop keyring instead. Not fatal when it
+	@# fails — a Ctrl-C at the passphrase prompt leaves the rest of the signing
+	@# setup worth writing — but it says so, because the symptom otherwise
+	@# arrives a reboot later and looks like the config never worked.
 	@email="$$(git config user.email)"; \
 		case "$$email" in ""|*"*"*) echo "set a real user.email first - the repo default is a placeholder"; exit 1;; esac; \
 		default="$$HOME/.ssh/landsman_git_signing.pub"; \
@@ -344,6 +355,8 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 			echo "restore it from 1Password, chmod 600 it, then run make git again"; \
 			exit 1; \
 		fi; \
+		if [ "$$(uname -s)" = Darwin ]; then ssh-add --apple-use-keychain "$$priv" \
+			|| echo "passphrase not stored - commits will keep prompting, rerun make git"; fi; \
 		signers="$$HOME/.ssh/allowed_signers"; \
 		git config --global user.signingkey "$$k"; \
 		git config --global gpg.ssh.allowedSignersFile "$$signers"; \
