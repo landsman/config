@@ -195,6 +195,26 @@ apps: ## install Homebrew if missing, then the Brewfile, then the distro's own a
 	@b=$$(command -v brew \
 		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
 		"$$b" bundle --no-upgrade --file Brewfile
+	@# Yarn, which is here rather than in the Brewfile because corepack cannot
+	@# be. Node bundled corepack until 25 and dropped it, and every way of
+	@# installing it since ships pnpm and pnpx shims of its own: `brew install
+	@# corepack` wants to unlink the Brewfile's pnpm, and `npm i -g corepack`
+	@# refuses to overwrite its symlink. Its own prefix parks those two shims
+	@# where nothing looks for them, and `enable yarn` links only the wanted
+	@# pair into ~/.local/bin — on PATH from os/macos/.zshrc and .bashrc. No
+	@# version here on purpose: corepack reads each project's packageManager
+	@# field, so a repo pinned to yarn@4.7.0 gets 4.7.0 and this stays still.
+	@# The PATH line is the same fresh-machine problem as above — a brew that
+	@# installed node a second ago is not on this shell's PATH, and npm, node
+	@# and corepack's own `env node` shebang all need it.
+	@command -v yarn >/dev/null || { \
+		b=$$(command -v brew \
+			|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
+		PATH="$$(dirname "$$b")":"$$PATH"; \
+		mkdir -p "$$HOME/.local/bin"; \
+		npm i -g --prefix "$$HOME/.local/opt/corepack" corepack; \
+		"$$HOME/.local/opt/corepack/bin/corepack" enable yarn --install-directory "$$HOME/.local/bin"; \
+		ln -sf "$$HOME/.local/opt/corepack/bin/corepack" "$$HOME/.local/bin/corepack"; }
 	@# The GUI half of the Brewfile is `if OS.mac?`, because a cask installs on
 	@# Linux only when it ships a Linux build and almost no GUI app does. What
 	@# the distro has to supply instead lives next to that OS's dotfiles, using

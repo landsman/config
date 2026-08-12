@@ -10,6 +10,14 @@
 [ -x /home/linuxbrew/.linuxbrew/bin/brew ] \
 	&& eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
+# Where `make apps` puts corepack's yarn shim. Ubuntu's own ~/.profile adds this
+# too, but only if the directory already existed at login — which on a machine
+# being set up it did not. macOS gets the same line from os/macos/.zshrc.
+case ":$PATH:" in
+	*":$HOME/.local/bin:"*) ;;
+	*) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 for f in ~/.config/bash_aliases.d/*.sh; do
 	[ -r "$f" ] && . "$f"
 done
