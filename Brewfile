@@ -44,6 +44,9 @@ brew "kubernetes-cli"
 brew "lazydocker"
 # TUI for logs from journalctl, file system, Docker, Podman and Kubernetes pods
 brew "lazyjournal"
+# HEIF/HEIC decoder and encoder — a C library, wanted for the Go binding around
+# it: that one is cgo, so without this a `go build` stops at pkg-config
+brew "libheif"
 # Postgres C API library
 brew "libpq"
 # Log file navigator
