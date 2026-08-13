@@ -44,6 +44,11 @@ brew "kubernetes-cli"
 brew "lazydocker"
 # TUI for logs from journalctl, file system, Docker, Podman and Kubernetes pods
 brew "lazyjournal"
+# HEIF/HEIC decoder and encoder. Here for Go development: reading images in the
+# format phones now shoot by default, and rendering thumbnails from them.
+# https://github.com/strukturag/libheif is this C library and the Go binding in
+# one repo — the binding is cgo, so `go build` stops at pkg-config without it.
+brew "libheif"
 # Postgres C API library
 brew "libpq"
 # Log file navigator
