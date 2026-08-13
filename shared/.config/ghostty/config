@@ -1,0 +1,5 @@
+# Ghostty sets TERM=xterm-ghostty. A remote box whose ncurses predates that
+# entry has no idea what the terminal can do, so it drops colour entirely.
+# ssh-terminfo copies the local entry over on connect (infocmp | tic, cached
+# per host); ssh-env falls back to TERM=xterm-256color where tic cannot run.
+shell-integration-features = ssh-env,ssh-terminfo
