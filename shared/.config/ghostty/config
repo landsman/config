@@ -1,0 +1,37 @@
+# Ghostty sets TERM=xterm-ghostty. A remote box whose ncurses has never heard
+# that name concludes the terminal cannot do colour, and every program
+# downstream agrees. ssh-env rewrites TERM to xterm-256color for the session.
+#
+# Not ssh-terminfo, which looks like the more correct fix and is not: it keeps
+# TERM=xterm-ghostty, and Debian's stock ~/.bashrc turns the prompt colourful
+# only for `xterm-color|*-256color`. A name that matches neither leaves the
+# prompt grey however good the terminfo entry is. With both features on,
+# ssh-terminfo wins, so the working one has to be alone.
+shell-integration-features = ssh-env
+
+# The default palette is Tomorrow Night, whose greens are #b5bd68 and #b9ca4a —
+# olive. Debian's prompt is bold green (\033[01;32m), so it came out mustard and
+# read as a broken colour rather than a chosen one. This theme means green when
+# it says green: #26cd4d. No `palette` overrides here on purpose — they are
+# applied after the theme and would quietly mask whichever one is set.
+#
+# The others worth going back to, out of the 463 `ghostty +list-themes` offers,
+# so that changing my mind is not another pass through all of them:
+#
+#   Citruszest    green #00cc7a, teal-leaning   bg #121212, grey text
+#   Duckbones     green #5dcd97, mint           bg #0e101a, cream text
+#   Heeler        green #bdd100 — do not        bg #211f46
+#
+# Heeler's purple is the nicest of the four and it is still out: its green is
+# the same olive the default had, and palette 2 and 10 are both #bdd100, so
+# there is not even a bright one to fall back to.
+theme = GitHub Dark High Contrast
+
+# Transparency copied off the Terminal.app profile I actually had set — "Clear
+# Dark", read out of com.apple.Terminal rather than eyeballed: its background
+# NSColor carries alpha 0.95 and BackgroundBlur 0.5. The alpha maps straight
+# across; the blur does not, because Terminal's 0.5 is its own scale and
+# Ghostty's is a radius in pixels. 20 is Ghostty's own default for `true` and
+# lands close enough that the two windows do not look like different apps.
+background-opacity = 0.95
+background-blur = 20
