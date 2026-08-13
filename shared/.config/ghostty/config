@@ -1,5 +1,10 @@
-# Ghostty sets TERM=xterm-ghostty. A remote box whose ncurses predates that
-# entry has no idea what the terminal can do, so it drops colour entirely.
-# ssh-terminfo copies the local entry over on connect (infocmp | tic, cached
-# per host); ssh-env falls back to TERM=xterm-256color where tic cannot run.
-shell-integration-features = ssh-env,ssh-terminfo
+# Ghostty sets TERM=xterm-ghostty. A remote box whose ncurses has never heard
+# that name concludes the terminal cannot do colour, and every program
+# downstream agrees. ssh-env rewrites TERM to xterm-256color for the session.
+#
+# Not ssh-terminfo, which looks like the more correct fix and is not: it keeps
+# TERM=xterm-ghostty, and Debian's stock ~/.bashrc turns the prompt colourful
+# only for `xterm-color|*-256color`. A name that matches neither leaves the
+# prompt grey however good the terminfo entry is. With both features on,
+# ssh-terminfo wins, so the working one has to be alone.
+shell-integration-features = ssh-env
