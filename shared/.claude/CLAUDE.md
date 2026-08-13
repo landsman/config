@@ -8,6 +8,7 @@ fall back to, so they have to be in context before the mistake, not after.
 
 | Rule | Applies when |
 |------|--------------|
+| [Where the repos live](rules/where-repos-live.md) | finding a repo on disk, and which ones may be named in public |
 | [Reporting data and metrics](rules/reporting-data.md) | a number gets reported — a query, a benchmark, a count |
 | [Localisation](rules/localisation.md) | user-facing text gets written — a label, an error, an email |
 | [Attribution](rules/attribution.md) | anything leaves the machine or gets committed |
