@@ -55,10 +55,14 @@ qa-deps:
 	@# anything — anywhere else this says the same thing `make stow` says.
 	@# `brew install stow`, not `make apps`: the Brewfile is minutes of packages
 	@# CI has no use for, and on Linux there is no brew to begin with.
-	@command -v stow >/dev/null && command -v zsh >/dev/null && exit 0; \
-	if [ -z "$$CI" ]; then echo "qa needs stow and zsh - run: make apps"; exit 1; \
+	@# stow only: zsh is the Mac's system shell and nothing on Linux pulls it in,
+	@# `make apps` included — there is no `brew "zsh"` in the Brewfile and there
+	@# is no reason to add one. `lint` skips the one file that needs it when it is
+	@# missing, and the macOS leg of the matrix is where that file gets parsed.
+	@command -v stow >/dev/null && exit 0; \
+	if [ -z "$$CI" ]; then echo "qa needs stow - run: make apps"; exit 1; \
 	elif command -v brew >/dev/null; then brew install stow; \
-	else sudo apt-get update && sudo apt-get install -y stow zsh; fi
+	else sudo apt-get update && sudo apt-get install -y stow; fi
 
 lint: ## parse every shell file without running it
 	@# -n is parse-only, so nothing here is sourced or executed. A typo in a
@@ -67,7 +71,13 @@ lint: ## parse every shell file without running it
 	@for f in $$(git ls-files '*.sh' '.bashrc'); do echo "== $$f"; bash -n "$$f" || exit 1; done
 	@# The zsh file gets the zsh parser: bash accepts most of it and would miss
 	@# the rest (fpath arrays, autoload).
-	@echo "== os/macos/.zshrc"; zsh -n os/macos/.zshrc
+	@# Skipped where there is no zsh, which is every Linux box here — the file is
+	@# macOS-only by nature, and `make lint` that cannot be run on the machine in
+	@# front of me is a check I stop running. It is not thereby unchecked: CI's
+	@# matrix has a macOS leg, zsh is the system shell there, and fail-fast is
+	@# off, so a syntax error still turns a pull request red.
+	@if command -v zsh >/dev/null; then echo "== os/macos/.zshrc"; zsh -n os/macos/.zshrc; \
+	else echo "== os/macos/.zshrc  SKIPPED (no zsh here - CI's macOS leg parses it)"; fi
 
 bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	@# `|| exit 1`, because a for loop exits with the status of its *last*
