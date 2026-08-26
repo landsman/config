@@ -7,6 +7,20 @@
     "vaadin": {
       "type": "http",
       "url": "https://mcp.vaadin.com/docs"
+    },
+    "azure-devops": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure-devops/mcp",
+        "${AZDO_ORG:-AZDO_ORG-is-not-set}",
+        "-d",
+        "core",
+        "repositories",
+        "pipelines",
+        "search"
+      ]
     }
   }
 }

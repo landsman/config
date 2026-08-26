@@ -60,6 +60,38 @@ Docs: <https://vaadin.com/docs/latest/building-apps/mcp/supported-tools/claude-c
 The URL is `https://mcp.vaadin.com/docs`, **not** `/mcp` — that path fails to
 connect. No auth.
 
+## Azure DevOps
+
+Microsoft's own server, [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp).
+Auth is the Azure CLI session — `az login`, checked with `az account show` — so
+again nothing secret is tracked. Two things about the entry are deliberate:
+
+- **The organisation comes from `$AZDO_ORG`.** The slug names an employer and
+  this repo is public, so it stays out of it. Put it somewhere untracked that
+  the shell exports — `~/.config/bash_aliases.d/99-local.sh` is already globbed
+  by both `.bashrc` and `os/macos/.zshrc`, and a file that is not in the repo
+  survives `make restow` untouched:
+
+  ```bash
+  export AZDO_ORG=<slug>
+  ```
+
+  Expansion reads the process environment. An `env` block in `settings.json` does
+  *not* feed it — measured, not assumed, and the same measurement contradicted
+  the docs on what happens when the variable is missing: they promise a
+  missing-variable warning and no connection, while 2.1.246 starts the server
+  happily with the unexpanded text as the organisation. So the entry carries a
+  `:-AZDO_ORG-is-not-set` fallback instead, and a machine without the variable
+  gets a server that says why it is useless rather than one that looks fine
+  until a tool call fails.
+- **`-d core repositories pipelines search`** keeps the tool surface to the four
+  domains actually used; without it every domain loads.
+
+`settings.json` still allows `mcp__azure-devops__*` from when this was
+registered by hand. Plugin servers are namespaced, so those lines no longer
+match — left alone here rather than guessed at, because the exact prefix is
+worth reading off a live session before it is written down.
+
 ## Common commands
 
 | Command                    | Purpose                                    |
