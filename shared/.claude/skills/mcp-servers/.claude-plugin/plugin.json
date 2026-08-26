@@ -1,0 +1,5 @@
+{
+  "name": "mcp-servers",
+  "description": "The MCP servers this config owns, so they arrive with `make stow` instead of a command to remember",
+  "version": "1.0.0"
+}

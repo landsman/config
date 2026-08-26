@@ -164,8 +164,10 @@ Docker Hub and says so.
   `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
   `os/macos/.zshrc` loads the same directory, so they are shell-agnostic.
 - **`~/.claude` is mostly runtime state** — sessions, caches, history. Only
-  `CLAUDE.md`, `settings.json` and `voice.local.md` are tracked, all in
-  `shared/`; `--no-folding` keeps the directory real so nothing the tool writes
+  `CLAUDE.md`, `settings.json`, `voice.local.md` and the `skills/mcp-servers/`
+  plugin — which is how the [MCP servers](.docs-llm/mcp-servers.md) get tracked,
+  since neither `settings.json` nor `~/.claude.json` can hold them — are tracked,
+  all in `shared/`; `--no-folding` keeps the directory real so nothing the tool writes
   lands here. `voice.local.md` is the odd one: the voice plugin rewrites it in
   place when you toggle voice, so a diff there is usually a toggle rather than a
   change worth committing.
