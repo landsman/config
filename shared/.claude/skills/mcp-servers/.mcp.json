@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "rohlik": {
+      "type": "http",
+      "url": "https://mcp.rohlik.cz/mcp"
+    },
+    "vaadin": {
+      "type": "http",
+      "url": "https://mcp.vaadin.com/docs"
+    }
+  }
+}
