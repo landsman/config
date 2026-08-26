@@ -12,6 +12,7 @@ System-wide files (everything under `/`, not `$HOME`). The directory layout mirr
 | `etc/systemd/system/thinkpad-power-tune.service`        | `/etc/systemd/system/thinkpad-power-tune.service`        | Caps Intel RAPL PL1 to 20 W and max CPU frequency to 3.0 GHz at boot — without it BIOS leaves PL1 at 200 W and CPU pins at 95 °C under any sustained load (postgres, JVMs)|
 | `etc/intel-undervolt.conf`                              | `/etc/intel-undervolt.conf`                              | Undervolt offsets for i5-8350U: Core/Cache -75 mV, GPU -50 mV. Applied at boot + after resume by `intel-undervolt.service` (built from source, see Install)               |
 | `etc/modprobe.d/i915-no-psr.conf`                       | `/etc/modprobe.d/i915-no-psr.conf`                       | Sets `enable_psr=0` on `i915` — disables Panel Self Refresh. Kept as a cheap, harmless mitigation for i915 resume glitches, but **unproven on this machine**: it did not fix the black panel after resume (see Known issues). Needs `update-initramfs -u`, see Install |
+| `etc/default/grub.d/99-mem-sleep-deep.cfg`              | `/etc/default/grub.d/99-mem-sleep-deep.cfg`              | Adds `mem_sleep_default=deep` to the kernel cmdline, pinning suspend to S3. **Changes nothing on this machine today** — the kernel already picks deep, see Install. Kept because a default is not a promise. Needs `update-grub` |
 
 ## Install
 
@@ -23,7 +24,39 @@ sudo modprobe -r thinkpad_acpi && sudo modprobe thinkpad_acpi
 sudo systemctl daemon-reload
 sudo systemctl enable --now thinkfan.service thinkpad-power-tune.service
 sudo update-initramfs -u
+sudo update-grub
 ```
+
+`update-grub` is what turns `grub.d/99-mem-sleep-deep.cfg` into a boot entry —
+`grub-mkconfig` sources `/etc/default/grub` first and every
+`/etc/default/grub.d/*.cfg` after it, which is why the drop-in can append to
+`GRUB_CMDLINE_LINUX_DEFAULT` instead of replacing the file. S3 also has to be
+offered by firmware: BIOS → Config → Power → **Sleep State: Linux**, otherwise
+Windows-style s2idle is all the kernel sees. Verify after a reboot with
+
+```
+cat /sys/power/mem_sleep    # want: s2idle [deep]
+```
+
+**It is a pin, not a fix.** Measured on this machine before the parameter
+existed: 241 of 243 logged suspends already entered `deep`, on boots whose
+`/proc/cmdline` did not mention `mem_sleep_default` at all — the T480's ACPI
+tables do not set the low-power S0 idle flag, so the kernel reaches S3 on its
+own. The two exceptions were both s2idle four seconds after a `deep` entry on
+the same day, i.e. a fallback, not a default. What it buys is that a firmware
+or kernel change cannot flip the machine to s2idle without this file changing
+too:
+
+```
+journalctl --no-pager -o cat | grep -oE 'PM: suspend entry \(\w+\)' | sort | uniq -c
+```
+
+It is therefore **not** the answer to the battery draining while suspended,
+which is what prompted it and which is still unexplained. The batteries are
+healthy (BAT0 22.2/22.8 Wh, BAT1 60.2/57.7 Wh at 75 cycles) and
+`/var/lib/upower` has no history old enough to say what the S3 draw actually
+is. Measuring it needs `energy_now` read either side of a real overnight
+suspend.
 
 `update-initramfs -u` is required for `i915-no-psr.conf`: `i915` loads early from the initramfs (KMS + `splash`), so it reads its options from the initramfs copy of `modprobe.d`, not `/etc`. Without rebuilding, the option is silently ignored and PSR stays on. Verify with `lsinitramfs /boot/initrd.img-$(uname -r) | grep i915-no-psr`.
 
