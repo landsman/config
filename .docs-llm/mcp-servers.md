@@ -65,6 +65,6 @@ connect. No auth.
 | Command                    | Purpose                                    |
 |----------------------------|--------------------------------------------|
 | `claude mcp list`          | List servers + health                      |
-| `claude mcp list-tools`    | Show tools exposed by servers              |
+| `claude mcp get <name>`    | One server: scope, transport, health       |
 | `claude plugin list`       | Check the plugin loaded at all             |
 | `claude mcp remove <name>` | Unregister a server added with `--scope user` |
