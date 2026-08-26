@@ -76,14 +76,19 @@ again nothing secret is tracked. Two things about the entry are deliberate:
   export AZDO_ORG=<slug>
   ```
 
-  Expansion reads the process environment. An `env` block in `settings.json` does
-  *not* feed it — measured, not assumed, and the same measurement contradicted
-  the docs on what happens when the variable is missing: they promise a
-  missing-variable warning and no connection, while 2.1.246 starts the server
-  happily with the unexpanded text as the organisation. So the entry carries a
-  `:-AZDO_ORG-is-not-set` fallback instead, and a machine without the variable
-  gets a server that says why it is useless rather than one that looks fine
-  until a tool call fails.
+  The variable is read by `sh`, not by Claude Code's `${VAR}` interpolation, and
+  that is the point: unset, the guard exits before `npx` ever runs. A stdio
+  server is started at every launch, and this one reaches for an Azure login as
+  soon as it is up — so on a machine with no `AZDO_ORG` the unguarded version
+  asks to authenticate every single time Claude Code opens. Exiting first is
+  what makes the server absent rather than merely useless.
+
+  Claude Code's own interpolation would not do: `${VAR}` with nothing set is
+  passed through as the literal text — measured on 2.1.246, where the docs
+  promise a missing-variable warning and no connection, and the server instead
+  reports `✔ Connected` with `${AZDO_ORG}` as the organisation. An `env` block in
+  `settings.json` does not feed the expansion either; only the process
+  environment does.
 - **`-d core repositories pipelines search`** keeps the tool surface to the four
   domains actually used; without it every domain loads.
 

@@ -10,16 +10,10 @@
     },
     "azure-devops": {
       "type": "stdio",
-      "command": "npx",
+      "command": "sh",
       "args": [
-        "-y",
-        "@azure-devops/mcp",
-        "${AZDO_ORG:-AZDO_ORG-is-not-set}",
-        "-d",
-        "core",
-        "repositories",
-        "pipelines",
-        "search"
+        "-c",
+        "[ -n \"$AZDO_ORG\" ] || exit 0; exec npx -y @azure-devops/mcp \"$AZDO_ORG\" -d core repositories pipelines search"
       ]
     }
   }
