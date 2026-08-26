@@ -31,6 +31,32 @@ Remove:
 claude mcp remove vaadin
 ```
 
+## Rohlík
+
+Docs: https://www.rohlik.cz/mcp-docs
+
+Install (user scope):
+
+```bash
+claude mcp add-json rohlik '{"type":"http","url":"https://mcp.rohlik.cz/mcp"}' --scope user
+```
+
+Auth is OAuth against an ordinary Rohlík account and the client drives it, so
+there is nothing to put in the config — no token, no header, which is what
+makes the command above safe to write down here. Until the browser round trip
+happens it reads:
+
+```bash
+claude mcp get rohlik
+# Status: ! Needs authentication
+```
+
+Run `/mcp` in Claude Code once to get through it.
+
+That account is the shopping account, not a sandbox: the cart these tools fill
+is the one that gets delivered. Worth reading a tool's arguments before
+approving it, rather than approving the server wholesale in `settings.json`.
+
 ## Common commands
 
 | Command                    | Purpose                       |
