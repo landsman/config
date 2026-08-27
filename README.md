@@ -59,6 +59,7 @@ make apps    # Homebrew if missing, then the Brewfile (stow included), then
 make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
+make claude  # ask for the Azure DevOps org the MCP server needs (once per machine)
 
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-touchid   # macOS only: authenticate sudo with Touch ID (asks for root)

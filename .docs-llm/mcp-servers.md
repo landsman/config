@@ -67,14 +67,11 @@ Auth is the Azure CLI session — `az login`, checked with `az account show` —
 again nothing secret is tracked. Two things about the entry are deliberate:
 
 - **The organisation comes from `$AZDO_ORG`.** The slug names an employer and
-  this repo is public, so it stays out of it. Put it somewhere untracked that
-  the shell exports — `~/.config/bash_aliases.d/99-local.sh` is already globbed
-  by both `.bashrc` and `os/macos/.zshrc`, and a file that is not in the repo
-  survives `make restow` untouched:
-
-  ```bash
-  export AZDO_ORG=<slug>
-  ```
+  this repo is public, so it stays out of it. `make claude` asks for it once per
+  machine and writes it to `~/.config/bash_aliases.d/99-local.sh` — a drop-in
+  both `.bashrc` and `os/macos/.zshrc` already glob, untracked, and therefore
+  one `make restow` cannot overwrite. It takes a new shell to reach Claude Code.
+  Unset, the server is simply absent.
 
   The variable is read by `sh`, not by Claude Code's `${VAR}` interpolation, and
   that is the point: unset, the guard exits before `npx` ever runs. A stdio
