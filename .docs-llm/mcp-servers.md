@@ -60,11 +60,45 @@ Docs: <https://vaadin.com/docs/latest/building-apps/mcp/supported-tools/claude-c
 The URL is `https://mcp.vaadin.com/docs`, **not** `/mcp` — that path fails to
 connect. No auth.
 
+## Azure DevOps
+
+Microsoft's own server, [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp).
+Auth is the Azure CLI session — `az login`, checked with `az account show` — so
+again nothing secret is tracked. Two things about the entry are deliberate:
+
+- **The organisation comes from `$AZDO_ORG`.** The slug names an employer and
+  this repo is public, so it stays out of it. `make claude` asks for it once per
+  machine and writes it to `~/.config/bash_aliases.d/99-local.sh` — a drop-in
+  both `.bashrc` and `os/macos/.zshrc` already glob, untracked, and therefore
+  one `make restow` cannot overwrite. It takes a new shell to reach Claude Code.
+  Unset, the server is simply absent.
+
+  The variable is read by `sh`, not by Claude Code's `${VAR}` interpolation, and
+  that is the point: unset, the guard exits before `npx` ever runs. A stdio
+  server is started at every launch, and this one reaches for an Azure login as
+  soon as it is up — so on a machine with no `AZDO_ORG` the unguarded version
+  asks to authenticate every single time Claude Code opens. Exiting first is
+  what makes the server absent rather than merely useless.
+
+  Claude Code's own interpolation would not do: `${VAR}` with nothing set is
+  passed through as the literal text — measured on 2.1.246, where the docs
+  promise a missing-variable warning and no connection, and the server instead
+  reports `✔ Connected` with `${AZDO_ORG}` as the organisation. An `env` block in
+  `settings.json` does not feed the expansion either; only the process
+  environment does.
+- **`-d core repositories pipelines search`** keeps the tool surface to the four
+  domains actually used; without it every domain loads.
+
+`settings.json` still allows `mcp__azure-devops__*` from when this was
+registered by hand. Plugin servers are namespaced, so those lines no longer
+match — left alone here rather than guessed at, because the exact prefix is
+worth reading off a live session before it is written down.
+
 ## Common commands
 
 | Command                    | Purpose                                    |
 |----------------------------|--------------------------------------------|
 | `claude mcp list`          | List servers + health                      |
-| `claude mcp list-tools`    | Show tools exposed by servers              |
+| `claude mcp get <name>`    | One server: scope, transport, health       |
 | `claude plugin list`       | Check the plugin loaded at all             |
 | `claude mcp remove <name>` | Unregister a server added with `--scope user` |

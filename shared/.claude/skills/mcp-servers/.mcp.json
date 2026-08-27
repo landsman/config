@@ -7,6 +7,14 @@
     "vaadin": {
       "type": "http",
       "url": "https://mcp.vaadin.com/docs"
+    },
+    "azure-devops": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-c",
+        "[ -n \"$AZDO_ORG\" ] || exit 0; exec npx -y @azure-devops/mcp \"$AZDO_ORG\" -d core repositories pipelines search"
+      ]
     }
   }
 }

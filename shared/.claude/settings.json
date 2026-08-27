@@ -24,10 +24,7 @@
       "Bash(mkdir:*)",
       "Bash(cp:*)",
       "Bash(mv:*)",
-      "Bash(rm:*)",
       "Bash(touch:*)",
-      "Bash(chmod:*)",
-      "Bash(chown:*)",
       "Bash(cd:*)",
       "Bash(pwd)",
       "Bash(which:*)",
@@ -50,12 +47,8 @@
       "Bash(rustc:*)",
       "Bash(rustup:*)",
       "Bash(npm:*)",
-      "Bash(npx:*)",
       "Bash(yarn:*)",
-      "Bash(node:*)",
       "Bash(nvm:*)",
-      "Bash(python:*)",
-      "Bash(python3:*)",
       "Bash(pip:*)",
       "Bash(pip3:*)",
       "Bash(pipenv:*)",
@@ -66,7 +59,6 @@
       "Bash(ping:*)",
       "Bash(nslookup:*)",
       "Bash(dig:*)",
-      "Bash(ssh:*)",
       "Bash(scp:*)",
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
@@ -142,7 +134,7 @@
       "Bash(userdel*)",
       "Bash(groupdel*)"
     ],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "auto"
   },
   "model": "opus[1m]",
   "statusLine": {

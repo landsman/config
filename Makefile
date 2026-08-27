@@ -312,6 +312,31 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
 		|| true
 
+##@ Claude Code
+#
+# The MCP servers are stowed like any other dotfile. The Azure DevOps
+# organisation cannot be: the slug names an employer and this repo is public.
+# See .docs-llm/mcp-servers.md.
+#
+
+.PHONY: claude
+claude: ## set the machine-local value the MCP servers read (Azure DevOps org)
+	@# A shell drop-in rather than ~/.claude/settings.local.json, because the
+	@# expansion in .mcp.json reads the process environment and the settings
+	@# `env` block does not feed it. Both .bashrc and os/macos/.zshrc glob that
+	@# directory, so one file covers both shells, and a file this repo does not
+	@# track is one `make restow` cannot overwrite.
+	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \
+	was=$$(sed -n 's/^export AZDO_ORG=//p' "$$f" 2>/dev/null); \
+	read -p "Azure DevOps org [$${was:-unset}]: " o; o="$${o:-$$was}"; \
+	if [ -z "$$o" ]; then echo "left unset - the azure-devops server exits before npx runs"; exit 0; fi; \
+	mkdir -p "$$(dirname "$$f")"; \
+	[ -s "$$f" ] || echo '# Machine-local and untracked on purpose - see .docs-llm/mcp-servers.md' > "$$f"; \
+	tmp=$$(mktemp); grep -v '^export AZDO_ORG=' "$$f" > "$$tmp"; \
+	echo "export AZDO_ORG=$$o" >> "$$tmp"; mv "$$tmp" "$$f"; \
+	grep -H '^export AZDO_ORG=' "$$f"
+	@echo "open a new shell, then: claude mcp list | grep azure-devops"
+
 ##@ JetBrains IDEs
 #
 # See bin/jetbrains/README.md for why this is a script, not stow
