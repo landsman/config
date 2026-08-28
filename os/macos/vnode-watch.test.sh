@@ -44,7 +44,22 @@ printf 'n/Users/landsman/Library/Application Support/x\n'
 printf 'p718\ncchrome\n'
 printf 'n/Applications/Chrome/x\n'
 STUB
-chmod +x "$tmp/bin/sysctl" "$tmp/bin/date" "$tmp/bin/lsof"
+# top is stubbed with a root-owned process in it on purpose: it is there to
+# cover exactly what lsof cannot see without privileges.
+cat > "$tmp/bin/top" <<'STUB'
+#!/bin/sh
+echo "Processes: 900 total"
+echo ""
+echo "PID  COMMAND        PAGEINS"
+echo "936  mediaanalysisd 453379"
+echo "548  mds_stores     206348"
+STUB
+cat > "$tmp/bin/log" <<'STUB'
+#!/bin/sh
+echo "Timestamp               Ty Process[PID:TID]"
+echo "2026-08-28 12:00:00.000 Df kernel[0:1] vnode: table is full"
+STUB
+chmod +x "$tmp/bin/sysctl" "$tmp/bin/date" "$tmp/bin/lsof" "$tmp/bin/top" "$tmp/bin/log"
 export PATH="$tmp/bin:$PATH" VNODE_WATCH_DIR="$tmp/logs"
 
 counters="$tmp/logs/vnode-watch.log"
@@ -65,11 +80,13 @@ check "appends rather than truncates" 2 "$(wc -l < "$counters" | tr -d ' ')"
 # == every fifth minute: who holds what
 FAKE_MIN=15 "$script"
 check "snapshots on the fifth minute" "yes" "$([ -f "$holders" ] && echo yes || echo no)"
-check "names the biggest holder first" "3 738 idea" "$(sed -n 2p "$holders")"
+check "names the biggest holder first" "3 738 idea" "$(sed -n 3p "$holders")"
+check "reaches processes lsof cannot see" 1 "$(grep -c '^548  mds_stores' "$holders")"
 check "records the free count beside it" \
 	"== 2026-08-28T12:00:00 free=190000 crisis=0" "$(sed -n 1p "$holders")"
-check "leaves the paths out while nothing is wrong" 0 \
-	"$(grep -c '^ *[0-9]* /Users/landsman/projects$' "$holders")"
+check "leaves the paths out while nothing is wrong" 0 "$(grep -c '^-- paths' "$holders")"
+check "and leaves the kernel log alone too" 0 "$(grep -c '^-- kernel' "$holders")"
+check "but always records page-ins" 1 "$(grep -c '^-- pageins' "$holders")"
 
 # == below the threshold: every tick, and the paths too
 rm -f "$holders"
@@ -84,6 +101,10 @@ check "adds the paths, so the count has a subject" 1 \
 # $NF is "Support/x", which fails the leading-slash guard and vanishes.
 check "counts a path with a space in it" 1 \
 	"$(grep -c '1 /Users/landsman/Library$' "$holders")"
+# The whole reason for the agent: this line does not survive the reboot, so it
+# has to be copied out while the machine is still up.
+check "copies the kernel out before the reboot eats it" 1 \
+	"$(grep -c 'vnode: table is full' "$holders")"
 
 # == the threshold is a threshold, not a constant
 rm -f "$holders"

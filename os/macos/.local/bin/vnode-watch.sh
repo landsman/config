@@ -43,22 +43,47 @@ case $(date +%M) in *[05]) due=1 ;; *) due=$crisis ;; esac
 
 {
 	printf '== %s free=%s crisis=%s\n' "$ts" "$free" "$crisis"
+
 	# -F rather than the default table: a NAME with a space in it — every
 	# "Application Support/..." there is — loses its front half to $NF, and that
 	# is exactly where an app's own churn lives.
+	echo '-- holders (open files: count pid command)'
 	lsof -n -P -F pcn 2>/dev/null | awk '
 		/^p/ { pid = substr($0, 2); next }
 		/^c/ { cmd = substr($0, 2); next }
 		/^n/ { c[pid " " cmd]++ }
 		END  { for (k in c) print c[k], k }' \
 		| sort -rn | head -25
+
+	# The half lsof cannot reach: it is unprivileged here, so it sees only this
+	# user — and mds_stores, the prime suspect from the 2026-08-12 panic, runs as
+	# _mds_stores. top reports page-ins for every process regardless of owner, and
+	# page-ins are what separated the two panics in the first place.
+	# Cumulative over each process's lifetime, so it is the delta between two
+	# snapshots that means something, not the number itself.
+	echo '-- pageins (cumulative per process lifetime - read the delta)'
+	top -l 1 -stats pid,command,pageins -n 15 -o pageins 2>/dev/null \
+		| sed -n '/^PID/,$p'
+
+	[ "$crisis" -eq 1 ] || exit 0
+
 	# Counts name the process, paths name what it was doing — worth the volume
 	# only when something is actually going wrong.
-	[ "$crisis" -eq 0 ] || lsof -n -P -F n 2>/dev/null | awk '
+	echo '-- paths'
+	lsof -n -P -F n 2>/dev/null | awk '
 		/^n\// {
 			n = split(substr($0, 2), p, "/"); s = "/" p[2]
 			if (n >= 3 && p[3] != "") s = s "/" p[3]
 			if (n >= 4 && p[4] != "") s = s "/" p[4]
 			print s
 		}' | sort | uniq -c | sort -rn | head -15
+
+	# The reason any of this exists: the kernel names the exhausted table while
+	# it is happening, and none of it survives the reboot. Copying it out now is
+	# the only way #82 ever gets a direct answer instead of an inference.
+	# Capped, and the header says so — a vnode storm printed 8890 lines in 40
+	# seconds on 2026-08-12, and this may run once a minute while it lasts.
+	echo '-- kernel (last 2m, capped at 2000 lines)'
+	log show --last 2m --predicate 'process == "kernel"' --style compact 2>/dev/null \
+		| head -2000
 } >> "$dir/vnode-watch-holders.log"
