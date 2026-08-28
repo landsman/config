@@ -74,8 +74,8 @@ The mechanism is visible in the voltage: 10.159 → 10.867 V while filling, the
 steep early rise of a depleted pack. A gauge estimating charge from *voltage*
 rather than counting coulombs climbs exactly like that, and voltage-based
 estimation is at its worst under charge current. Note also that the pack kept
-accepting 26.76 Wh — more than half the total — while the gauge insisted it was
-at 99 %. The cells were nowhere near full when the reading said they were.
+accepting 37.19 Wh — nearly two thirds of the total — while the gauge insisted
+it was at 99 %. The cells were nowhere near full when the reading said so.
 
 ## Discharging, the same gauge counts correctly
 
