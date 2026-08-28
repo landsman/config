@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | **Confirmed — the pack is dead.** Delivered 3 % of what it reported, measured 2026-08-28. Warranty claim, not a repair |
-| Affects | BAT1 only. Avacom `NOLE-T48H-806`, Li-Ion 10.8 V 5200 mAh (56.2 Wh), bought new a few months ago, 76 cycles |
+| Affects | BAT1 only. Avacom `NOLE-T48H-806`, Li-Ion 10.8 V 5200 mAh (56.2 Wh), roughly a year old at 76 cycles — owner's recollection, invoice not checked, and well inside the 24-month warranty either way |
 | Reports itself as | `SANYO` / `01AV425` — the original Lenovo part, because replacement packs clone the gauge firmware to satisfy the EC |
 | First measured | 2026-08-27 |
 | Symptom it was reported as | "the laptop drains overnight in suspend" |
@@ -82,6 +82,50 @@ power bridge handing over to BAT0:
 `upower` predicted 2.9 hours to empty at the start of that run. It lasted six
 minutes.
 
+## It inflates on the way up, which is where the fiction comes from
+
+The discharge above showed the gauge's *rate* to be right and only its
+*remaining total* wrong — 33.85 → 33.71 Wh in 30 s at 16 W is accurate to a
+tenth of a watt. That is a gauge worth calibrating.
+
+Charging is the broken half. Integrating `power_now` while the pack refills:
+
+| | |
+|---|---|
+| accepted, measured | 8.19 Wh over 17 min |
+| gauge claimed over the same 17 min | +21.19 Wh (5.34 → 26.53 Wh, 9 → 44 %) |
+| **inflation** | **2.59×, steady from the first sample** |
+
+Seventy watts into the pack is not physically available — the T480 ships a
+65 W supply and the system is running off the same one. The charger is not
+lying; the gauge is.
+
+The likely mechanism is in the voltage column: 10.159 → 10.867 V as it fills,
+the steep early rise of a depleted pack. A gauge that has fallen back to
+estimating charge from voltage, rather than counting coulombs, climbs exactly
+like this — and voltage-based estimation is at its worst under charge current.
+
+**This is what makes calibration futile, and it is worth being precise about
+why.** A calibration cycle relearns capacity by measuring one full charge and
+discharge *with the pack's own counter*. Here that counter is accurate
+discharging and 2.6× optimistic charging, so the cycle would relearn from the
+broken half and arrive at another fiction. Calibration fixes a drifted
+estimate. It cannot fix a broken measurement.
+
+### Prediction, written before the run finished
+
+From 5.34 Wh claimed, reaching a claimed "full" of ~60 Wh means adding 54.7 Wh
+of *claimed* charge. At 2.6× that is **~21 Wh actually accepted**, in **45-50
+minutes** at the observed 26-29 W. If it lands there, the pack takes 21 Wh of
+its advertised 56.2 — 37 % — and no reset makes 21 Wh into 60.
+
+## The 80 % that was not a threshold
+
+Both packs appeared to stop charging at 80 %, and that was read as a
+conservation limit. It was not: `charge_control_end_threshold` reads 100 for
+both, TLP is not installed, and KDE sets nothing. One more number from this
+gauge that meant nothing.
+
 ## The voltage, read against the right pack
 
 An earlier draft made this argument against `voltage_min_design` = 11.1 V and
@@ -126,8 +170,9 @@ pack out* either. It is a gauge's own estimate of itself.
 
 ## Next
 
-A calibration cycle was the first plan and is now pointless: relearning
-`energy_full` cannot put 30 Wh of cells back in a pack that does not have them.
+A calibration cycle was the first plan and is dropped twice over. It cannot put
+cells back that are not there, and — see the charge measurement above — it would
+have to learn from a counter that is 2.6× wrong in the direction it learns from.
 What is left is the warranty claim, and that wants one more number.
 
 1. **Full-capacity measurement, for Avacom.** Charge BAT1 to 100 %, then
