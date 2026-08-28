@@ -153,6 +153,12 @@ Two smaller ones:
 - The battery indicator cannot be trusted on this machine at all. It reads
   comfortable numbers, freezes at 99 % while genuinely filling, and collapses
   without warning on the way down.
+- **The desktop grades the faulty pack higher than the good one.** KDE's
+  battery widget shows *Battery Health 100 %* for BAT1 and *98 %* for BAT0.
+  That figure is `energy_full / energy_full_design`, so it asks the gauge to
+  report on itself: BAT1's 60.17 / 57.72 is 104 %, clipped to 100. The healthy
+  pack, whose gauge is honest about a little wear, looks worse. Any health
+  reading derived this way inverts exactly when it is most needed.
 - Any power measurement crossing BAT1's near-empty region is worthless — the
   gauge dumps its accumulated error there and it books as consumption. Measure
   in the upper part of the range, as the two suspend runs did.
