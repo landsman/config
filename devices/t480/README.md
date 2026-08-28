@@ -28,6 +28,7 @@ One file per issue in [`docs/issues/`](docs/issues), so this list stays a list.
 | Issue | Status |
 |-------|--------|
 | [Internal panel black after resume](docs/issues/internal-panel-black-on-resume.md) | Mitigated — pinned to kernel 7.0.0-22, [upstream](https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2161881) unfixed |
+| [BAT1 reports charge it does not have](docs/issues/bat1-gauge-over-reports.md) | Open — suspend measured healthy at 0.39 W, the pack's gauge is at fault; calibration cycle untried |
 
 ## Adding to this package
 
