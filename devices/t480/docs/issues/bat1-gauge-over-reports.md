@@ -218,8 +218,39 @@ Not raised with Avacom. A pack that delivers 99.4 % of its rating is not a
 capacity fault, and the gauge behaviour is invisible to anyone charging to
 100 % — which is the default.
 
-## Still to do
+## The question that would have short-circuited this
 
-Re-measure suspend, now that the pack behind every earlier number is
-understood. **0.39 W** is the figure to reproduce, and it is the one that was
-never in doubt.
+The answer was in the first exchange. Asked why the machine should suspend to
+S3, the owner said the battery drains overnight — and mentioned, in passing,
+that it charges to 80 %.
+
+Three days went into measuring what the machine **spends** at night. Nobody
+measured what it **stores** during the day. The complaint was "it is empty in
+the morning", and that has two halves; only one of them was ever tested.
+
+The tell was there on day one, too. `energy_full` at 104 % of design was read
+as a battery to be suspicious of. It should have been read as *the gauge is not
+to be trusted*, which is a different investigation — one that starts by
+checking whether "80 %" means anything, rather than by pricing a suspend.
+
+Worth keeping because the discipline that eventually worked — measure at the
+boundary, one variable at a time, write the prediction before the run — was
+applied faithfully to the wrong quantity for two days. Rigour does not pick the
+question.
+
+## Method notes, for the next time something is measured here
+
+- **Measure at the boundary, not when a human types a command.** Idle-awake
+  draw is 12.7 W against a suspend's 0.39 W, so on a half-hour test the minutes
+  spent awake *are* the measurement. The `systemd-sleep` hook exists for this.
+- **Write the prediction down first.** Three were written here. Two were wrong
+  in the same direction — pessimistic about the pack — and being on the record
+  is what made that visible rather than narratable after the fact.
+- **A single-point reading is not a capacity.** "Delivered 0.87 Wh against a
+  claimed 34.14" measured the gauge's error at one instant and was mistaken for
+  the pack's health, which cost a retraction.
+- **`power_now` and `energy_now` are different instruments.** Where they
+  disagree, one of them is derived and the other measured. Here `energy_now` on
+  charge was the derived one, and the disagreement was the whole finding.
+- **`/var/lib/upower/history-rate-*`** integrates the same way and survives
+  what kills a foreground logger. It reconstructed the run that mattered.
