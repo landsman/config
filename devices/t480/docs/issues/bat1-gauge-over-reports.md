@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | **Cause found: the gauge, not the cells.** It over-reports ~2.6× while charging, so charging terminates at a threshold the pack has not actually reached. Deliverable capacity still to be measured |
+| Status | **Resolved by configuration.** The cells are fine — 55.86 Wh delivered, 99.4 % of the pack's rating. The gauge saturates at 99 % long before the pack is full, so a charge threshold below 100 % stops charging early. Keep the threshold at 100 % |
 | Affects | BAT1 only. Avacom `NOLE-T48H-806`, Li-Ion 10.8 V 5200 mAh (56.2 Wh), roughly a year old at 76 cycles — owner's recollection, invoice not checked, and well inside the 24-month warranty either way |
 | Reports itself as | `SANYO` / `01AV425` — the original Lenovo part, because replacement packs clone the gauge firmware to satisfy the EC |
 | Workaround in place | `charge_control_end_threshold` = 100 on both packs |
@@ -15,14 +15,19 @@ anything to conclude about the supplier.
 
 ## What actually happens
 
-1. The gauge credits itself roughly **2.6 Wh for every 1 Wh** the pack accepts.
-2. So it reaches its stop threshold — 80 %, as this machine was configured —
-   while the pack holds a fraction of that.
+1. Early in a charge the gauge credits itself roughly **2.6 Wh for every 1 Wh**
+   the pack accepts, then **saturates at 99 %** and stops counting entirely
+   while the pack goes on filling.
+2. So it passes any stop threshold below 100 % while the pack holds a fraction
+   of that — 80 %, as this machine was configured.
 3. Charging stops there, because the EC believes the gauge.
 4. The machine is unplugged holding far less than it is told, and dies quickly.
 
 **The laptop was never draining overnight. It was never charging.** That is the
 whole case, and it took four wrong theories to get to.
+
+The cells themselves are sound: charged to genuinely full they return 55.86 Wh,
+99.4 % of the pack's rating. See [the round trip](#the-round-trip-which-settles-it).
 
 ## What suspend costs, since that was the original suspect
 
@@ -46,8 +51,8 @@ raised to 100 %:
 
 | | |
 |---|---|
-| **accepted, measured** | **47.27 Wh over 96 min** |
-| of the advertised 56.2 Wh | 84 % |
+| **accepted, measured** | **57.70 Wh over 157 min** |
+| of the advertised 56.2 Wh | 102.7 % |
 | gauge read | 5.34 → 59.86 Wh (9 → 99 %) |
 
 It splits in two, and the split is the finding:
@@ -55,7 +60,12 @@ It splits in two, and the split is the finding:
 | phase | accepted | what the gauge did |
 |---|---|---|
 | while it was still climbing | 20.51 Wh | 5.34 → 59.49 Wh, i.e. **2.64× inflation** |
-| after it hit its ceiling | 26.76 Wh | frozen at 99 % for 54 minutes |
+| after it hit its ceiling | 37.19 Wh | frozen at 99 % for 61 minutes |
+
+Note the totals: over the whole charge the gauge credited itself 54.52 Wh
+against 57.70 actually accepted — *under* the truth by 6 %. The 2.64× inflation
+is real but early; the saturation that follows more than cancels it. Which is
+why the net capacity estimate looks almost sane and the fault hides.
 
 70 W into the pack is not physically available — the T480 ships a 65 W supply
 and the system runs off the same one. The charger is not lying; the gauge is.
@@ -125,12 +135,14 @@ looked solid at the time.
    That measured the gauge's error at one instant, **not the pack's capacity** —
    the cells really were empty then. The capacity test is full-to-empty, which
    this file had already named as the necessary step before jumping past it.
-   The pack then accepted 47.27 Wh. Retracted.
+   The pack went on to accept 57.70 Wh and return 55.86. Retracted.
 4. **A drifted gauge, fixable by calibration.** Plausible while only the
-   discharge side had been measured, since discharging it counts correctly. It
-   cannot work: a calibration cycle relearns capacity from one full charge,
-   measured by the counter that is 2.6× optimistic. It would relearn another
-   fiction.
+   discharge side had been measured, since discharging it counts correctly.
+   Wrong for a duller reason than the one first given here: `energy_full` reads
+   60.17 Wh against 55.86 actually delivered, which is 8 % optimistic — there
+   was never much drift to relearn. Calibration corrects a capacity estimate.
+   The fault is *when the gauge declares itself full*, and no amount of
+   relearning changes that.
 
 Two smaller ones:
 
@@ -147,9 +159,9 @@ Two smaller ones:
 ## Consequences
 
 - **Charge to 100 %, not 80 %.** With the threshold raised the pack takes
-  47 Wh instead of stopping at a fictional fraction. This is a workaround for a
-  broken gauge, not battery care — the usual reason to stop at 80 % does not
-  apply when 80 % is not 80 %.
+  57.70 Wh instead of stopping at a fictional fraction. This is a workaround
+  for a broken gauge, not battery care — the usual reason to stop at 80 % does
+  not apply when 80 % is not 80 %.
 - The battery indicator cannot be trusted on this machine at all. It reads
   comfortable numbers, freezes at 99 % while genuinely filling, and collapses
   without warning on the way down.
@@ -163,16 +175,51 @@ Two smaller ones:
   gauge dumps its accumulated error there and it books as consumption. Measure
   in the upper part of the range, as the two suspend runs did.
 
-## Next
+## The round trip, which settles it
 
-1. **Discharge from full, integrating `power_now`.** The pack accepted
-   47.27 Wh; whether it *delivers* that is unmeasured and is the number that
-   decides everything below. Charging loss means the honest expectation is
-   somewhat under 47.
-2. **Then decide about the claim.** If it delivers near 47 Wh the cells are
-   sound and the fault is purely the gauge — still a defect, since a pack whose
-   charge terminates early is not usable as sold, but a different conversation
-   than a dead battery. If it collapses early again, the cells are implicated
-   after all.
-3. Re-measure suspend afterwards either way. **0.39 W** is the number to
-   reproduce.
+Charged to genuinely full, then run flat. The `power_now` logger died an hour
+in, so the discharge is reconstructed from `/var/lib/upower/history-rate-*`,
+integrated the same way — and the hour that *was* logged agrees with the
+gauge's own reading to 4 %, which is the cross-check that makes the
+reconstruction usable.
+
+| | |
+|---|---|
+| BAT1, 12:26 → 17:43 | 98 % → 21 %, **delivered 55.86 Wh** |
+| BAT0, 17:43 → 19:14 | 99 % → 4 %, delivered 19.79 Wh |
+
+| BAT1 | |
+|---|---|
+| accepted charging | 57.70 Wh |
+| **delivered** | **55.86 Wh** |
+| round-trip efficiency | 96.8 % |
+| **against the 56.2 Wh rating** | **99.4 %** |
+
+**The cells are fine.** The pack returns essentially its full rated capacity
+and ran the machine for five and a quarter hours before handing over.
+
+The fault is narrower than any of the four theories: the gauge **saturates at
+99 % long before the pack is full**. Today it sat there for 54 minutes while
+26.76 Wh — nearly half the pack — went in. Set a stop threshold below 100 % and
+charging ends at whatever fraction the gauge has already claimed.
+
+## Resolution
+
+**Keep `charge_control_end_threshold` at 100 on BAT1.** That is the whole fix.
+The usual argument for stopping at 80 % to spare the cells cannot apply here,
+because 80 % on this gauge is not 80 % of anything.
+
+One defect remains and is not worth a claim, only awareness: at the handover
+the gauge read **21 %** on an empty pack. The last quarter of the indicator is
+fiction. It is a smaller error than the 30 Wh seen earlier only because a full
+charge leaves less of it accumulated.
+
+Not raised with Avacom. A pack that delivers 99.4 % of its rating is not a
+capacity fault, and the gauge behaviour is invisible to anyone charging to
+100 % — which is the default.
+
+## Still to do
+
+Re-measure suspend, now that the pack behind every earlier number is
+understood. **0.39 W** is the figure to reproduce, and it is the one that was
+never in doubt.
