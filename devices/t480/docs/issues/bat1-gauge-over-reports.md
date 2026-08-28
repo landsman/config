@@ -2,10 +2,15 @@
 
 | Field | Value |
 |---|---|
-| Status | Open — pack suspect, calibration cycle not yet attempted |
-| Affects | BAT1 only (SANYO 01AV425, external/hot-swap pack, 76 cycles) |
+| Status | **Confirmed — the pack is dead.** Delivered 3 % of what it reported, measured 2026-08-28. Warranty claim, not a repair |
+| Affects | BAT1 only. Avacom `NOLE-T48H-806`, Li-Ion 10.8 V 5200 mAh (56.2 Wh), bought new a few months ago, 76 cycles |
+| Reports itself as | `SANYO` / `01AV425` — the original Lenovo part, because replacement packs clone the gauge firmware to satisfy the EC |
 | First measured | 2026-08-27 |
 | Symptom it was reported as | "the laptop drains overnight in suspend" |
+
+Both packs in this machine are Avacom replacements. BAT0 (24 Wh Li-Pol) is
+healthy on every measurement below, so this is one bad unit rather than
+anything to conclude about the supplier.
 
 ## Symptom
 
@@ -47,30 +52,68 @@ reported 37.40 Wh**. The arithmetic closes to within measurement noise, and it
 closes only if the gauge is wrong by a factor of roughly twenty near the bottom
 of its range.
 
-## The independent confirmation
+## Caught in the act
 
-Nothing above depends on the gauge being trusted; this does not either.
+The above is arithmetic. On 2026-08-28 the same collapse was recorded live,
+sampling `power_now`, `energy_now` and `voltage_now` every 30 s through a
+discharge, with the machine in performance mode to reach the cliff in minutes
+rather than hours:
 
 ```
-BAT1  voltage_now 9.875 V   voltage_min_design 11.100 V   capacity 62 %   76 cycles
-BAT0  voltage_now 11.682 V  voltage_min_design 11.400 V   capacity 79 %   41 cycles
+epoch        W       energy_now   voltage
+1787901885   15.964  33.710 Wh    9.271 V
+1787901915   16.589   3.510 Wh    9.273 V   <-- one 30-second sample
 ```
 
-BAT1 sits **below its own minimum design voltage** while claiming 62 % charge.
-For a 3S pack that is 3.29 V per cell — somewhere near 15 %, not 62 %. BAT0, on
-the same machine at the same moment, is comfortably above its floor.
+**30.2 Wh written off in thirty seconds, during which 0.14 Wh was actually
+consumed.** The voltage does not move across the step — 9.271 → 9.273 V — so
+no energy went anywhere. The estimate simply met the pack's real state of
+charge and snapped to it.
 
-The other tell is in the capacity estimate itself:
+Integrated over the whole run, from the gauge reading 34.14 Wh (58 %) to the
+power bridge handing over to BAT0:
+
+| | |
+|---|---|
+| claimed at start | 34.14 Wh |
+| **actually delivered** | **0.87 Wh — 3 %** |
+| still claimed at handover | 3.29 Wh, which it never delivered either |
+
+`upower` predicted 2.9 hours to empty at the start of that run. It lasted six
+minutes.
+
+## The voltage, read against the right pack
+
+An earlier draft made this argument against `voltage_min_design` = 11.1 V and
+called the pack "below its own minimum". That floor is the *original's*, copied
+in with the cloned firmware. The real cells are Avacom's 10.8 V nominal — a 3S
+Li-Ion pack whose cutoff is around 9.0 V, i.e. 3.0 V/cell.
+
+```
+BAT1  voltage_now 9.27 V   -> 3.09 V/cell against a 3.0 V floor   capacity said 58 %
+BAT0  voltage_now 11.68 V  -> comfortably above its own floor      capacity said 79 %
+```
+
+Measured against the pack it actually is, BAT1 was **empty** at the moment it
+reported 58 %. The conclusion survives the correction; the earlier framing was
+sloppier than it needed to be.
+
+`energy_full` is **not** evidence here, and an earlier draft of this file
+wrongly said it was:
 
 | | `energy_full` | `energy_full_design` | ratio |
 |---|---|---|---|
 | BAT0 | 22.23 Wh | 22.80 Wh | 97.5 % |
-| BAT1 | 60.17 Wh | 57.72 Wh | **104.2 %** |
+| BAT1 | 60.17 Wh | 57.72 Wh | 104.2 % |
 
-A five-year-old pack at 76 cycles does not hold 104 % of its factory capacity.
-That figure is what a gauge reports when it has never completed a learning
-cycle and its estimate has drifted upward — and every percentage the desktop
-shows is derived from it.
+Reading above the design rating looks damning until you know the pack's age.
+Both of these are a few months old, and a fresh cell routinely beats a
+conservative factory number — so 104.2 % is unremarkable on its own. The
+voltage above is what carries the finding. Recorded because the wrong version
+was written first, from the machine's age rather than the battery's.
+
+What the ratio does mean is that `energy_full` cannot be used to *rule the
+pack out* either. It is a gauge's own estimate of itself.
 
 ## Consequences
 
@@ -83,14 +126,21 @@ shows is derived from it.
 
 ## Next
 
-1. **Calibration cycle.** Charge to 100 % — which means lifting the 80 % stop
-   threshold this machine normally runs — then discharge to cutoff and charge
-   to 100 % again, so the gauge relearns `energy_full`. This is the cheap
-   remedy and it is not yet tried.
-2. If `energy_full` still reads above design afterwards, or the voltage is
-   still below the floor at a claimed 60 %, the pack is done and wants
-   replacing. It is the external one, so this is a purchase, not a teardown.
-3. Re-measure suspend afterwards either way. 0.39 W is the number to reproduce.
+A calibration cycle was the first plan and is now pointless: relearning
+`energy_full` cannot put 30 Wh of cells back in a pack that does not have them.
+What is left is the warranty claim, and that wants one more number.
+
+1. **Full-capacity measurement, for Avacom.** Charge BAT1 to 100 %, then
+   discharge to cutoff integrating `power_now`. That yields delivered
+   watt-hours against the **56.2 Wh advertised**, which is the comparison a
+   claim rests on — not against the 57.72 Wh the cloned firmware reports, which
+   is somebody else's spec. Both packs already permit it:
+   `charge_control_end_threshold` reads 100 for BAT0 and BAT1, though something
+   in userspace has been stopping them at 80 % and that needs finding first.
+2. **Claim it.** Bought new a few months ago at 76 cycles, from a supplier
+   giving 24 months. A pack returning 3 % of its indicated charge is not wear.
+3. Re-measure suspend once a replacement is in. **0.39 W** is the number to
+   reproduce, and it is the one figure here that was never in doubt.
 
 ## Dead ends
 
