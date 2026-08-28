@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Samples the vnode free list once a minute, because the panic in #82 destroys
+  the evidence for its own cause. The kernel says `vnode: table is full` while
+  it is happening and none of that survives the reboot: the unified log kept
+  zero kernel messages from the panicked boot session, on 2026-08-26 and
+  2026-08-27 alike, while user-space entries from the same minutes came back
+  fine. So the post-mortem could not say which table ran out, only that
+  something returned ENFILE.
+
+  kern.free_vnodes is the number the kernel prints as `0 free` in that message,
+  so watching it fall answers that question before the next panic rather than
+  after it. kern.num_files is sampled beside it for the comparison: it grew
+  69/h over 11 hours, which needs ~290 days to reach kern.maxfiles, so a
+  descriptor leak is already ruled out and a run-up here would settle the rest.
+  num_recycledvnodes is the churn counter — 17.2M in 16h of uptime — which
+  separates "the cache is cycling hard" from "the cache is pinned".
+
+  Not a `log stream` on the kernel message: that only fires once the table is
+  already full, which is the moment the machine is about to die. This sees the
+  approach.
+
+  ponytail: append-only, no rotation. 1440 lines a day is ~115 KB, and the
+  whole thing goes away once #82 is settled — `launchctl bootout
+  gui/$(id -u)/local.vnode-watch`, then delete this file and the log.
+
+  Read the run-up with:
+    sort -t= -k2 -n ~/Library/Logs/vnode-watch.log | head
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.vnode-watch</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<!-- $HOME rather than StandardOutPath: launchd does not expand it there,
+		     and an absolute /Users/... is true on exactly one machine. -->
+		<string>set -- $(sysctl -n kern.free_vnodes kern.num_vnodes kern.num_files kern.num_recycledvnodes); printf '%s free=%s num=%s files=%s recycled=%s\n' "$(date +%FT%T)" "$1" "$2" "$3" "$4" >> "$HOME/Library/Logs/vnode-watch.log" 2&gt;&amp;1</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StartInterval</key>
+	<integer>60</integer>
+</dict>
+</plist>
