@@ -54,8 +54,8 @@ journalctl --no-pager -o cat | grep -oE 'PM: suspend entry \(\w+\)' | sort | uni
 It is therefore **not** the answer to the battery draining while suspended,
 which is what prompted it. That turned out not to be a suspend problem at all:
 S3 costs 0.39 W here, measured twice over 6 and 9 hours, which is healthy. The
-overnight loss was BAT1's gauge shedding accumulated error as the pack
-approached true empty — see
+machine was never draining overnight — BAT1's gauge over-reports while
+charging, so charging stopped early and the pack went to bed nearly empty. See
 [BAT1 reports charge it does not have](../docs/issues/bat1-gauge-over-reports.md).
 
 `update-initramfs -u` is required for `i915-no-psr.conf`: `i915` loads early from the initramfs (KMS + `splash`), so it reads its options from the initramfs copy of `modprobe.d`, not `/etc`. Without rebuilding, the option is silently ignored and PSR stays on. Verify with `lsinitramfs /boot/initrd.img-$(uname -r) | grep i915-no-psr`.
