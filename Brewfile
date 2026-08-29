@@ -20,6 +20,8 @@ brew "azure-cli"
 brew "btop"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
+# Command-line tool to manage Cloudflare Tunnel connections
+brew "cloudflared"
 # Securely send things from one computer to another
 brew "croc"
 # Secure runtime for JavaScript and TypeScript
