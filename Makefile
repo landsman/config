@@ -46,7 +46,7 @@ help: ## show this help
 #
 
 .PHONY: qa qa-deps lint bin-test
-qa: qa-deps lint git-config-test apps-test stow-test bin-test claude-settings-test ## run all checks — this is what CI runs
+qa: qa-deps lint git-config-test apps-test stow-test bin-test claude-settings-test opencode-config-test ## run all checks — this is what CI runs
 
 qa-deps:
 	@# What the checks need, written down next to the checks, so ci.yml is just
@@ -100,6 +100,24 @@ claude-settings-test: ## check the stowed Claude settings parse and stay machine
 	@grep -nE '"[^"]*/(Users|home)/' shared/.claude/settings.json \
 		&& { echo "^ only true on one machine - use \$$HOME, or move it to ~/.claude/settings.local.json"; exit 1; } \
 		|| true
+
+.PHONY: opencode-config-test
+opencode-config-test: ## check the stowed opencode config parses and stays machine-independent
+	@# The same contract as the Claude settings: one file for every machine, so
+	@# a path that only exists on one is a bug the other machine finds silently.
+	@# The rules glob is the one path worth checking here — a literal /Users or
+	@# /home would load nothing on the other machines. ~/ is expanded by opencode
+	@# itself (the source resolves "~/x" against $HOME before globbing).
+	@python3 -c 'import json;json.load(open("shared/.config/opencode/opencode.json"))'
+	@grep -nE '"[^"]*/(Users|home)/' shared/.config/opencode/opencode.json \
+		&& { echo "^ only true on one machine - use \$$HOME (via ~), or opencode ignores it"; exit 1; } \
+		|| true
+	@# The one exception is the pencil MCP binary: Pen is macOS-only, so its
+	@# path cannot be portable in principle. Sanity-check it is the only one.
+	@# (Counted against the mcp block, so a future machine-specific path in the
+	@# middle of the file fails while this one still passes.)
+	@test "$$(grep -cE '"/[^"]*"' shared/.config/opencode/opencode.json)" -le 3 \
+		|| { echo "^ expected only /Applications/Pen.app in the mcp section"; exit 1; }
 
 ##@ Security
 #

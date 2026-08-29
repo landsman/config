@@ -22,7 +22,7 @@ lives wherever it stays true.
 | `Brewfile` | Packages — one list for every machine, macOS and Linux | `make apps` |
 | `bin/` | Setup that a symlink cannot express, one directory per tool, each with its own `*.test.sh` | its own `make` target |
 | `AGENTS.md` | Conventions a coding agent follows here — `CLAUDE.md` is a symlink to it | loaded by the agent |
-| `.docs-llm/` | Notes for this repo, not files for `$HOME` — [MCP servers](.docs-llm/mcp-servers.md) is a `claude mcp` cheat sheet | read, not installed |
+| `.docs-llm/` | Notes for this repo, not files for `$HOME` — [MCP servers](.docs-llm/mcp-servers.md) is a `claude mcp` cheat sheet, and [how the global rules reach each harness](.docs-llm/global-rules-and-skills.md) | read, not installed |
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
@@ -172,6 +172,14 @@ Docker Hub and says so.
   lands here. `voice.local.md` is the odd one: the voice plugin rewrites it in
   place when you toggle voice, so a diff there is usually a toggle rather than a
   change worth committing.
+- **The global rules are not Claude Code's alone** — `shared/.claude/rules/` is
+  the single source, and each client points at it: Claude reads `~/.claude/CLAUDE.md`
+  plus the `rules/` directory next to it, opencode reads
+  `shared/.config/opencode/AGENTS.md` (an index that is not vendor-specific) and
+  injects the same rule files through the `instructions` glob in its
+  `opencode.json`. Skills need nothing at all: opencode scans `~/.claude/skills/`
+  itself. The shape, and how a third harness plugs in, is in
+  [.docs-llm](.docs-llm/global-rules-and-skills.md).
 - **`settings.json` must hold no machine-specific path** — it is one file for
   every machine, and such a setting is not an error elsewhere, it is silently
   ignored. `make claude-settings-test` fails on a literal `/Users/` or `/home/`;
