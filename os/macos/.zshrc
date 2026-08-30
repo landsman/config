@@ -70,3 +70,7 @@ unset f
 ssh-add -l >/dev/null 2>&1 || ssh-add --apple-load-keychain 2>/dev/null
 
 eval "$(mise activate zsh)"
+
+# Qwen Code PATH block begin
+export PATH='/Users/landsman/.local/bin':$PATH
+# Qwen Code PATH block end
