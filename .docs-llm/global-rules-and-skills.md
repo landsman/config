@@ -8,13 +8,13 @@ why it is shaped this way.
 One source, symlinked into the places each harness looks, and a one-line pointer
 per harness after that. Never a copy.
 
-- **The rules** live in
-  [`shared/.claude/rules/`](../shared/.claude/rules/), symlinked to
-  `~/.claude/rules/` by `make stow`. The content is portable Markdown; the
-  folder is named after Claude Code only because that is the client which loads
-  a whole `rules/` directory on its own (scoping the two file-triggered rules
-  with `paths:` frontmatter). Staying there is what keeps the connection
-  working, so the origin has to follow.
+- **The rules** live in [`shared/.agents/rules/`](../shared/.agents/rules/),
+  installed at `~/.agents/rules/` by `make stow`, with `~/.claude/rules` a
+  symlink to it. They were under `.claude/` for a while because Claude Code is
+  the one client that loads a whole `rules/` directory on its own — but the
+  content was never Claude Code's, and a vendor folder as the source of truth is
+  the thing this layout exists to avoid. The loader follows the symlink, so the
+  one client with a native mechanism keeps it.
 - **Claude Code** reads `~/.claude/CLAUDE.md`, which says the rules are in
   `rules/` and Claude Code goes and gets them.
 - **The index** is one file at `~/.agents/AGENTS.md`, the neutral home the
@@ -23,13 +23,13 @@ per harness after that. Never a copy.
   `~/.config/zed/AGENTS.md` and `~/.gemini/GEMINI.md`. Adding the next one is a
   symlink, not a decision.
 - **opencode** reads that index and injects the rule *bodies* through
-  `instructions: ["~/.claude/rules/*.md"]` in
+  `instructions: ["~/.agents/rules/*.md"]` in
   [`opencode.json`](../shared/.config/opencode/opencode.json) — `~` is expanded
   and the glob is scanned before any session starts, so adding a rule file picks
   it up with `make stow` and no config change.
 - **Codex** reads the same index and gets nothing else: one file, no glob, no
   rules directory, no config key for extra instruction files. So the index opens
-  by telling the reader to go and read `~/.claude/rules/*.md` if the bodies are
+  by telling the reader to go and read `~/.agents/rules/*.md` if the bodies are
   not already in context. Codex does follow it — checked with `codex exec`,
   which came back quoting `attribution.md` by path.
 - **Skills** live in `~/.agents/skills/`, and `~/.claude/skills` is a symlink to
@@ -55,7 +55,7 @@ continuation cost.
 
 ## Adding a harness
 
-Point its global-instructions mechanism at `~/.claude/rules/*.md` if it can take
+Point its global-instructions mechanism at `~/.agents/rules/*.md` if it can take
 a glob or a directory. If it reads one file only — the common case — symlink that
 path to `~/.agents/AGENTS.md` and let the index tell it to open the rest, which
 is what opencode and Codex both do. The content is never forked for it.
