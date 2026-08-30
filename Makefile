@@ -118,6 +118,15 @@ opencode-config-test: ## check the stowed opencode config parses and stays machi
 	@# middle of the file fails while this one still passes.)
 	@test "$$(grep -cE '"/[^"]*"' shared/.config/opencode/opencode.json)" -le 3 \
 		|| { echo "^ expected only /Applications/Pen.app in the mcp section"; exit 1; }
+	@# opencode resolves bash permissions by last matching rule, not by most
+	@# specific, so key order in the file is the rule. "*": "ask" first or it
+	@# buries everything; every deny after every allow or "gh *" re-permits
+	@# "gh pr merge". JSON key order is invisible in review, hence the check.
+	@python3 -c 'import json,collections,sys;\
+		b=json.load(open("shared/.config/opencode/opencode.json"),object_pairs_hook=collections.OrderedDict)["permission"]["bash"];\
+		v=list(b.values());\
+		sys.exit("catch-all must be the first key" if list(b)[0]!="*" else\
+		"every deny must come after every allow" if "allow" in v[v.index("deny"):] else 0)'
 
 ##@ Security
 #
