@@ -20,6 +20,8 @@ fall back to, so they have to be in context before the mistake, not after.
 
 The folder name is not a preference: `rules/` and `CLAUDE.md` are the only two
 things Claude Code loads on its own. A folder named anything else is inert
-unless this file imports it with `@`. After changing the layout, check `/context`
+unless this file imports it with `@`. The rules themselves live one level out,
+at `~/.agents/rules/`, shared with every other agent — `rules/` here is a
+symlink to them, which the loader follows. After changing the layout, check `/context`
 — unconditional rules show up under **Memory files**, and one that quietly
 stopped loading looks exactly like one being ignored.

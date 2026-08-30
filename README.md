@@ -173,13 +173,15 @@ Docker Hub and says so.
   lands here. `voice.local.md` is the odd one: the voice plugin rewrites it in
   place when you toggle voice, so a diff there is usually a toggle rather than a
   change worth committing.
-- **The global rules are not Claude Code's alone** — `shared/.claude/rules/` is
-  the single source, and each client points at it: Claude reads `~/.claude/CLAUDE.md`
-  plus the `rules/` directory next to it, while opencode and Codex read one shared
-  index at `~/.agents/AGENTS.md` — symlinked to `~/.config/opencode/AGENTS.md` and
-  `~/.codex/AGENTS.md`. opencode injects the rule bodies through the `instructions`
-  glob in its `opencode.json`; Codex takes a single file and no glob, so the index
-  tells it to open the rule files itself. Skills live at `~/.agents/skills/`, the one location Codex
+- **The global rules are not Claude Code's** — they live in `shared/.agents/rules/`,
+  installed at `~/.agents/rules/`, beside the shared `AGENTS.md` index and the
+  skills. `~/.claude/rules` is a symlink to them, so Claude Code keeps the one
+  native mechanism anyone has for loading a whole rules directory. Every other
+  client reads the index at `~/.agents/AGENTS.md` — symlinked to
+  `~/.config/opencode/AGENTS.md`, `~/.codex/AGENTS.md`, `~/.config/zed/AGENTS.md`
+  and `~/.gemini/GEMINI.md`. opencode injects the bodies through the `instructions`
+  glob in its `opencode.json`; the others take a single file and no glob, so the
+  index tells them to open the rule files themselves. Skills live at `~/.agents/skills/`, the one location Codex
   and opencode both scan, with `~/.claude/skills` a symlink to it that `make
   stow` creates. The shape, and how a third harness plugs in, is in
   [.docs-llm](.docs-llm/global-rules-and-skills.md).

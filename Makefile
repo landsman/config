@@ -260,29 +260,34 @@ apps-test: ## parse the Brewfile without installing anything
 
 ##@ Dotfiles ($HOME) via GNU stow
 
-.PHONY: stow restow unstow stow-backup stow-test skills-link
-skills-link:
-	@# Three harnesses, three answers about where a skill lives: Claude Code
-	@# reads ~/.claude/skills, Codex reads ~/.agents/skills and has no setting
-	@# to add a path, opencode reads either. So the files live at the neutral
-	@# path and the vendor one becomes a symlink to it — one copy rather than a
-	@# second set to keep in sync. Skill discovery follows the symlink; that was
-	@# checked before this went in, it is not an assumption.
+.PHONY: stow restow unstow stow-backup stow-test agents-link
+agents-link:
+	@# The rules and the skills are not Claude Code's, they are every agent's, so
+	@# they live at ~/.agents/<n> and ~/.claude/<n> is a symlink to it. Codex only
+	@# scans ~/.agents/skills and has no setting to add a path; Claude Code only
+	@# scans ~/.claude. Both loaders follow the symlink — checked on a real
+	@# session before this went in, for rules and for skills separately.
+	@# ponytail: a symlink inside ~/.claude/<n> is one stow put there, so dropping
+	@# it is safe — stow recreates it at the new path on the very next line.
 	@# No `##`: it runs as part of stow, it is not a target to reach for.
 	@set -e; \
-	if [ -L "$$HOME/.claude/skills" ]; then exit 0; fi; \
-	mkdir -p "$$HOME/.agents/skills" "$$HOME/.claude"; \
-	if [ -d "$$HOME/.claude/skills" ]; then \
-		for d in "$$HOME"/.claude/skills/*; do \
-			[ -e "$$d" ] || continue; \
-			n=$$(basename "$$d"); \
-			test ! -e "$$HOME/.agents/skills/$$n" \
-				|| { echo "both ~/.claude/skills/$$n and ~/.agents/skills/$$n exist - merge by hand"; exit 1; }; \
-			mv "$$d" "$$HOME/.agents/skills/"; \
-		done; \
-		rmdir "$$HOME/.claude/skills"; \
-	fi; \
-	ln -s ../.agents/skills "$$HOME/.claude/skills"
+	for n in rules skills; do \
+		l="$$HOME/.claude/$$n"; \
+		if [ -L "$$l" ]; then continue; fi; \
+		mkdir -p "$$HOME/.agents/$$n" "$$HOME/.claude"; \
+		if [ -d "$$l" ]; then \
+			for e in "$$l"/*; do \
+				[ -e "$$e" ] || [ -L "$$e" ] || continue; \
+				b=$$(basename "$$e"); \
+				if [ -L "$$e" ]; then rm "$$e"; continue; fi; \
+				test ! -e "$$HOME/.agents/$$n/$$b" \
+					|| { echo "both ~/.claude/$$n/$$b and ~/.agents/$$n/$$b exist - merge by hand"; exit 1; }; \
+				mv "$$e" "$$HOME/.agents/$$n/"; \
+			done; \
+			rmdir "$$l"; \
+		fi; \
+		ln -s "../.agents/$$n" "$$l"; \
+	done
 
 stow-backup:
 	@# Move aside whatever the packages are about to collide with, so a real file
@@ -294,7 +299,7 @@ stow-backup:
 	@if [ -n '$(DEVICE_PKG)' ]; then ./bin/stow/backup.sh devices '$(DEVICE_PKG)'; fi
 	@if [ -n '$(OS_PKG)' ]; then ./bin/stow/backup.sh os '$(OS_PKG)'; fi
 
-stow: skills-link stow-backup ## symlink shared + device + os packages into $HOME (see README for first run)
+stow: agents-link stow-backup ## symlink shared + device + os packages into $HOME (see README for first run)
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@# `if`, not `test && stow || echo`: with the latter a *failing stow* falls
@@ -306,7 +311,7 @@ stow: skills-link stow-backup ## symlink shared + device + os packages into $HOM
 		else echo "no package for os '$(OS)' - skipped"; fi
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
-restow: skills-link stow-backup ## re-link after adding files, or after an app replaced a symlink
+restow: agents-link stow-backup ## re-link after adding files, or after an app replaced a symlink
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
