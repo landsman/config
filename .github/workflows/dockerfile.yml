@@ -54,6 +54,21 @@ on:
         description: The build context for `build`. Defaults to the repo root.
         type: string
         default: '.'
+      max-size-mb:
+        description: >-
+          Fail when the built image is bigger than this many MB — the same MB
+          docker prints, 10^6 bytes. Needs `build`, since nothing is measured
+          without it. 0 turns the check off.
+
+          150 by default, and a default that is a real ceiling rather than an
+          off switch: everything of mine that ships a Dockerfile is a static
+          site or a small service on an alpine base, so 150 is roughly double
+          the largest and still catches the mistake that actually happens — a
+          build stage's node_modules reaching the runtime image. A repo that
+          genuinely ships more says so here, once, instead of every repo
+          repeating a limit they would all have picked anyway.
+        type: number
+        default: 150
 
 jobs:
   scan:
@@ -124,11 +139,35 @@ jobs:
         env:
           DOCKERFILE: ${{ inputs.dockerfile }}
           CONTEXT: ${{ inputs.context }}
+          MAX_SIZE_MB: ${{ inputs.max-size-mb }}
           TAG: scan:${{ github.sha }}
         run: |
           set -euo pipefail
           docker build --file "$DOCKERFILE" --tag "$TAG" "$CONTEXT"
           echo "image=$TAG" >> "$GITHUB_OUTPUT"
+          # Printed where someone will actually see it, because nobody opens a
+          # green log — and an image that doubled overnight is worth a glance.
+          # Bytes off inspect rather than the human string `ls` prints, so the
+          # figure shown and the ceiling compared against come from one number.
+          #
+          # Which number that is depends on the daemon's image store, and the
+          # two are far apart: on the classic overlay2 driver a GitHub-hosted
+          # runner has, inspect reports the unpacked size `docker image ls`
+          # also shows; on the containerd store it reports the compressed
+          # content size instead, roughly a third of it. So a ceiling set for
+          # one store never fires under the other. The MB is printed above the
+          # check for exactly that reason — read it on the first run and set
+          # the ceiling against what this actually reports, not against what
+          # `docker image ls` says on a laptop.
+          #
+          # This runner is amd64 and some callers ship arm64, so it is a size to
+          # read against last week's, not the one that lands on the target.
+          SIZE=$(docker image inspect "$TAG" --format '{{.Size}}')
+          echo "$DOCKERFILE builds to $((SIZE / 1000000)) MB" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$MAX_SIZE_MB" -gt 0 ] && [ "$SIZE" -gt $((MAX_SIZE_MB * 1000000)) ]; then
+            echo "over the $MAX_SIZE_MB MB ceiling this repo set" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
       - name: Scan the image for known vulnerabilities
         # The built image when build is on, the FROM's registry copy otherwise.
