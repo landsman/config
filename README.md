@@ -165,7 +165,8 @@ Docker Hub and says so.
   `devices/t480/` can each contribute without both owning `~/.bash_aliases`.
   `os/macos/.zshrc` loads the same directory, so they are shell-agnostic.
 - **`~/.claude` is mostly runtime state** — sessions, caches, history. Only
-  `CLAUDE.md`, `settings.json`, `voice.local.md` and the `skills/mcp-servers/`
+  `CLAUDE.md`, `settings.json`, `voice.local.md` and the
+  `.agents/skills/mcp-servers/`
   plugin — which is how the [MCP servers](.docs-llm/mcp-servers.md) get tracked,
   since neither `settings.json` nor `~/.claude.json` can hold them — are tracked,
   all in `shared/`; `--no-folding` keeps the directory real so nothing the tool writes
@@ -177,8 +178,9 @@ Docker Hub and says so.
   plus the `rules/` directory next to it, opencode reads
   `shared/.config/opencode/AGENTS.md` (an index that is not vendor-specific) and
   injects the same rule files through the `instructions` glob in its
-  `opencode.json`. Skills need nothing at all: opencode scans `~/.claude/skills/`
-  itself. The shape, and how a third harness plugs in, is in
+  `opencode.json`. Skills live at `~/.agents/skills/`, the one location Codex
+  and opencode both scan, with `~/.claude/skills` a symlink to it that `make
+  stow` creates. The shape, and how a third harness plugs in, is in
   [.docs-llm](.docs-llm/global-rules-and-skills.md).
 - **`settings.json` must hold no machine-specific path** — it is one file for
   every machine, and such a setting is not an error elsewhere, it is silently
