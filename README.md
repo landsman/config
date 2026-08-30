@@ -175,10 +175,11 @@ Docker Hub and says so.
   change worth committing.
 - **The global rules are not Claude Code's alone** — `shared/.claude/rules/` is
   the single source, and each client points at it: Claude reads `~/.claude/CLAUDE.md`
-  plus the `rules/` directory next to it, opencode reads
-  `shared/.config/opencode/AGENTS.md` (an index that is not vendor-specific) and
-  injects the same rule files through the `instructions` glob in its
-  `opencode.json`. Skills live at `~/.agents/skills/`, the one location Codex
+  plus the `rules/` directory next to it, while opencode and Codex read one shared
+  index at `~/.agents/AGENTS.md` — symlinked to `~/.config/opencode/AGENTS.md` and
+  `~/.codex/AGENTS.md`. opencode injects the rule bodies through the `instructions`
+  glob in its `opencode.json`; Codex takes a single file and no glob, so the index
+  tells it to open the rule files itself. Skills live at `~/.agents/skills/`, the one location Codex
   and opencode both scan, with `~/.claude/skills` a symlink to it that `make
   stow` creates. The shape, and how a third harness plugs in, is in
   [.docs-llm](.docs-llm/global-rules-and-skills.md).

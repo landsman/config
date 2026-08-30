@@ -17,12 +17,20 @@ per harness after that. Never a copy.
   working, so the origin has to follow.
 - **Claude Code** reads `~/.claude/CLAUDE.md`, which says the rules are in
   `rules/` and Claude Code goes and gets them.
-- **opencode** reads `~/.config/opencode/AGENTS.md` (a general index that is
-  not vendor-specific) and injects the rule *bodies* through
+- **The index** is one file at `~/.agents/AGENTS.md`, the neutral home the
+  skills already use. `~/.config/opencode/AGENTS.md` and `~/.codex/AGENTS.md`
+  are symlinks to it, so the two harnesses that read a single global file read
+  the same one.
+- **opencode** reads that index and injects the rule *bodies* through
   `instructions: ["~/.claude/rules/*.md"]` in
   [`opencode.json`](../shared/.config/opencode/opencode.json) — `~` is expanded
   and the glob is scanned before any session starts, so adding a rule file picks
   it up with `make stow` and no config change.
+- **Codex** reads the same index and gets nothing else: one file, no glob, no
+  rules directory, no config key for extra instruction files. So the index opens
+  by telling the reader to go and read `~/.claude/rules/*.md` if the bodies are
+  not already in context. Codex does follow it — checked with `codex exec`,
+  which came back quoting `attribution.md` by path.
 - **Skills** live in `~/.agents/skills/`, and `~/.claude/skills` is a symlink to
   it. `SKILL.md` is the portable format, so the split was never about content —
   it is that each client hardcodes a different directory. opencode scans both
@@ -46,10 +54,14 @@ continuation cost.
 
 ## Adding a harness
 
-Point its global-instructions mechanism at `~/.claude/rules/*.md`, or at the
-opencode `AGENTS.md` when the harness only reads one file (Codex, Cursor and the
-other `AGENTS.md` consumers read that one directly). The content is never forked
-for it.
+Point its global-instructions mechanism at `~/.claude/rules/*.md` if it can take
+a glob or a directory. If it reads one file only — the common case — symlink that
+path to `~/.agents/AGENTS.md` and let the index tell it to open the rest, which
+is what opencode and Codex both do. The content is never forked for it.
+
+Cursor and the other `AGENTS.md` consumers are a third case: they read a
+*project* `AGENTS.md` and have no global equivalent, so the machine-wide rules do
+not reach them at all. That is a gap, not a solved case.
 
 ## MCP servers
 
