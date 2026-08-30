@@ -61,4 +61,14 @@ Homebrew, as a formula rather than a cask — `ollama` is a CLI plus a server an
 runs on both platforms, so it is one unguarded [Brewfile](../Brewfile) line under
 this repo's first rule. The `ollama-app` cask is a macOS-only menu bar wrapper
 around the same binary; it exists, and it is deliberately not what this repo
-installs.
+installs — one line that is true on every machine beats a guard plus a Linux
+half, for a wrapper whose only additions are a menu bar icon and autostart.
+
+Autostart is the one thing the cask does that the formula does not, so the
+server is a service to start once per machine:
+
+    brew services start ollama
+
+`make ollama` checks for it and says so rather than failing with a connection
+error. Models live in `~/.ollama/models` either way, so switching between the
+two installs does not re-download anything.

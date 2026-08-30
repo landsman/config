@@ -273,6 +273,11 @@ OLLAMA_MODELS := qwen3-coder:30b
 .PHONY: ollama
 ollama: ## pull the local models (tens of GB - deliberately not part of make apps)
 	@command -v ollama >/dev/null || { echo "ollama not installed - run: make apps"; exit 1; }
+	@# The formula ships a server that nothing starts on its own - the cask this
+	@# repo deliberately does not install is the half that autostarts. Without
+	@# this the first pull fails with a connection error and reads like a
+	@# network problem rather than a service that was never started.
+	@ollama ps >/dev/null 2>&1 || { echo "ollama server not running - run: brew services start ollama"; exit 1; }
 	@# `pull` on a model already at the current digest is a manifest check and
 	@# nothing else, so this is safe to re-run and is also how a model is updated.
 	@# `|| exit 1` because a for loop exits with the status of its *last*
