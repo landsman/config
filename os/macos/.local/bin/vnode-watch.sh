@@ -18,31 +18,48 @@
 # _mds_stores. BiomeAgent, corespotlightd and mediaanalysisd all run as the
 # logged-in user, so an agent sees them.
 #
-# ponytail: threshold on the free count, no rate-of-change trigger. A collapse
-# faster than one tick would be caught on the next one anyway — the ENFILE storm
-# on 2026-08-26 lasted two minutes. Add a delta trigger if a run turns out to
-# miss the window.
+# Two triggers, because 54h of samples said one was not enough. The free list
+# swings between roughly 161k and 243k with the workload and recovers every
+# time — a working set, not a leak — and never came within 110k of the absolute
+# threshold. Whatever causes the panic therefore eats the whole headroom in a
+# burst rather than drifting into it, so an absolute threshold on its own would
+# only ever fire once the machine was already dying.
+#
+# -20000 in a tick is sized off that run: 98% of ticks land within 2500 of no
+# change (p1 -2539, p99 +1380) and the largest single drop in 54h was -23354,
+# once. Rare enough to mean something, sensitive enough to catch the start.
 set -eu
 
 dir=${VNODE_WATCH_DIR:-$HOME/Library/Logs}
 low=${VNODE_WATCH_LOW:-50000}
+burst=${VNODE_WATCH_BURST:--20000}
 
 set -- $(sysctl -n kern.free_vnodes kern.num_vnodes kern.num_files kern.num_recycledvnodes)
 free=$1 num=$2 files=$3 recycled=$4
 ts=$(date +%FT%T)
 
-printf '%s free=%s num=%s files=%s recycled=%s\n' \
-	"$ts" "$free" "$num" "$files" "$recycled" >> "$dir/vnode-watch.log"
+# One tick of state, which is what a burst trigger needs. A gap — sleep, or the
+# agent not running — makes the next delta span more than a minute and may fire
+# on its own. Rare, and worth a snapshot anyway.
+last=$(cat "$dir/.vnode-watch-last" 2>/dev/null) || last=$free
+echo "$free" > "$dir/.vnode-watch-last"
+delta=$((free - last))
 
-# Below the threshold every tick is worth a snapshot, and the paths come with
-# it. Above it, every fifth minute is plenty for a run-up that takes days.
-crisis=0
-[ "$free" -lt "$low" ] && crisis=1 || true
-case $(date +%M) in *[05]) due=1 ;; *) due=$crisis ;; esac
-[ "$due" -eq 1 ] || exit 0
+printf '%s free=%s num=%s files=%s recycled=%s delta=%s\n' \
+	"$ts" "$free" "$num" "$files" "$recycled" "$delta" >> "$dir/vnode-watch.log"
+
+# Anything but the routine five-minute tick gets the full dump, and says which
+# trigger fired: the two mean different things and the log should not flatten
+# them into one word.
+trigger=schedule
+[ "$delta" -gt "$burst" ] || trigger=burst
+[ "$free" -ge "$low" ] || trigger=low
+if [ "$trigger" = schedule ]; then
+	case $(date +%M) in *[05]) ;; *) exit 0 ;; esac
+fi
 
 {
-	printf '== %s free=%s crisis=%s\n' "$ts" "$free" "$crisis"
+	printf '== %s free=%s delta=%s trigger=%s\n' "$ts" "$free" "$delta" "$trigger"
 
 	# -F rather than the default table: a NAME with a space in it — every
 	# "Application Support/..." there is — loses its front half to $NF, and that
@@ -65,7 +82,7 @@ case $(date +%M) in *[05]) due=1 ;; *) due=$crisis ;; esac
 	top -l 1 -stats pid,command,pageins -n 15 -o pageins 2>/dev/null \
 		| sed -n '/^PID/,$p'
 
-	[ "$crisis" -eq 1 ] || exit 0
+	[ "$trigger" != schedule ] || exit 0
 
 	# Counts name the process, paths name what it was doing — worth the volume
 	# only when something is actually going wrong.

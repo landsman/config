@@ -69,7 +69,7 @@ holders="$tmp/logs/vnode-watch-holders.log"
 FAKE_MIN=07 "$script"
 check "writes one counters line" 1 "$(wc -l < "$counters" | tr -d ' ')"
 check "with every counter in it" \
-	"2026-08-28T12:00:00 free=190000 num=263168 files=13500 recycled=17000000" \
+	"2026-08-28T12:00:00 free=190000 num=263168 files=13500 recycled=17000000 delta=0" \
 	"$(cat "$counters")"
 check "and no snapshot" "no" "$([ -f "$holders" ] && echo yes || echo no)"
 
@@ -83,7 +83,7 @@ check "snapshots on the fifth minute" "yes" "$([ -f "$holders" ] && echo yes || 
 check "names the biggest holder first" "3 738 idea" "$(sed -n 3p "$holders")"
 check "reaches processes lsof cannot see" 1 "$(grep -c '^548  mds_stores' "$holders")"
 check "records the free count beside it" \
-	"== 2026-08-28T12:00:00 free=190000 crisis=0" "$(sed -n 1p "$holders")"
+	"== 2026-08-28T12:00:00 free=190000 delta=0 trigger=schedule" "$(sed -n 1p "$holders")"
 check "leaves the paths out while nothing is wrong" 0 "$(grep -c '^-- paths' "$holders")"
 check "and leaves the kernel log alone too" 0 "$(grep -c '^-- kernel' "$holders")"
 check "but always records page-ins" 1 "$(grep -c '^-- pageins' "$holders")"
@@ -93,8 +93,8 @@ rm -f "$holders"
 FAKE_MIN=07 FAKE_FREE=40000 "$script"
 check "snapshots off-schedule when the free list is low" "yes" \
 	"$([ -f "$holders" ] && echo yes || echo no)"
-check "says which side of the threshold it is on" \
-	"== 2026-08-28T12:00:00 free=40000 crisis=1" "$(sed -n 1p "$holders")"
+check "says which trigger fired" \
+	"== 2026-08-28T12:00:00 free=40000 delta=-150000 trigger=low" "$(sed -n 1p "$holders")"
 check "adds the paths, so the count has a subject" 1 \
 	"$(grep -c '2 /Users/landsman/projects$' "$holders")"
 # The regression this format exists to prevent: with the default table format
@@ -110,6 +110,22 @@ check "copies the kernel out before the reboot eats it" 1 \
 rm -f "$holders"
 FAKE_MIN=07 FAKE_FREE=40000 VNODE_WATCH_LOW=1000 "$script"
 check "a lower threshold stops it firing" "no" \
+	"$([ -f "$holders" ] && echo yes || echo no)"
+
+# == a burst: still far from the threshold, but the free list just fell off a
+# cliff. 54h of real samples put 98% of ticks within 2500 of no change, so a
+# drop this size is the anomaly the absolute threshold would sleep through.
+rm -f "$holders"; echo 190000 > "$tmp/logs/.vnode-watch-last"
+FAKE_MIN=07 FAKE_FREE=165000 "$script"
+check "fires on a sudden drop far above the threshold" "yes" \
+	"$([ -f "$holders" ] && echo yes || echo no)"
+check "and says it was the burst, not the floor" \
+	"== 2026-08-28T12:00:00 free=165000 delta=-25000 trigger=burst" "$(sed -n 1p "$holders")"
+
+# == an ordinary dip is not a burst
+rm -f "$holders"; echo 190000 > "$tmp/logs/.vnode-watch-last"
+FAKE_MIN=07 FAKE_FREE=185000 "$script"
+check "leaves an ordinary dip alone" "no" \
 	"$([ -f "$holders" ] && echo yes || echo no)"
 
 echo
