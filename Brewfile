@@ -61,6 +61,8 @@ brew "mise"
 brew "mprocs"
 # Open-source, cross-platform JavaScript runtime environment
 brew "node"
+# Create, run, and share large language models (LLMs)
+brew "ollama"
 # AI coding agent, built for the terminal
 brew "opencode"
 # CLI for Postgres with auto-completion and syntax highlighting
