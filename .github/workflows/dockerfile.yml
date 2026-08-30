@@ -15,9 +15,10 @@ name: dockerfile
 # Two scans, because a Dockerfile is wrong in two unrelated ways. How it is
 # written — running as root, an unpinned `apt install`, a secret in an ENV — is
 # `config`, and it reads the file. What it is built on — the base image's own OS
-# packages — is `image`, and it reads the registry. Neither finds the other's
-# bugs, and a repo that runs only the first has a Dockerfile it has proof-read
-# sitting on an image nobody has looked inside for a year.
+# packages — is `image`, and it reads the registry, or the caller's build when
+# `build` is on, whichever matches how that Dockerfile ships. Neither finds the
+# other's bugs, and a repo that runs only the first has a Dockerfile it has
+# proof-read sitting on an image nobody has looked inside for a year.
 #
 # Both fail the job. Trivy's own default is exit 0 with the findings printed,
 # which is a check that cannot fail — worse than no check, because it is green.
@@ -38,6 +39,21 @@ on:
           year's image and keeps passing.
         type: string
         default: ''
+      build:
+        description: >-
+          Build the Dockerfile and scan the image that results, in place of the
+          base image's copy on the registry. Off by default, because it costs a
+          full build including the app stage. On for a Dockerfile that patches
+          its base itself — an `apk upgrade` or `apt-get update` in its own RUN.
+          The registry never reflects that patch, so scanning the FROM would
+          report a bug the build already fixed. The base used is the
+          Dockerfile's own FROM, so nothing here drifts on its own.
+        type: boolean
+        default: false
+      context:
+        description: The build context for `build`. Defaults to the repo root.
+        type: string
+        default: '.'
 
 jobs:
   scan:
@@ -99,14 +115,30 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: '1'
 
-      - name: Scan the base image for known vulnerabilities
-        if: steps.base.outputs.image != ''
+      # The built image, when the caller opts in. docker build, not an action —
+      # one fewer version to keep in step. BuildKit is the runner default, so
+      # the Dockerfile's own `--platform=$BUILDPLATFORM` resolves like any build.
+      - name: Build the image to scan
+        id: built
+        if: inputs.build
+        env:
+          DOCKERFILE: ${{ inputs.dockerfile }}
+          CONTEXT: ${{ inputs.context }}
+          TAG: scan:${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker build --file "$DOCKERFILE" --tag "$TAG" "$CONTEXT"
+          echo "image=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Scan the image for known vulnerabilities
+        # The built image when build is on, the FROM's registry copy otherwise.
+        if: inputs.build || steps.base.outputs.image != ''
         uses: aquasecurity/trivy-action@v0.36.0
         env:
           TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
         with:
           scan-type: image
-          image-ref: ${{ steps.base.outputs.image }}
+          image-ref: ${{ inputs.build && steps.built.outputs.image || steps.base.outputs.image }}
           severity: CRITICAL,HIGH
           # OS packages only. The language dependencies inside an image are the
           # lockfile's business, and the lockfile is in the repo where a fix can
