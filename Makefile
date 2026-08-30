@@ -267,6 +267,33 @@ apps-test: ## parse the Brewfile without installing anything
 	@command -v brew >/dev/null || { echo "brew not installed - skipped"; exit 0; }; \
 		HOMEBREW_NO_AUTO_UPDATE=1 brew bundle list --file Brewfile >/dev/null
 
+##@ Local models
+#
+# ollama itself is a Brewfile line like anything else. The models are not: they
+# are tens of gigabytes each, and a fresh machine should not spend an hour on
+# them inside `make apps`. Hence a target of its own, run when wanted.
+#
+
+# What this machine keeps locally. `ollama launch <agent>` offers the models
+# that are actually pulled, so a model missing here is a model missing from that
+# menu. Add a line, run `make ollama`.
+OLLAMA_MODELS := qwen3-coder:30b
+
+.PHONY: ollama
+ollama: ## pull the local models (tens of GB - deliberately not part of make apps)
+	@command -v ollama >/dev/null || { echo "ollama not installed - run: make apps"; exit 1; }
+	@# The formula ships a server that nothing starts on its own - the cask this
+	@# repo deliberately does not install is the half that autostarts. Without
+	@# this the first pull fails with a connection error and reads like a
+	@# network problem rather than a service that was never started.
+	@ollama ps >/dev/null 2>&1 || { echo "ollama server not running - run: brew services start ollama"; exit 1; }
+	@# `pull` on a model already at the current digest is a manifest check and
+	@# nothing else, so this is safe to re-run and is also how a model is updated.
+	@# `|| exit 1` because a for loop exits with the status of its *last*
+	@# iteration - without it a failed pull in the middle reports success.
+	@for m in $(OLLAMA_MODELS); do echo "== $$m"; ollama pull "$$m" || exit 1; done
+	@ollama list
+
 ##@ Dotfiles ($HOME) via GNU stow
 
 .PHONY: stow restow unstow stow-backup stow-test agents-link
