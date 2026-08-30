@@ -260,7 +260,30 @@ apps-test: ## parse the Brewfile without installing anything
 
 ##@ Dotfiles ($HOME) via GNU stow
 
-.PHONY: stow restow unstow stow-backup stow-test
+.PHONY: stow restow unstow stow-backup stow-test skills-link
+skills-link:
+	@# Three harnesses, three answers about where a skill lives: Claude Code
+	@# reads ~/.claude/skills, Codex reads ~/.agents/skills and has no setting
+	@# to add a path, opencode reads either. So the files live at the neutral
+	@# path and the vendor one becomes a symlink to it — one copy rather than a
+	@# second set to keep in sync. Skill discovery follows the symlink; that was
+	@# checked before this went in, it is not an assumption.
+	@# No `##`: it runs as part of stow, it is not a target to reach for.
+	@set -e; \
+	if [ -L "$$HOME/.claude/skills" ]; then exit 0; fi; \
+	mkdir -p "$$HOME/.agents/skills" "$$HOME/.claude"; \
+	if [ -d "$$HOME/.claude/skills" ]; then \
+		for d in "$$HOME"/.claude/skills/*; do \
+			[ -e "$$d" ] || continue; \
+			n=$$(basename "$$d"); \
+			test ! -e "$$HOME/.agents/skills/$$n" \
+				|| { echo "both ~/.claude/skills/$$n and ~/.agents/skills/$$n exist - merge by hand"; exit 1; }; \
+			mv "$$d" "$$HOME/.agents/skills/"; \
+		done; \
+		rmdir "$$HOME/.claude/skills"; \
+	fi; \
+	ln -s ../.agents/skills "$$HOME/.claude/skills"
+
 stow-backup:
 	@# Move aside whatever the packages are about to collide with, so a real file
 	@# in $$HOME is a note rather than an aborted install. The parsing this needs
@@ -271,7 +294,7 @@ stow-backup:
 	@if [ -n '$(DEVICE_PKG)' ]; then ./bin/stow/backup.sh devices '$(DEVICE_PKG)'; fi
 	@if [ -n '$(OS_PKG)' ]; then ./bin/stow/backup.sh os '$(OS_PKG)'; fi
 
-stow: stow-backup ## symlink shared + device + os packages into $HOME (see README for first run)
+stow: skills-link stow-backup ## symlink shared + device + os packages into $HOME (see README for first run)
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@# `if`, not `test && stow || echo`: with the latter a *failing stow* falls
@@ -283,7 +306,7 @@ stow: stow-backup ## symlink shared + device + os packages into $HOME (see READM
 		else echo "no package for os '$(OS)' - skipped"; fi
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
-restow: stow-backup ## re-link after adding files, or after an app replaced a symlink
+restow: skills-link stow-backup ## re-link after adding files, or after an app replaced a symlink
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
