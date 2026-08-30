@@ -58,14 +58,17 @@ on:
         description: >-
           Fail when the built image is bigger than this many MB — the same MB
           docker prints, 10^6 bytes. Needs `build`, since nothing is measured
-          without it. 0, the default, reports the size and gates nothing.
+          without it. 0 turns the check off.
 
-          Deliberately not a number set here: the size worth failing on is a
-          different one in every repo, and a ceiling guessed centrally is a
-          check people learn to merge past. Pick it per caller, above the
-          image's real size by enough that a rebuild does not trip it.
+          150 by default, and a default that is a real ceiling rather than an
+          off switch: everything of mine that ships a Dockerfile is a static
+          site or a small service on an alpine base, so 150 is roughly double
+          the largest and still catches the mistake that actually happens — a
+          build stage's node_modules reaching the runtime image. A repo that
+          genuinely ships more says so here, once, instead of every repo
+          repeating a limit they would all have picked anyway.
         type: number
-        default: 0
+        default: 150
 
 jobs:
   scan:
