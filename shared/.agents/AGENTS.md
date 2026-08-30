@@ -23,9 +23,16 @@ How each harness gets here:
 - **Codex** reads this file as `~/.codex/AGENTS.md` and takes one file only: no
   glob, no rules directory, no config key for extra instruction files. It has to
   open the rule files itself, which is what the instruction above is for.
+- **Zed** reads it as `~/.config/zed/AGENTS.md`, injected into every project's
+  prompt. One file, same as Codex.
+- **Gemini CLI** reads it as `~/.gemini/GEMINI.md` — the filename is the only
+  difference, and a symlink settles that without touching `contextFileName` in
+  its `settings.json`.
 
-Both of those are symlinks to this one file, which lives at `~/.agents/AGENTS.md`
-— the same neutral home the skills use.
+Those are all symlinks to this one file, which lives at `~/.agents/AGENTS.md` —
+the same neutral home the skills use. A harness that reads a single global file
+needs a symlink and nothing else; only opencode needed a config line, because it
+is the only one that can inject the bodies.
 
 | Rule | Applies when |
 |------|--------------|

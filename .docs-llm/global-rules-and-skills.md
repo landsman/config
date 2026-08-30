@@ -18,9 +18,10 @@ per harness after that. Never a copy.
 - **Claude Code** reads `~/.claude/CLAUDE.md`, which says the rules are in
   `rules/` and Claude Code goes and gets them.
 - **The index** is one file at `~/.agents/AGENTS.md`, the neutral home the
-  skills already use. `~/.config/opencode/AGENTS.md` and `~/.codex/AGENTS.md`
-  are symlinks to it, so the two harnesses that read a single global file read
-  the same one.
+  skills already use. Every harness that reads a single global file points at it
+  by symlink: `~/.config/opencode/AGENTS.md`, `~/.codex/AGENTS.md`,
+  `~/.config/zed/AGENTS.md` and `~/.gemini/GEMINI.md`. Adding the next one is a
+  symlink, not a decision.
 - **opencode** reads that index and injects the rule *bodies* through
   `instructions: ["~/.claude/rules/*.md"]` in
   [`opencode.json`](../shared/.config/opencode/opencode.json) — `~` is expanded
@@ -59,9 +60,11 @@ a glob or a directory. If it reads one file only — the common case — symlink
 path to `~/.agents/AGENTS.md` and let the index tell it to open the rest, which
 is what opencode and Codex both do. The content is never forked for it.
 
-Cursor and the other `AGENTS.md` consumers are a third case: they read a
-*project* `AGENTS.md` and have no global equivalent, so the machine-wide rules do
-not reach them at all. That is a gap, not a solved case.
+Zed and Gemini CLI are the same one-file case as Codex, and are wired up.
+Cursor is a third case: it reads *project* rules only, with no global equivalent,
+so the machine-wide rules do not reach it. Junie is unresolved — its guidelines
+are per-project (`.junie/guidelines.md`) and whether it has a machine-wide
+equivalent was not established. Both are gaps, not solved cases.
 
 ## MCP servers
 
