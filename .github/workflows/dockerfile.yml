@@ -129,6 +129,12 @@ jobs:
           set -euo pipefail
           docker build --file "$DOCKERFILE" --tag "$TAG" "$CONTEXT"
           echo "image=$TAG" >> "$GITHUB_OUTPUT"
+          # Printed where someone will actually see it, because nobody opens a
+          # green log — and an image that doubled overnight is worth a glance.
+          # Reported, not gated: a size worth failing on is a number per repo,
+          # and none of them has wanted one yet. This runner is amd64, so it is
+          # a figure to compare against last week's, not the arm64 ship size.
+          echo "$DOCKERFILE builds to $(docker image ls --format '{{.Size}}' "$TAG")" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Scan the image for known vulnerabilities
         # The built image when build is on, the FROM's registry copy otherwise.
