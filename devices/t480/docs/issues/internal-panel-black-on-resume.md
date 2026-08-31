@@ -149,14 +149,20 @@ a home** — 7.0.0-22 misses three months of kernel security fixes. See
 
 ## Recovery, if it happens anyway
 
-Try these in order — the first two are also diagnostics, which is the point.
+In this order — cost rises at every step, and the first two are also the
+diagnostics that would settle the cause.
 
-1. **`Alt+SysRq+E`.** If the panel lights up under fbcon, the kernel and GPU are
-   fine and the fault is KWin's, exactly as in #516038. This single test would
-   split the kernel theory from the compositor theory and has not been run yet.
-2. **`Ctrl+Alt+F3`, then back.** If a VT switch restores output, the fault is in
-   KWin's session/device re-acquisition rather than in i915. Cheaper than a
-   restart and loses nothing.
+1. **`Ctrl+Alt+F3`, then back.** Free, loses nothing. If a VT switch restores
+   output, the fault is in KWin's session/device re-acquisition rather than in
+   i915. Try this first every time.
+
+2. **`Alt+SysRq+E`** — only if step 1 fails, and **only after enabling it**, see
+   below. If the panel lights up under fbcon with userspace dead, the kernel and
+   GPU are fine and the fault is KWin's, exactly as in
+   [KDE #516038](https://bugs.kde.org/show_bug.cgi?id=516038). This is the test
+   that splits the kernel theory from the compositor theory, and it has not been
+   run yet.
+
 3. **Restart the compositor**, from a TTY:
 
    ```
@@ -167,12 +173,57 @@ Try these in order — the first two are also diagnostics, which is the point.
    risk. That it is *KWin* that needs restarting — not plasmashell — is itself
    evidence the fault sits above the shell.
 
+### The SysRq test needs setting up first, or it silently does nothing
+
+**SysRq is the `PrtSc` key.** On the T480 it is in the bottom row between the
+right `Alt` and the right `Ctrl`, and ThinkPads do not print "SysRq" on the
+keycap, so there is nothing to look for. No `Fn` involved — `PrtSc` is a primary
+key on this keyboard. Hold `Alt`, hold `PrtSc`, *then* tap the command letter,
+keeping `Alt` down throughout.
+
+Use the **left** `Alt`. On the Czech layout the right one is `AltGr`, a different
+keycode, and the combination will not fire.
+
+The kernel handles this in the keyboard driver before userspace sees it, which
+is exactly why it still works when KWin is wedged.
+
+**The trap:** Ubuntu ships `kernel.sysrq = 176` from
+`/usr/lib/sysctl.d/55-magic-sysrq.conf`, and that bitmask does not include the
+bit `E` needs:
+
+| bit | function | in 176? |
+|----:|----------|:-------:|
+| 16 | `S` — sync | yes |
+| 32 | `U` — remount read-only | yes |
+| 128 | `B` — reboot | yes |
+| **64** | **`E`/`I` — send signals to processes** | **no** |
+
+So `Alt+SysRq+E` is a no-op as shipped — and a silent one, which is worse than
+an error, because a dead panel then looks like a result. Enable it before the
+test, not during:
+
+```
+sudo sysctl -w kernel.sysrq=1        # all functions; resets at reboot
+```
+
+Deliberately not a drop-in under `system/etc/sysctl.d/`. It is wanted for one
+diagnostic, not as a standing configuration, and a reboot undoing it is the
+desired behaviour.
+
+**What `E` costs:** SIGTERM to every process except init. That is the whole
+session and every open application, so unsaved work is gone — *more* damage than
+step 3, which only restarts the compositor. It is step 2 because of what it
+proves, not because it is cheap.
+
 ## Next
 
 1. **Test 7.0.0-29.** Already installed, clean across its 5 suspends, and three
    months of CVE fixes newer than the pin. Run a deliberate series of suspends
    on it and count with the commands above. This is the likely end of the pin.
-2. **Run the SysRq test** at the next black screen, before restarting anything.
+2. **Run the VT-switch and SysRq tests** at the next black screen, before
+   restarting anything — and run `sysctl -w kernel.sysrq=1` *now*, while there is
+   a working screen to type it on. Setting it up after the panel dies means
+   typing it blind into a TTY.
 3. **Re-qualify the Launchpad report** — narrow to -28, correct the metric, add
    the EACCES variant, and reference #520008 with a request to reopen it against
    product `kwin`.
