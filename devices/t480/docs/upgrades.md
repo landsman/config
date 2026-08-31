@@ -14,7 +14,7 @@ out of sync with it.
 
 | Idea | Why not, for now |
 |------|------------------|
-| Newer kernel than 7.0.0-22 | Pinned because of the [resume regression](issues/internal-panel-black-on-resume.md). Retest when [Launchpad #2161881](https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2161881) moves |
+| Newer kernel than 7.0.0-22 | Pinned because of the [resume regression](issues/internal-panel-black-on-resume.md). Waiting on [Launchpad #2161881](https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2161881) was the plan; that bug has sat unassigned since July, so **7.0.0-29 is the live lead** instead — clean across its suspends so far, and it is what ends the pin if a deliberate test holds |
 
 ## Adding to this page
 
