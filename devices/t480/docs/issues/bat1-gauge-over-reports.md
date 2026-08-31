@@ -40,9 +40,15 @@ is 12.7 W against a suspend's fraction of a watt.
 |---|---|---|---|
 | 2026-08-27 16:12 | 5.98 | 2.35 | **0.39** |
 | 2026-08-27 22:25 | 9.17 | 3.55 | **0.39** |
+| 2026-08-28 07:55 | 1.38 | 0.55 | **0.40** |
 
-Two runs, different lengths, same rate to two decimals. **0.39 W is healthy S3**
-for a T480, and it is the one number here that was never in doubt.
+Three runs across an order of magnitude of duration, same rate. **0.39 W is
+healthy S3** for a T480, and it is the one number here that never moved.
+
+All three were taken while the gauge was still misbehaving, which does not
+touch them: they measure a delta over hours in the upper part of the range,
+where the gauge tracks `power_now` to within 4 %. The reading it cannot be
+trusted on is the absolute one.
 
 ## The charge measurement, which found the fault
 
@@ -120,9 +126,10 @@ looked solid at the time.
 1. **s2idle.** The premise the whole investigation started from: the machine
    was suspending to idle rather than S3 and burning power in a shallow
    C-state. It never was — 241 of 243 logged suspends entered `deep`, on boots
-   whose cmdline carried no `mem_sleep_default` at all. See
-   [`system/etc/default/grub.d/99-mem-sleep-deep.cfg`](../../system/etc/default/grub.d/99-mem-sleep-deep.cfg),
-   kept as a pin, not as a fix.
+   whose cmdline carried no `mem_sleep_default` at all. A drop-in pinning the
+   parameter was written and then dropped — it changed nothing measurable, and
+   pinning a default that has never moved is not worth a permanent
+   `update-grub` in the install. See [`system/README.md`](../../system/README.md).
 2. **Thunderbolt left powered.** The whole Alpine Ridge tree (`04:00.0`,
    `05:00.x`, `06:00.0`, `3c:00.0`) sits in D0 with `power/control=on` and
    nothing plugged in, and its USB half throws `xhci_hcd 0000:3c:00.0: xHC
