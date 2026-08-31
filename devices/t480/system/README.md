@@ -25,6 +25,29 @@ sudo systemctl enable --now thinkfan.service thinkpad-power-tune.service
 sudo update-initramfs -u
 ```
 
+## Suspend
+
+Nothing here configures it, and that is the finding rather than an omission.
+The T480's ACPI tables do not set the low-power S0 idle flag, so the kernel
+reaches S3 by itself — 241 of 243 logged suspends entered `deep` on boots whose
+cmdline said nothing about it. S3 costs **0.39 W** on this machine, measured
+three times. A `mem_sleep_default=deep` drop-in was written to pin that and
+then dropped: it changed nothing measurable, and one more permanent
+`update-grub` in the install above is not worth a default that has never
+moved.
+
+```
+cat /sys/power/mem_sleep                                                  # s2idle [deep]
+journalctl --no-pager -o cat | grep -oE 'PM: suspend entry \(\w+\)' | sort | uniq -c
+```
+
+If it ever does move, firmware is the place to look first: BIOS → Config →
+Power → **Sleep State: Linux**. Set to Windows, s2idle is all the kernel sees.
+
+The battery draining overnight, which is what sent anyone looking at suspend in
+the first place, was never a suspend problem — see
+[BAT1 reports charge it does not have](../docs/issues/bat1-gauge-over-reports.md).
+
 `update-initramfs -u` is required for `i915-no-psr.conf`: `i915` loads early from the initramfs (KMS + `splash`), so it reads its options from the initramfs copy of `modprobe.d`, not `/etc`. Without rebuilding, the option is silently ignored and PSR stays on. Verify with `lsinitramfs /boot/initrd.img-$(uname -r) | grep i915-no-psr`.
 
 The `modprobe` reload picks up `fan_control=1`. Thinkfan refuses to start without it.
