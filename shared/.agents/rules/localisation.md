@@ -24,6 +24,32 @@ For a new string:
   API field, a database value, or a branch in business logic. That turns
   translating a word into a behaviour change.
 
+## Write the accented characters, not `\uXXXX`
+
+A translation file holds the letters it means. `Nastavení se nepodařilo uložit`,
+never `Nastaven\u00ed se nepoda\u0159ilo ulo\u017eit` — and the same for every
+other alphabet a project ships.
+
+The escapes are a reflex from Java 8 and earlier, where `.properties` were read
+as ISO-8859-1 and `native2ascii` existed to work around it. **Java 9 reads
+property resource bundles as UTF-8** (falling back to ISO-8859-1 only if the
+bytes are not valid UTF-8), so on anything current the escape buys nothing and
+costs a file nobody can read, review or grep. A reviewer cannot tell a typo from
+a correct word, a diff of a one-letter fix is unreadable, and searching for a
+phrase someone reported finds nothing.
+
+Before writing a line into an existing file, **look at the line above it.** The
+repo has already made this decision and the answer is sitting there; matching it
+is the whole rule. Introducing escapes into a file that has none is the failure
+this is about, and it is invisible in review precisely because escaped text
+looks like nothing at all. If a project genuinely does escape — an old runtime,
+a `native2ascii` step still in the build — follow it there and say so, rather
+than converting the file as a side effect of adding a string.
+
+This is about the source file, not the wire. Encoding a character because a
+format demands it (a JSON `\u` escape a serialiser emits, a URL percent-encoding)
+is not the same thing and is fine.
+
 ## Email templates
 
 Same rule, and the subject line is the one that gets missed. Localise the
