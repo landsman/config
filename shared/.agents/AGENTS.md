@@ -4,7 +4,7 @@ Personal conventions that apply to every coding-agent session on this machine,
 whatever tool is running it. The text is agent-neutral: each harness reads the
 same rules from the same home.
 
-**If the nine rule bodies are not already in your context, read
+**If the rule bodies are not already in your context, read
 `~/.agents/rules/*.md` now.** Whether they arrive on their own depends on the
 harness, and the table below is an index, not the rules themselves.
 
@@ -41,11 +41,12 @@ is the only one that can inject the bodies.
 | [Reporting data and metrics](~/.agents/rules/reporting-data.md) | a number gets reported — a query, a benchmark, a count |
 | [Localisation](~/.agents/rules/localisation.md) | user-facing text gets written — a label, an error, an email |
 | [Attribution](~/.agents/rules/attribution.md) | anything leaves the machine or gets committed |
-| [Commit messages](~/.agents/rules/commit-messages.md) | writing a commit |
+| [Commit messages](~/.agents/rules/commit-messages.md) | writing a commit or a PR title |
+| [Linking to work](~/.agents/rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
 | [Git history](~/.agents/rules/git-history.md) | amend, squash, rebase, force-push |
 | [GitHub Actions](~/.agents/rules/github-actions.md) | writing under `.github/` |
 | [Makefiles](~/.agents/rules/makefiles.md) | writing a `Makefile` |
 | [Voice](~/.agents/rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 
-The one thing this file adds is the statement that the nine are authoritative
+The one thing this file adds is the statement that they are authoritative
 everywhere, and the pointer for any harness that does not inject them.

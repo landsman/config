@@ -45,7 +45,7 @@ per harness after that. Never a copy.
 
 ## The cost of the glob
 
-opencode has no per-path scoping like Claude Code's `paths:`, so all nine rules
+opencode has no per-path scoping like Claude Code's `paths:`, so every rule
 land in every opencode session. Two of them would otherwise wait until a
 `.github/` file or a `Makefile` was actually read, and `voice.md` describes a
 plugin another client runs. That is roughly two hundred lines of short rules and
