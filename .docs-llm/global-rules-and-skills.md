@@ -45,13 +45,63 @@ per harness after that. Never a copy.
 
 ## The cost of the glob
 
-opencode has no per-path scoping like Claude Code's `paths:`, so all nine rules
+opencode has no per-path scoping like Claude Code's `paths:`, so every rule
 land in every opencode session. Two of them would otherwise wait until a
 `.github/` file or a `Makefile` was actually read, and `voice.md` describes a
 plugin another client runs. That is roughly two hundred lines of short rules and
 buy you the absence of a second copy — a new rule reaches both clients with one
 edit. It is the same trade this repo already makes: one source, whatever the
 continuation cost.
+
+## `paths:`-scoped rules
+
+A rule with `paths:` frontmatter loads only when Claude Code touches a matching
+file, instead of on every turn:
+
+```yaml
+---
+paths:
+  - "**/.github/workflows/*.yml"
+  - "**/.github/dependabot.yml"
+---
+```
+
+The `**/` prefix is not decoration — the glob is matched against the path as
+given, so without it the rule misses anything below the repo root. Two rules use
+this today: `github-actions.md` and `makefiles.md`.
+
+**A rule earns scoping only when its trigger is a file path *and* breaking it
+shows up in a diff.** Everything else overrides a default that would otherwise be
+reached for silently, and has to be in context *before* the mistake — which a
+scoped rule, by construction, is not. That is the same line that separates a rule
+from a skill, drawn one level finer.
+
+**The gap scoping cannot close: writing the file from scratch.** Nothing gets
+read first, so nothing matches, so the rule never loads — precisely when it is
+needed most. `CLAUDE.md` carries a one-line pointer per scoped rule to cover it;
+that row in the index is load-bearing, not a table of contents.
+
+**Claude Code is the only harness that honours it.** opencode injects every rule
+body through one glob, and Codex, Zed and Gemini CLI are told to read the whole
+directory — so there a scoped rule is simply always on. Scoping saves context in
+one harness and costs nothing in the rest, but it also means a scoped rule must
+still read correctly when it arrives unprompted.
+
+## A new rule is not live until `make restow`
+
+`~/.agents/rules/` is a real directory of **per-file** symlinks, not a symlinked
+directory — that is how GNU stow folds a package. So adding `rules/foo.md` to the
+repo changes nothing on the machine until `make restow` links it. Until then the
+file is tracked, reviewed, merged, and read by no harness at all.
+
+`linking-work.md` shipped this way: committed, indexed in `CLAUDE.md`, and absent
+from `~/.agents/rules/`. Nothing errors — a rule that was never linked and a rule
+being ignored look identical from inside a session.
+
+So Claude Code sees a rule only when all three hold: it is stowed, it has no
+`paths:` frontmatter, and only then, on every turn. `/context` is the check —
+unconditional rules appear under **Memory files**, and the count there is the
+one that matters, not the number of files in the repo.
 
 ## Adding a harness
 
