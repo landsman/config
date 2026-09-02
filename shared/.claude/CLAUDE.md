@@ -13,6 +13,7 @@ fall back to, so they have to be in context before the mistake, not after.
 | [Localisation](rules/localisation.md) | user-facing text gets written — a label, an error, an email |
 | [Attribution](rules/attribution.md) | anything leaves the machine or gets committed |
 | [Commit messages](rules/commit-messages.md) | writing a commit |
+| [Linking to work](rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
 | [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
