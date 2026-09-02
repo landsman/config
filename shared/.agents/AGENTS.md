@@ -6,7 +6,7 @@ same rules from the same home.
 
 **If the rule bodies are not already in your context, read
 `~/.agents/rules/*.md` now.** Whether they arrive on their own depends on the
-harness, and the table below is an index, not the rules themselves.
+harness; this file names none of them, so the glob is the whole list.
 
 The single source of those bodies is `~/.agents/rules/*.md`, tracked as
 [`shared/.agents/rules/`](rules/) in this repo and symlinked into the home
@@ -35,18 +35,12 @@ the same neutral home the skills use. A harness that reads a single global file
 needs a symlink and nothing else; only opencode needed a config line, because it
 is the only one that can inject the bodies.
 
-| Rule | Applies when |
-|------|--------------|
-| [Where the repos live](~/.agents/rules/where-repos-live.md) | finding a repo on disk, and which ones may be named in public |
-| [Reporting data and metrics](~/.agents/rules/reporting-data.md) | a number gets reported — a query, a benchmark, a count |
-| [Localisation](~/.agents/rules/localisation.md) | user-facing text gets written — a label, an error, an email |
-| [Attribution](~/.agents/rules/attribution.md) | anything leaves the machine or gets committed |
-| [Commit messages](~/.agents/rules/commit-messages.md) | writing a commit or a PR title |
-| [Linking to work](~/.agents/rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
-| [Git history](~/.agents/rules/git-history.md) | amend, squash, rebase, force-push |
-| [GitHub Actions](~/.agents/rules/github-actions.md) | writing under `.github/` |
-| [Makefiles](~/.agents/rules/makefiles.md) | writing a `Makefile` |
-| [Voice](~/.agents/rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
-
 The one thing this file adds is the statement that they are authoritative
 everywhere, and the pointer for any harness that does not inject them.
+
+**There is deliberately no index table here.** One lived in this file and a
+second in `~/.claude/CLAUDE.md`, and the two drifted: a rule was added to one
+and not the other, which reads exactly like a rule being ignored. The table
+earns its place in `CLAUDE.md`, where it can carry per-rule notes about `paths:`
+scoping that are true for Claude Code and false for every harness reading this
+file. Here it bought nothing the glob above does not already say.
