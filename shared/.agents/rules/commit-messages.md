@@ -3,11 +3,12 @@
 `<type>: <subject>`, or `<type>(<scope>): <subject>` when the repo holds more
 than one project. Lowercase throughout, no full stop.
 
-**The detail lives in the `commit-messages` skill** — the type table, what a
-subject has to say, PR titles, breaking changes, and where this sits relative to
-Conventional Commits and commitlint. Load it before writing a commit or a PR
-title. What stays here is the shape and the two things that must be in context
-before the mistake, not after.
+**The long form lives in the `commit-messages` skill** — worked examples of a
+subject that says why, enforcing PR titles in CI, breaking changes, and where
+this sits relative to Conventional Commits and commitlint. Load it before
+writing a commit or a PR title. What stays here is everything needed *before*
+the mistake, because two of the five harnesses read this file and scan no
+skills at all.
 
     security: scan for leaked secrets in the supabase functions
     deps: bump the cloudflare provider to 6.0
@@ -51,8 +52,3 @@ Two things this does not change:
   subject only survives because the prefix is carrying it, it is not written yet.
 - **Lowercase the sentence, not the names.** `deps: bump GHCR mirror to 1.173.0`,
   not `ghcr`. Proper nouns, tool names and identifiers keep their own casing.
-
-Dependabot writes its own messages and does not read this file. It emits
-`build(deps):` by default; align a repo with `commit-message.prefix: deps` in
-`.github/dependabot.yml` when touching that file anyway, rather than as a
-sweep of its own.

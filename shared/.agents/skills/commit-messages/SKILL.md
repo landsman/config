@@ -1,51 +1,14 @@
 ---
 name: commit-messages
-description: Load before writing a commit message or a pull-request title. Carries the type vocabulary, the lowercase and prefix rules, what a subject line has to say, and where this convention departs from Conventional Commits and commitlint. Squash-merge turns a PR title into a commit subject, so PR titles are in scope too.
+description: Load before writing a commit message or a pull-request title — including before running `git commit`, `gh pr create`, `gh pr edit --title` or `glab mr create`. The always-loaded commit-messages rule carries the shape and the type table; this skill carries what a subject has to say, why PR titles are in scope, breaking changes, and where the convention departs from Conventional Commits and commitlint.
 ---
 
 # Commit messages and PR titles
 
-    <type>: <subject>
-    <type>(<scope>): <subject>          # when the repo holds more than one project
-    <type>(<scope>)!: <subject>         # breaking
-
-Scope is a noun naming a part of the codebase, not a verb and not a ticket id.
-
-## Two hard rules
-
-**Always a type prefix.** No bare subjects. A commit with no type is a commit nobody
-can filter, group, or generate a changelog from — and the prefix is what tells a
-reader which drawer a change belongs in before they read a word of it.
-
-**The subject always starts with a lowercase letter.** Including when the first word
-is a class, a table, or a tool. Do not capitalise to be "correct" about an
-identifier — reword so the identifier is not first:
-
-    ✅ be(auth): let User extend SoftDeletableEntity
-    ❌ be(auth): User extends SoftDeletableEntity
-
-Mid-subject, proper nouns and identifiers keep their own casing: `deps: bump GHCR
-mirror to 1.173.0`, not `ghcr`. Lowercase the *sentence*, not the names.
-
-No full stop at the end.
-
-## The types
-
-| Type | For |
-|------|-----|
-| `security` | vulnerabilities, scanners, secrets, hardening |
-| `deps` | bumping a dependency to a new version |
-| `devops` | CI, build, release, infrastructure, tooling config |
-| `fe` | frontend work |
-| `be` | backend work |
-| `docs` | documentation only |
-| `chore` | housekeeping that changes no behaviour |
-
-`deps` is the bump itself; **teaching CI to watch for bumps is `devops`.** That
-distinction is the one that actually comes up.
-
-Add a type when something genuinely does not fit, rather than forcing it — but reach
-for the list first, because a per-repo vocabulary is how a convention stops being one.
+The shape and the type vocabulary are in the always-loaded
+[commit-messages rule](../../rules/commit-messages.md) and are not repeated here.
+One thing the rule does not say: **scope is a noun naming a part of the codebase**,
+not a verb and not a ticket id.
 
 ## The subject says why, not what
 
@@ -62,9 +25,10 @@ carrying it, it is not written yet.
 ## PR titles are commit messages
 
 A squash-merge writes the **PR title** as the subject on the main branch. So a PR
-title follows every rule above. This is the half that actually lands in history, and
-the half a local hook cannot check — enforce it in CI on `pull_request` with the same
-validator, or the main branch fills up with `Stripe payments: local setup (#143)`.
+title follows every rule in the rule file. This is the half that actually lands in
+history, and the half a local hook cannot check — enforce it in CI on
+`pull_request` with the same validator, or the main branch fills up with
+`Stripe payments: local setup (#143)`.
 
 ## Breaking changes
 
@@ -72,6 +36,7 @@ Either mark the prefix or write the footer; the marker is `!` immediately before
 colon, and the footer is `BREAKING CHANGE:` — **uppercase**, the one case-sensitive
 token in the spec.
 
+    <type>(<scope>)!: <subject>
     be(api)!: drop the v1 checkout endpoint
 
 ## Where this sits relative to the ecosystem
@@ -83,7 +48,7 @@ mistaken for the spec:
   and the required colon-space. It explicitly says its units **MUST NOT be treated as
   case-sensitive**, except `BREAKING CHANGE`. So "lowercase" does **not** come from
   the spec. Types beyond `feat` and `fix` are explicitly allowed, which is what makes
-  the vocabulary above conformant rather than a deviation.
+  our vocabulary conformant rather than a deviation.
 - **`@commitlint/config-conventional`** is where the casing rules people quote
   actually live: `type-case: lower-case`, `subject-full-stop: never`,
   `header-max-length: 100`, and `subject-case` disallowing `sentence-case`,
@@ -98,13 +63,12 @@ mistaken for the spec:
   by *area* (`fe`/`be`) where theirs splits by *kind*. If a repo ever needs
   changelog tooling keyed to `feat`/`fix`, that is the trade to reopen — not before.
 
-## Dependabot
-
-It writes its own messages and does not read this. It emits `build(deps):` by
-default; align a repo with `commit-message.prefix: deps` in `.github/dependabot.yml`
-when touching that file anyway, rather than as a sweep of its own.
+Dependabot writes its own messages and reads none of this; the
+`commit-message.prefix: deps` setting that aligns it lives in the
+[GitHub Actions rule](../../rules/github-actions.md), which loads whenever
+`.github/dependabot.yml` is open.
 
 ## Never in a commit message
 
 No tool attribution, no `Co-Authored-By` for an assistant, no session URLs, no
-"generated with" footers. See the attribution rule.
+"generated with" footers. See the [attribution rule](../../rules/attribution.md).
