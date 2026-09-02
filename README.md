@@ -188,8 +188,10 @@ Docker Hub and says so.
 - **`settings.json` must hold no machine-specific path** — it is one file for
   every machine, and such a setting is not an error elsewhere, it is silently
   ignored. `make claude-settings-test` fails on a literal `/Users/` or `/home/`;
-  use `~`. Anything genuinely local (a client checkout in
-  `additionalDirectories`) goes in the untracked `~/.claude/settings.local.json`
+  use `~`. It also fails on an `autoMode` block outright: auto mode writes one
+  per project and it names that checkout whether or not the line spells a path.
+  Anything genuinely local (a client checkout in `additionalDirectories`, that
+  block) goes in the untracked `~/.claude/settings.local.json`
   — that split is what keeps this repo safe to publish.
 
 **macOS System Settings are written, not stowed.** macOS keeps them in `defaults`

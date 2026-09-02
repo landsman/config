@@ -100,6 +100,15 @@ claude-settings-test: ## check the stowed Claude settings parse and stay machine
 	@grep -nE '"[^"]*/(Users|home)/' shared/.claude/settings.json \
 		&& { echo "^ only true on one machine - use \$$HOME, or move it to ~/.claude/settings.local.json"; exit 1; } \
 		|| true
+	@# The path check is necessary but not sufficient. Auto mode writes an
+	@# autoMode block describing the checkout it was onboarded in — org, repo,
+	@# remote, deploy targets, sensitive files — and only some of those lines
+	@# spell a path, so grepping the strings inside it would miss the rest.
+	@# It is per-machine and per-project state by definition, so reject the
+	@# key itself and let ~/.claude/settings.local.json hold it.
+	@grep -n '"autoMode"' shared/.claude/settings.json \
+		&& { echo "^ per-project onboarding state, and it names the checkout - move it to ~/.claude/settings.local.json"; exit 1; } \
+		|| true
 
 .PHONY: opencode-config-test
 opencode-config-test: ## check the stowed opencode config parses and stays machine-independent
