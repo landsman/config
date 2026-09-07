@@ -15,6 +15,14 @@
         "-c",
         "[ -n \"$AZDO_ORG\" ] || exit 0; exec npx -y @azure-devops/mcp \"$AZDO_ORG\" -d core repositories pipelines search"
       ]
+    },
+    "forgejo": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-c",
+        "b=$(command -v forgejo-mcp || echo \"$HOME/go/bin/forgejo-mcp\"); [ -n \"$FORGEJO_ACCESS_TOKEN\" ] && [ -x \"$b\" ] || exit 0; exec \"$b\" --transport stdio --url https://git.insuit.cz"
+      ]
     }
   }
 }

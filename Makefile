@@ -419,13 +419,29 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 
 ##@ Claude Code
 #
-# The MCP servers are stowed like any other dotfile. The Azure DevOps
-# organisation cannot be: the slug names an employer and this repo is public.
-# See .docs-llm/mcp-servers.md.
+# The MCP servers are stowed like any other dotfile. Two of the values they
+# read cannot be: the Azure DevOps slug names an employer, the Forgejo token is
+# a secret, and this repo is public. See .docs-llm/mcp-servers.md.
 #
 
+.PHONY: forgejo-mcp
+forgejo-mcp: ## build the Forgejo MCP server from the local mirror into ~/go/bin
+	@# Built from tools-mirror rather than fetched from upstream, so a build
+	@# does not depend on someone else's forge being up. `go install .` inside
+	@# the checkout, not `go install <mirror>@latest`: go.mod still declares the
+	@# upstream module path and go rejects a path that is not the one it fetched.
+	@# Newest tag with no dash, because -v:refname sorts v3.0.0-alpha.1 above
+	@# v2.35.0 and a pre-release is not what `latest` means anywhere else.
+	@u=https://git.insuit.cz/tools-mirror/forgejo-mcp; \
+	tag=$$(git ls-remote --tags --refs --sort=-v:refname "$$u" | sed 's#.*/##; /-/d' | head -1); \
+	tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	echo "building $$tag"; \
+	git clone -q --depth 1 --branch "$$tag" -c advice.detachedHead=false "$$u" "$$tmp" \
+		&& (cd "$$tmp" && go install .) \
+		&& "$$HOME/go/bin/forgejo-mcp" --version
+
 .PHONY: claude
-claude: ## set the machine-local value the MCP servers read (Azure DevOps org)
+claude: ## set the machine-local values the MCP servers read (Azure DevOps org, Forgejo token)
 	@# A shell drop-in rather than ~/.claude/settings.local.json, because the
 	@# expansion in .mcp.json reads the process environment and the settings
 	@# `env` block does not feed it. Both .bashrc and os/macos/.zshrc glob that
@@ -440,7 +456,19 @@ claude: ## set the machine-local value the MCP servers read (Azure DevOps org)
 	tmp=$$(mktemp); grep -v '^export AZDO_ORG=' "$$f" > "$$tmp"; \
 	echo "export AZDO_ORG=$$o" >> "$$tmp"; mv "$$tmp" "$$f"; \
 	grep -H '^export AZDO_ORG=' "$$f"
-	@echo "open a new shell, then: claude mcp list | grep azure-devops"
+	@# Its own recipe line, so the `exit 0` above ends that prompt and not this
+	@# one. Read with -s and never printed back: a token that scrolls into a
+	@# terminal buffer is a token in every screen recording of it.
+	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \
+	grep -q '^export FORGEJO_ACCESS_TOKEN=' "$$f" 2>/dev/null && was=set || was=unset; \
+	read -s -p "Forgejo token for git.insuit.cz [$$was, empty keeps it]: " t; echo; \
+	if [ -z "$$t" ]; then echo "left $$was - the forgejo server exits before the binary runs"; exit 0; fi; \
+	mkdir -p "$$(dirname "$$f")"; \
+	[ -s "$$f" ] || echo '# Machine-local and untracked on purpose - see .docs-llm/mcp-servers.md' > "$$f"; \
+	tmp=$$(mktemp); grep -v '^export FORGEJO_ACCESS_TOKEN=' "$$f" > "$$tmp"; \
+	echo "export FORGEJO_ACCESS_TOKEN=\"$$t\"" >> "$$tmp"; mv "$$tmp" "$$f"; chmod 600 "$$f"; \
+	echo "$$f: FORGEJO_ACCESS_TOKEN set"
+	@echo "open a new shell, then: claude mcp list | grep -E 'azure-devops|forgejo'"
 
 ##@ JetBrains IDEs
 #

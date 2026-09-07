@@ -1,7 +1,7 @@
 # MCP Servers
 
 Every server this config owns lives in one tracked file,
-[`shared/.claude/skills/mcp-servers/.mcp.json`](../shared/.claude/skills/mcp-servers/.mcp.json).
+[`shared/.agents/skills/mcp-servers/.mcp.json`](../shared/.agents/skills/mcp-servers/.mcp.json).
 `make stow` links it to `~/.claude/skills/mcp-servers/`, and Claude Code loads
 any folder under a skills directory that holds a `.claude-plugin/plugin.json` as
 a plugin — here `mcp-servers@skills-dir`, personal scope, no marketplace and no
@@ -93,6 +93,64 @@ again nothing secret is tracked. Two things about the entry are deliberate:
 registered by hand. Plugin servers are namespaced, so those lines no longer
 match — left alone here rather than guessed at, because the exact prefix is
 worth reading off a live session before it is written down.
+
+## Forgejo
+
+Upstream: <https://git.b4mad.industries/agentic-forges/forgejo-mcp>. The GitHub
+and Codeberg repositories are read-only mirrors that no longer publish images —
+a link to `github.com/goern/forgejo-mcp` still resolves and is still the wrong
+place to install from.
+
+Issues, pull requests, files, releases and Actions runs on `git.insuit.cz`,
+which is what makes the forge reachable from a session that has no browser.
+
+```bash
+make forgejo-mcp   # build the binary into ~/go/bin
+make claude        # paste the token
+```
+
+The binary is built from `tools-mirror/forgejo-mcp` on our own forge rather than
+fetched from upstream, for the reason the mirror exists at all: a build should
+not stop because someone else's forge is down. That costs a checkout — `go
+install <mirror-path>@latest` cannot work, because `go.mod` still declares the
+upstream module path and go refuses a module whose declared path is not the one
+it fetched. `go install .` inside the checkout does not care.
+
+The **token** is machine-local for the usual reason — this repo is public. The
+**instance URL is not**, and sits in `.mcp.json` in clear: `git.insuit.cz` is
+already all over the homelab repo, which is public too. It is the token that is
+secret, not the address.
+
+Create it at <https://git.insuit.cz/user/settings/applications>. Three scopes
+cover every tool worth having:
+
+| Scope | Buys |
+|-------|------|
+| `read:user` | who am I, list my repositories |
+| `write:repository` | files, branches, pull requests, Actions runs |
+| `write:issue` | issues, comments, labels |
+
+Widen it when a tool actually fails, not in advance — the token is a bearer
+credential sitting in a file every shell sources.
+
+The entry is guarded like the Azure DevOps one, and on two conditions rather
+than one:
+
+```sh
+b=$(command -v forgejo-mcp || echo "$HOME/go/bin/forgejo-mcp")
+[ -n "$FORGEJO_ACCESS_TOKEN" ] && [ -x "$b" ] || exit 0
+exec "$b" --transport stdio --url https://git.insuit.cz
+```
+
+A machine with no token, or one where `make forgejo-mcp` has not run, gets no
+server instead of a failing one. `command -v` first so an Arch box that
+installed `forgejo-mcp` from the AUR uses that copy; `~/go/bin` is the fallback
+because it is not on `PATH` here.
+
+One thing to know before allow-listing the server: `FORGEJO_MCP_ALLOW_FILE_PATH_UPLOAD`
+lets attachment tools read the host filesystem and upload it. It is off by
+default and should stay off — an injected prompt uploading `~/.ssh/id_ed25519`
+as a public release asset is the documented failure mode, not a hypothetical.
 
 ## Common commands
 
