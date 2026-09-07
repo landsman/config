@@ -117,9 +117,9 @@ Most useful pages:
 - `docs/user/api/authorized-integrations.md` — the JWT the registry push needs
 - `docs/admin/actions/configuration.md` — runner/instance config keys
 
-Not on this machine? `make -C ~/projects/landsman/config agent-docs` clones both
-forges' docs and fast-forwards them on a re-run. Clone the mirror by hand instead
-when codeberg.org is not reachable.
+Not on this machine? `make -C ~/projects/landsman/config agent-docs` clones it,
+and fast-forwards it on a re-run. Clone the mirror by hand instead when
+codeberg.org is not reachable.
 
 **The clone tracks `next`, the development version**, which is not what a pinned
 instance runs: `git -C ~/projects/codeberg/forgejo/docs switch v16.0` before
