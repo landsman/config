@@ -13,6 +13,11 @@ and those small changes are the whole job of a migration. What is true of Forgej
 anywhere and what is true of the homelab instance at `git.insuit.cz` are
 different things; the two halves below keep them apart.
 
+**The order a port goes in lives in the `forgejo-workflows` skill**, because a
+port starts with no Forgejo file to trigger this file's `paths:` scoping on. What
+stays here is every fact, which is what the other harnesses load unconditionally
+and what the skill refuses to repeat.
+
 ## Forgejo in general
 
 True of any Forgejo 16 instance, this one included.
