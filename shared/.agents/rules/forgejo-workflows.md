@@ -7,9 +7,11 @@ paths:
 # Forgejo Actions workflows
 
 Loaded when a Forgejo workflow file is being read or written. Forgejo Actions is
-a reimplementation of GitHub Actions — the syntax is largely compatible, but
-what is true of Forgejo anywhere and what is true of the homelab instance at
-`git.insuit.cz` are different things. The two halves below keep them apart.
+built to feel *familiar* to GitHub Actions users, and upstream is explicit that
+it is **not built to be compatible** — most workflows port with small changes,
+and those small changes are the whole job of a migration. What is true of Forgejo
+anywhere and what is true of the homelab instance at `git.insuit.cz` are
+different things; the two halves below keep them apart.
 
 ## Forgejo in general
 
@@ -24,36 +26,37 @@ etc.) and the same step types (`uses:`, `run:`, `with:`).
 
 ### Differences from GitHub Actions
 
-- **`permissions:` is ignored by Forgejo 16.** Token scope is controlled through
-  the Forgejo UI (Settings → Actions → Runners → Authorized Integrations), not
+- **`permissions:` is ignored by Forgejo 16.** Token scope comes from an
+  Authorized Integration (user `Settings` → `Authorized Integrations`), not from
   the workflow file. Write `permissions:` for readability if you like, but do not
   rely on it for access control.
-- **`ACTIONS_RUNTIME_TOKEN` / `ACTIONS_ID_TOKEN_REQUEST_URL`** are available when
-  `enable-openid-connect: true` is set in the workflow. The ID token audience is
+- **OIDC replaces `permissions: id-token: write`.** `enable-openid-connect: true`
+  at workflow or job level injects `ACTIONS_ID_TOKEN_REQUEST_URL` and
+  `ACTIONS_ID_TOKEN_REQUEST_TOKEN`. The ID token audience is
   not confidential — store it in a repo variable (`vars.*`), not a secret.
 - **Registry push from Actions** requires an authorized-integration JWT (since
   16.0.1) in the `docker login` password field. The automatic `forgejo.token`
   **cannot push packages** (`401 Unauthorized`). See
-  [CAVEATS.md](../../projects/landsman/homelab/forgejo-runner/CAVEATS.md) for the
-  full token-scoping story.
+  `~/projects/landsman/homelab/forgejo-runner/CAVEATS.md` for the full
+  token-scoping story.
 - **Package visibility follows the owner**, not the repository. A private repo
   with a public owner ships public packages. To ship private images, push under
   a private organization.
 
 ### Local validation
 
-`forgejo act` runs workflows locally (same concept as `nektos/act` for GitHub).
-Install it alongside the Forgejo CLI:
+There is no `forgejo act`. The `forgejo` binary is the server — the local runner
+is a separate program, `forgejo-runner exec`, and upstream ships it as a Linux
+binary, so on the Mac it is the container:
 
-    brew install forgejo
+    docker run --rm -v "$PWD:/w" -w /w \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      data.forgejo.org/forgejo/runner:13 forgejo-runner exec --list
 
-Then from the repo root:
-
-    forgejo act --list          # list detected workflows
-    forgejo act -n <workflow>   # dry-run a specific workflow
-
-It picks up `.forgejo/workflows/` automatically. Use it to validate syntax and
-step resolution before pushing.
+It reads `.forgejo/workflows/` by default. Swap `--list` for `-n` to dry-run,
+`-W` to pick one file, `-j` one job. What it proves is syntax, event detection
+and step resolution — it runs against its own default image, not the homelab's
+labels, so a green run here is not a pass there.
 
 ### Where the docs live
 
@@ -74,12 +77,13 @@ Most useful pages:
 - `docs/user/actions/reference.md` — the full workflow syntax
 - `docs/user/actions/github-actions.md` — compatibility and differences vs GitHub
 - `docs/user/actions/security-openid-connect.md` — OIDC tokens from Actions
+- `docs/user/api/authorized-integrations.md` — the JWT the registry push needs
 - `docs/admin/actions/configuration.md` — runner/instance config keys
 
-Refresh with `git -C ~/projects/codeberg/forgejo/docs pull --ff-only`, or
-`git fetch` the mirror. A version branch (`v16.0`, …) is what to read when
-writing for a pinned instance; `next` (the mirror's default) tracks the
-development version.
+**The clone tracks `next`, the development version**, which is not what a pinned
+instance runs: `git -C ~/projects/codeberg/forgejo/docs switch v16.0` before
+trusting a page, and `git -C ~/projects/codeberg/forgejo/docs pull --ff-only` to
+refresh either branch.
 
 ## The homelab instance (git.insuit.cz)
 
