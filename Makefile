@@ -308,11 +308,13 @@ ollama: ## pull the local models (tens of GB - deliberately not part of make app
 	@ollama list
 
 .PHONY: agent-docs
-agent-docs: ## clone (or fast-forward) the upstream Actions docs the rules tell agents to grep
-	@# Not part of `make apps`: it is ~30 MB of other people's repositories, and
-	@# a machine that never writes a workflow never needs them. Re-running is
-	@# how they are updated. The list is bin/agent-docs/repos.conf - a row there
-	@# is the whole of adding a docs source.
+agent-docs: ## clone (or fast-forward) the upstream docs an agent should grep instead of recall
+	@# Not part of `make apps`: other people's repositories, sparse-checked out
+	@# to the documentation and nothing else, and a machine that never opens
+	@# them never needs them. Re-running is how they are updated - except the
+	@# pinned ones, which move when their `ref` in the conf does. The list is
+	@# bin/agent-docs/repos.conf, and a section there is the whole of adding a
+	@# source.
 	@bin/agent-docs/clone.sh
 
 ##@ Dotfiles ($HOME) via GNU stow
