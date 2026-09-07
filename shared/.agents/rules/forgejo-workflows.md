@@ -51,7 +51,7 @@ To keep GitHub's copy deliberately, write the whole URL —
 `uses: https://github.com/actions/checkout@v5` — so the choice is visible.
 
 When porting needs GitHub's exact behaviour to compare against, it is cloned too,
-at `~/projects/github/github_docs` — see `github-actions.md`. Upstream's own list
+at `~/projects/github/github-docs` — see `github-actions.md`. Upstream's own list
 of where the two diverge is `docs/user/actions/github-actions.md` in the Forgejo
 clone, and it is the shorter read.
 
