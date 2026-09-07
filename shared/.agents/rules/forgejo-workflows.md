@@ -45,6 +45,11 @@ Read the tag off the forge that will serve it, not off GitHub:
 To keep GitHub's copy deliberately, write the whole URL —
 `uses: https://github.com/actions/checkout@v5` — so the choice is visible.
 
+When porting needs GitHub's exact behaviour to compare against, it is cloned too,
+at `~/projects/github/github_docs` — see `github-actions.md`. Upstream's own list
+of where the two diverge is `docs/user/actions/github-actions.md` in the Forgejo
+clone, and it is the shorter read.
+
 ### Differences from GitHub Actions
 
 - **`permissions:` is ignored by Forgejo 16**, and so is `continue-on-error`;
@@ -106,6 +111,10 @@ Most useful pages:
 - `docs/user/actions/security-openid-connect.md` — OIDC tokens from Actions
 - `docs/user/api/authorized-integrations.md` — the JWT the registry push needs
 - `docs/admin/actions/configuration.md` — runner/instance config keys
+
+If the clone is not on this machine, make it — `git clone
+https://codeberg.org/forgejo/docs.git ~/projects/codeberg/forgejo/docs`, or the
+mirror above when codeberg.org is not reachable.
 
 **The clone tracks `next`, the development version**, which is not what a pinned
 instance runs: `git -C ~/projects/codeberg/forgejo/docs switch v16.0` before
