@@ -61,10 +61,10 @@ account's convention instead of its own `build(deps):`.
 ## Where the docs live
 
 GitHub's own Actions documentation is `github/docs`, sparse-cloned to
-`~/projects/github/github-docs` — 8 MB of `content/actions`, not the whole site.
+`~/projects/github/github/docs` — 8 MB of `content/actions`, not the whole site.
 Grep it instead of recalling syntax:
 
-    rg -n "concurrency" ~/projects/github/github-docs/content/actions/reference/workflows-and-actions/workflow-syntax.md
+    rg -n "concurrency" ~/projects/github/github/docs/content/actions/reference/workflows-and-actions/workflow-syntax.md
 
 - `content/actions/reference/workflows-and-actions/workflow-syntax.md` — the full
   `on:` / `jobs:` / `steps:` reference
