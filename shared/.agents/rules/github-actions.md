@@ -73,14 +73,9 @@ Grep it instead of recalling syntax:
 - `content/actions/reference/runners/` — hosted labels and what is on them
 
 Pages transclude `{% data reusables.… %}` snippets, so `data/` is in the checkout
-too; anything outside `content/actions` is deliberately absent. Refresh with
-`git -C ~/projects/github/github_docs pull --ff-only`. If the clone is not on this
-machine, make it:
-
-    git clone --depth 1 --filter=blob:none --sparse \
-      https://github.com/github/docs.git ~/projects/github/github_docs
-    git -C ~/projects/github/github_docs sparse-checkout set \
-      content/actions data/reusables/actions data/variables
+too; anything outside `content/actions` is deliberately absent. Not on this
+machine, or stale? `make -C ~/projects/landsman/config agent-docs` clones it and
+fast-forwards it on a re-run — it owns the sparse paths so this file does not.
 
 **The docs are not the version check.** They describe the syntax, not which major
 an action is on — that stays `gh api repos/<owner>/<action>/releases/latest`.

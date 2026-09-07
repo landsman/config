@@ -276,11 +276,15 @@ apps-test: ## parse the Brewfile without installing anything
 	@command -v brew >/dev/null || { echo "brew not installed - skipped"; exit 0; }; \
 		HOMEBREW_NO_AUTO_UPDATE=1 brew bundle list --file Brewfile >/dev/null
 
-##@ Local models
+##@ Local models and docs
 #
 # ollama itself is a Brewfile line like anything else. The models are not: they
 # are tens of gigabytes each, and a fresh machine should not spend an hour on
 # them inside `make apps`. Hence a target of its own, run when wanted.
+#
+# The upstream docs the agent rules grep are here for the same reason: external
+# content, wanted on a machine that writes workflows and pointless on one that
+# does not. Both clones live under ~/projects with everything else.
 #
 
 # What this machine keeps locally. `ollama launch <agent>` offers the models
@@ -302,6 +306,13 @@ ollama: ## pull the local models (tens of GB - deliberately not part of make app
 	@# iteration - without it a failed pull in the middle reports success.
 	@for m in $(OLLAMA_MODELS); do echo "== $$m"; ollama pull "$$m" || exit 1; done
 	@ollama list
+
+.PHONY: agent-docs
+agent-docs: ## clone (or fast-forward) the upstream Actions docs the rules tell agents to grep
+	@# Not part of `make apps`: it is ~30 MB of other people's repositories, and
+	@# the rules that read them carry the same clone command for the machine
+	@# where this was never run. Re-running is how they are updated.
+	@bin/agent-docs/clone.sh
 
 ##@ Dotfiles ($HOME) via GNU stow
 
