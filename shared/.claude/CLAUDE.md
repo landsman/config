@@ -19,6 +19,7 @@ mistake, not after.
 | [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
 | [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/`, or porting a workflow from GitHub — scoped, loads itself |
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
+| [Shell in a config file](rules/shell-in-config.md) | shell goes inside a YAML or a Makefile |
 | [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 
 The folder name is not a preference: `rules/` and `CLAUDE.md` are the only two
