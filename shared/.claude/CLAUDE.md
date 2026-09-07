@@ -16,6 +16,7 @@ fall back to, so they have to be in context before the mistake, not after.
 | [Linking to work](rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
 | [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
+| [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/` — scoped, loads itself |
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
 | [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 
