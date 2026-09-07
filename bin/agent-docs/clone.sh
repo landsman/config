@@ -13,9 +13,10 @@
 set -eu
 
 root=${1:-$HOME/projects}
+conf=${2:-$(dirname "$0")/repos.conf}
 
-# What to clone, and why each row looks the way it does, is repos.conf beside
-# this file. This reads it: a directory, a url, and any paths to check out.
+# What to clone, and why each section looks the way it does, is repos.conf
+# beside this file.
 docs() {
 	local name="$1" dest="$root/$1" url="$2"
 	shift 2
@@ -35,13 +36,42 @@ docs() {
 	fi
 }
 
-while read -r dest url paths; do
-	# Blank lines and comments, so the file can explain itself. An unskipped
-	# blank row is not harmless: it reads as an empty directory and a clone of
-	# nothing, which is what the second-run count in the test caught.
-	[ -n "$dest" ] || continue
-	case $dest in \#*) continue ;; esac
-	# $paths unquoted on purpose: it is a list of paths, not one path.
+die() { echo "$conf:$1: $2" >&2; exit 1; }
+
+section= url= sparse= line=0 opened=0
+
+# Clone the section that just ended. Sections are flushed on the next header and
+# once more at EOF, which is the only reason `opened` exists: without it an empty
+# file and a file whose first section is still being read look the same.
+flush() {
+	[ "$opened" -eq 1 ] || return 0
+	[ -n "$url" ] || die "$1" "[$section] has no url"
+	# $sparse unquoted on purpose: it is a list of paths, not one path.
 	# shellcheck disable=SC2086
-	docs "$dest" "$url" $paths
-done < "$(dirname "$0")/repos.conf"
+	docs "$section" "$url" $sparse
+	section= url= sparse= opened=0
+}
+
+while read -r key sep value; do
+	line=$((line + 1))
+	case "${key:-#}" in
+		\#*) continue ;;
+		\[*\])
+			flush "$line"
+			section=${key#[}; section=${section%]}
+			opened=1
+			[ -n "$section" ] || die "$line" "empty section name"
+			continue ;;
+	esac
+
+	[ "$opened" -eq 1 ] || die "$line" "$key= before any [section]"
+	[ "$sep" = "=" ] || die "$line" "expected 'key = value', got '$key $sep'"
+
+	case $key in
+		url) url=$value ;;
+		sparse) sparse=$value ;;
+		*) die "$line" "unknown key '$key' in [$section] - url or sparse" ;;
+	esac
+done < "$conf"
+
+flush "$line"

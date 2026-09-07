@@ -64,5 +64,29 @@ out=$("$script" "$root" 2>&1 >/dev/null)
 check "an occupied path is left alone" 0 "$(grep -c 'forgejo/docs.git' "$GIT_LOG" || true)"
 check "and says so" 1 "$(printf '%s\n' "$out" | grep -c 'left alone' || true)"
 
+# The conf is parsed by hand now, so the parser is the part that can be wrong.
+# Each case writes a broken conf, and asserts the script refuses it and clones
+# nothing — a typo that half-runs is worse than one that stops.
+bad() {  # bad <name> <expected message fragment> <conf body>
+	local name=$1 want=$2 body=$3 out
+	printf '%s\n' "$body" > "$tmp/bad.conf"
+	export GIT_LOG="$tmp/bad.log"; : > "$GIT_LOG"
+
+	if out=$("$script" "$tmp/badroot" "$tmp/bad.conf" 2>&1 >/dev/null); then
+		echo "FAIL $name"; echo "  the script accepted it"; fails=$((fails + 1))
+		return
+	fi
+	case $out in
+		*"$want"*) echo "ok   $name" ;;
+		*) echo "FAIL $name"; echo "  wanted: *$want*"; echo "  got:    $out"; fails=$((fails + 1)) ;;
+	esac
+	check "  and clones nothing" 0 "$(grep -c . "$GIT_LOG" || true)"
+}
+
+bad "a typo in a key is refused" "unknown key 'sparce'" "$(printf '[a/b]\nurl = u\nsparce = x\n')"
+bad "a section without a url is refused" "has no url" "[a/b]"
+bad "a key outside a section is refused" "before any [section]" "url = u"
+bad "a line that is not key = value is refused" "expected 'key = value'" "$(printf '[a/b]\nurl: u\n')"
+
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }
 echo "all ok"
