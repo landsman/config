@@ -19,21 +19,48 @@ True of any Forgejo 16 instance, this one included.
 
 ### Workflow files
 
-Workflows live in `.forgejo/workflows/`, one YAML file per workflow. The structure
-mirrors GitHub Actions: `name:`, `on:` (trigger), `jobs:`, `steps:`. Forgejo
-recognises the same trigger types (`push`, `pull_request`, `schedule`, `workflow_dispatch`,
-etc.) and the same step types (`uses:`, `run:`, `with:`).
+Workflows live in `.forgejo/workflows/`, one YAML file per workflow. The shape
+mirrors GitHub Actions: `name:`, `on:`, `jobs:`, `steps:`, the same trigger types
+(`push`, `pull_request`, `schedule`, `workflow_dispatch`) and the same step keys
+(`uses:`, `run:`, `with:`).
+
+**With no `.forgejo/workflows/` directory, Forgejo runs `.github/workflows/`
+instead.** So a mirrored repo already runs its GitHub workflows unchanged — and
+the first file written into `.forgejo/workflows/` switches that fallback off for
+every other one. Migrate the whole directory in one commit, or the workflows left
+behind stop running and nothing says so.
+
+### `uses:` does not point at github.com
+
+A bare `uses: actions/checkout@v5` is resolved against `DEFAULT_ACTIONS_URL`
+(`https://data.forgejo.org` by default), so it fetches
+`https://code.forgejo.org/actions/checkout` — a different repository with its own
+tags. Carrying a version across from a GitHub workflow is how a migrated file
+fails to resolve.
+
+Read the tag off the forge that will serve it, not off GitHub:
+
+    curl -s https://code.forgejo.org/api/v1/repos/actions/checkout/releases/latest | jq -r .tag_name
+
+To keep GitHub's copy deliberately, write the whole URL —
+`uses: https://github.com/actions/checkout@v5` — so the choice is visible.
 
 ### Differences from GitHub Actions
 
-- **`permissions:` is ignored by Forgejo 16.** Token scope comes from an
+- **`permissions:` is ignored by Forgejo 16**, and so is `continue-on-error`;
+  some `github` context keys are missing too. Token scope comes from an
   Authorized Integration (user `Settings` → `Authorized Integrations`), not from
   the workflow file. Write `permissions:` for readability if you like, but do not
   rely on it for access control.
+- **The default runner image is small.** A stock Forgejo runner uses Debian
+  bookworm with node and little else, where GitHub ships a fat `ubuntu` image —
+  `git`, `jq`, `docker` and friends are not there unless the label provides them
+  or the workflow installs them. This instance pins gitea's `runner-images`; see
+  the homelab half.
 - **OIDC replaces `permissions: id-token: write`.** `enable-openid-connect: true`
   at workflow or job level injects `ACTIONS_ID_TOKEN_REQUEST_URL` and
-  `ACTIONS_ID_TOKEN_REQUEST_TOKEN`. The ID token audience is
-  not confidential — store it in a repo variable (`vars.*`), not a secret.
+  `ACTIONS_ID_TOKEN_REQUEST_TOKEN`. The ID token audience is not confidential —
+  store it in a repo variable (`vars.*`), not a secret.
 - **Registry push from Actions** requires an authorized-integration JWT (since
   16.0.1) in the `docker login` password field. The automatic `forgejo.token`
   **cannot push packages** (`401 Unauthorized`). See
