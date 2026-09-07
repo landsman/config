@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # Self-check for .local/bin/vnode-watch.sh. No framework: sysctl, lsof, top,
-# date and log are stubbed onto PATH, so this runs anywhere — including the
-# Linux legs of CI, which have none of them — and asserts on the files left
-# behind.
+# date, log and sleep are stubbed onto PATH, so this runs anywhere — including
+# the Linux legs of CI — and asserts on the files left behind.
 #
-# The sampler is a daemon, so every case bounds it with VNODE_WATCH_ITERATIONS
-# rather than waiting for it to be killed. The sysctl stub walks a scripted
-# sequence of free values, one per call, which is what makes a burst reachable
-# in a test: the trigger compares against the reading a window ago.
+# The script is #!/bin/sh, which is bash on macOS and dash on Linux, and it
+# behaves differently on purpose: `read -t` is a bash extension, so only one of
+# them gets the exec-free wait. The suite therefore reads the mode out of the
+# STARTED line and asserts against that, rather than assuming a platform.
+#
+# Two of these checks exist because an earlier version passed sixteen assertions
+# while not waiting at all: nothing measured elapsed time, and nothing noticed
+# that the wait had been replaced by exec'ing /bin/sleep. Output-only assertions
+# cannot see the property this daemon is built around.
 set -eu
 
 script="$(cd "$(dirname "$0")" && pwd)/.local/bin/vnode-watch.sh"
@@ -26,10 +30,14 @@ check() {  # check <name> <expected> <actual>
 mkdir -p "$tmp/bin" "$tmp/logs"
 cat > "$tmp/bin/sysctl" <<'STUB'
 #!/bin/sh
-[ -z "${FAKE_SYSCTL_FAILS:-}" ] || exit 1
 n=$(cat "$FAKE_N" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$FAKE_N"
 free=$(sed -n "${n}p" "$FAKE_SEQ"); [ -n "$free" ] || free=$(tail -1 "$FAKE_SEQ")
-echo "$free"; echo 263168; echo 13500; echo 17000000
+case ${FAKE_MODE:-ok} in
+	short)      echo "$free"; echo 263168; echo 13500; exit 1 ;;   # one oid gone
+	nonnumeric) echo nan; echo 263168; echo 13500; echo 17000000 ;;
+	dead)       exit 1 ;;
+	*)          echo "$free"; echo 263168; echo 13500; echo 17000000 ;;
+esac
 STUB
 cat > "$tmp/bin/date" <<'STUB'
 #!/bin/sh
@@ -48,8 +56,7 @@ STUB
 # A root-owned process on purpose: it is here to cover what lsof cannot see.
 cat > "$tmp/bin/top" <<'STUB'
 #!/bin/sh
-echo "Processes: 900 total"
-echo ""
+echo "Processes: 900 total"; echo ""
 echo "PID  COMMAND        PAGEINS"
 echo "936  mediaanalysisd 453379"
 echo "548  mds_stores     206348"
@@ -59,27 +66,57 @@ cat > "$tmp/bin/log" <<'STUB'
 echo "Timestamp               Ty Process[PID:TID]"
 echo "2026-09-07 12:00:00.000 Df kernel[0:1] vnode: table is full"
 STUB
+# Records that it ran, so "the wait is exec-free" is checkable rather than assumed.
+cat > "$tmp/bin/sleep" <<'STUB'
+#!/bin/sh
+echo "$@" >> "$FAKE_SLEEPS"
+exec /bin/sleep "$@"
+STUB
 chmod +x "$tmp"/bin/*
 export PATH="$tmp/bin:$PATH" VNODE_WATCH_DIR="$tmp/logs" VNODE_WATCH_INTERVAL=1
-export FAKE_SEQ="$tmp/seq" FAKE_N="$tmp/n"
+export FAKE_SEQ="$tmp/seq" FAKE_N="$tmp/n" FAKE_SLEEPS="$tmp/sleeps"
 
 counters="$tmp/logs/vnode-watch.log"
 holders="$tmp/logs/vnode-watch-holders.log"
+errlog="$tmp/logs/vnode-watch.err"
 
 run() {  # run <iterations> <snapshot-every> <free values...>
-	rm -f "$counters" "$holders" "$FAKE_N"
+	rm -f "$counters" "$holders" "$errlog" "$FAKE_N" "$FAKE_SLEEPS"
 	local iters=$1 snap=$2; shift 2
 	printf '%s\n' "$@" > "$FAKE_SEQ"
 	VNODE_WATCH_ITERATIONS="$iters" VNODE_WATCH_SNAPSHOT="$snap" "$script"
+	wait 2>/dev/null || true          # snapshots are backgrounded
 }
+samples() { grep -cE '^[^ ]+ free=' "$counters"; }
 
-# == ordinary iterations: the curve, and nothing expensive
+# == it announces how it is configured, including which wait it got
+run 1 99 190000
+check "records its configuration" 1 \
+	"$(grep -c '^[^ ]* STARTED interval=1s wait=\(builtin\|sleep\) win=61 cooldown=12$' "$counters")"
+mode=$(sed -n 's/.*wait=\([a-z]*\).*/\1/p' "$counters" | head -1)
+echo "     (wait mode here: $mode)"
+
+# == ordinary iterations
 run 2 99 190000 190000
-check "writes one line per iteration" 2 "$(wc -l < "$counters" | tr -d ' ')"
+check "writes one line per iteration" 2 "$(samples)"
 check "with every counter in it" \
 	"2026-09-07T12:00:00 free=190000 num=263168 files=13500 recycled=17000000 d60=0" \
-	"$(sed -n 1p "$counters")"
+	"$(sed -n 2p "$counters")"
 check "and no snapshot" "no" "$([ -f "$holders" ] && echo yes || echo no)"
+check "and nothing on stderr" 0 "$(wc -l < "$errlog" | tr -d ' ')"
+
+# == it actually waits, and in builtin mode without exec'ing anything
+# An earlier version passed every other check in this file while not waiting.
+start=$SECONDS
+run 3 99 190000 190000 190000
+elapsed=$((SECONDS - start))
+check "waits between iterations" "yes" "$([ "$elapsed" -ge 2 ] && echo yes || echo no)"
+if [ "$mode" = builtin ]; then
+	check "without exec'ing /bin/sleep" "no" "$([ -s "$FAKE_SLEEPS" ] && echo yes || echo no)"
+else
+	check "falling back to sleep, as the STARTED line says" "yes" \
+		"$([ -s "$FAKE_SLEEPS" ] && echo yes || echo no)"
+fi
 
 # == the scheduled snapshot
 run 2 2 190000 190000
@@ -92,7 +129,7 @@ check "leaves the paths out while nothing is wrong" 0 "$(grep -c '^-- paths' "$h
 check "and the kernel log too" 0 "$(grep -c '^-- kernel' "$holders")"
 check "but always records page-ins" 1 "$(grep -c '^-- pageins' "$holders")"
 
-# == a burst: still far above the threshold, but the free list fell off a cliff
+# == a burst, and it fires on the first one rather than after a cooldown
 run 2 99 190000 165000
 check "fires on a sudden drop far above the floor" \
 	"== 2026-09-07T12:00:00 free=165000 d60=-25000 trigger=burst" "$(sed -n 1p "$holders")"
@@ -105,25 +142,40 @@ check "counts a path with a space in it" 1 \
 check "copies the kernel out before a reboot eats it" 1 \
 	"$(grep -c 'vnode: table is full' "$holders")"
 
+# == a held trigger must not snapshot every tick
+# Six samples under the floor: two full lsof scans per tick, against the very
+# table that is running out, is the instrument making the incident worse.
+VNODE_WATCH_COOLDOWN=3 run 6 99 40000 40000 40000 40000 40000 40000
+check "throttles a sustained trigger" 2 "$(grep -c '^== ' "$holders")"
+check "while still sampling every tick" 6 "$(samples)"
+
 # == an ordinary dip is not a burst
 run 2 99 190000 185000
 check "leaves an ordinary dip alone" "no" "$([ -f "$holders" ] && echo yes || echo no)"
 
-# == below the floor, whatever the slope
-run 1 99 40000
-check "fires on the floor" \
-	"== 2026-09-07T12:00:00 free=40000 d60=0 trigger=low" "$(sed -n 1p "$holders")"
+# == the window slides, which weeks of uptime depend on
+VNODE_WATCH_INTERVAL=30 run 4 99 100000 99000 98000 97000
+check "compares against the far end of the window, not the previous sample" \
+	"-2000" "$(sed -n '$p' "$counters" | sed 's/.*d60=//')"
 
-# == the point of the rewrite: sysctl can no longer be run
-# This is what ENFILE looks like from inside the loop, and the reason it is a
-# daemon — a spawned sampler is simply absent from the log instead.
-rm -f "$counters" "$holders" "$FAKE_N"
-printf '190000\n' > "$FAKE_SEQ"
-FAKE_SYSCTL_FAILS=1 VNODE_WATCH_ITERATIONS=2 VNODE_WATCH_SNAPSHOT=99 "$script"
-check "records that it could not sample" 2 "$(grep -c '^SAMPLE-FAILED ' "$counters")"
-check "and keeps looping rather than dying" 2 "$(wc -l < "$counters" | tr -d ' ')"
-check "dating the marker against its own uptime" 2 \
-	"$(grep -c '^SAMPLE-FAILED uptime=[0-9]*s$' "$counters")"
+# == sysctl half-answers after an OS upgrade renames an oid
+# It exits non-zero while printing the values it does know, so trusting the
+# status would make every sample look like the ENFILE marker forever.
+FAKE_MODE=short run 2 99 190000 190000
+check "does not mistake a renamed oid for the thing it watches for" 2 \
+	"$(grep -c '^SAMPLE-FAILED iter=[0-9]* values=3$' "$counters")"
+check "and stays alive through it" 0 "$(samples)"
+
+# == a non-numeric reading must not be fatal arithmetic
+FAKE_MODE=nonnumeric run 2 99 190000 190000
+check "survives a non-numeric reading" 2 "$(grep -c '^SAMPLE-BAD iter=[0-9]*$' "$counters")"
+
+# == and the case it is all for: sysctl cannot be run at all
+FAKE_MODE=dead run 2 99 190000
+check "records that it could not sample" 2 \
+	"$(grep -c '^SAMPLE-FAILED iter=[0-9]* values=0$' "$counters")"
+check "and keeps counting iterations rather than dying on the first" 1 \
+	"$(grep -c '^SAMPLE-FAILED iter=2 ' "$counters")"
 
 echo
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }
