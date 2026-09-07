@@ -12,7 +12,7 @@ skills at all.
 
     security: scan for leaked secrets in the supabase functions
     deps: bump the cloudflare provider to 6.0
-    devops(pollos): watch the terraform providers, nothing tracked them
+    ci(pollos): watch the terraform providers, nothing tracked them
     fe: stack the footer on narrow viewports
     docs: say why the mirror is not tagged latest
 
@@ -22,14 +22,22 @@ The types:
 |------|-----|
 | `security` | vulnerabilities, scanners, secrets, hardening |
 | `deps` | bumping a dependency to a new version |
-| `devops` | CI, build, release, infrastructure, tooling config |
+| `ci` | the pipeline itself — workflows, runners, the checks a push triggers |
+| `devops` | build, release, infrastructure, tooling config |
 | `fe` | frontend work |
 | `be` | backend work |
 | `docs` | documentation only |
 | `chore` | housekeeping that changes no behaviour |
 
-`deps` is the bump itself; **teaching CI to watch for bumps is `devops`.** That
+`deps` is the bump itself; **teaching CI to watch for bumps is `ci`.** That
 distinction is the one that actually comes up.
+
+`ci` and `devops` are the pair that needs saying out loud, because they used to be
+one drawer. `ci` is what the forge runs — a workflow file, a runner label, a job
+that has to go green before a merge. `devops` is everything else in that
+territory: a Makefile target, a Dockerfile, a compose file, the pinned toolchain.
+The test is where it executes. Teaching the pipeline to build the image is `ci`;
+changing how the image is built is `devops`.
 
 Add a type when something genuinely does not fit, rather than forcing it — but
 reach for the list first, because a per-repo vocabulary is how a convention
