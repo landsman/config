@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Samples the vnode free list once a minute, because the panic in #82 destroys
+  Samples the vnode free list every few seconds, because the panic in #82 destroys
   the evidence for its own cause. The kernel says `vnode: table is full` while
   it is happening and none of that survives the reboot: the unified log kept
   zero kernel messages from the panicked boot session, on 2026-08-26 and
@@ -21,10 +21,16 @@
   already full, which is the moment the machine is about to die. This sees the
   approach.
 
-  ponytail: append-only, no rotation. Roughly 200 KB a day between the two
-  logs, and the whole thing goes away once #82 is settled — `launchctl bootout
-  gui/$(id -u)/local.vnode-watch`, then delete this file, the script and both
-  logs.
+  KeepAlive rather than a timer, which is not a tuning choice. On 2026-09-07
+  launchd logged `trampoline spawn failed: 23: Too many open files in system`
+  for this very job seconds before the panic — a sampler launchd has to fork
+  cannot observe the thing that stops forking. It now starts once and loops,
+  execing nothing per iteration, so it keeps writing into the collapse.
+
+  ponytail: append-only, no rotation. Roughly 1.5 MB a day between the two logs
+  at the finer sample rate, and the whole thing goes away once #82 is settled —
+  `launchctl bootout gui/$(id -u)/local.vnode-watch`, then delete this file, the
+  script and both logs.
 -->
 <plist version="1.0">
 <dict>
@@ -41,7 +47,7 @@
 	</array>
 	<key>RunAtLoad</key>
 	<true/>
-	<key>StartInterval</key>
-	<integer>60</integer>
+	<key>KeepAlive</key>
+	<true/>
 </dict>
 </plist>

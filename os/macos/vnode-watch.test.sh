@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Self-check for .local/bin/vnode-watch.sh. No framework: sysctl, lsof and date
-# are stubbed onto PATH, so this runs anywhere — including the Linux legs of
-# CI, which have none of the three — and asserts on the files left behind.
+# Self-check for .local/bin/vnode-watch.sh. No framework: sysctl, lsof, top,
+# date and log are stubbed onto PATH, so this runs anywhere — including the
+# Linux legs of CI, which have none of them — and asserts on the files left
+# behind.
 #
-# date is stubbed too, not just the two data sources: the every-fifth-minute
-# branch reads the wall clock, and a test that waits for the right minute is a
-# test nobody runs.
+# The sampler is a daemon, so every case bounds it with VNODE_WATCH_ITERATIONS
+# rather than waiting for it to be killed. The sysctl stub walks a scripted
+# sequence of free values, one per call, which is what makes a burst reachable
+# in a test: the trigger compares against the reading a window ago.
 set -eu
 
 script="$(cd "$(dirname "$0")" && pwd)/.local/bin/vnode-watch.sh"
@@ -24,14 +26,14 @@ check() {  # check <name> <expected> <actual>
 mkdir -p "$tmp/bin" "$tmp/logs"
 cat > "$tmp/bin/sysctl" <<'STUB'
 #!/bin/sh
-echo "${FAKE_FREE:-190000}"; echo 263168; echo 13500; echo 17000000
+[ -z "${FAKE_SYSCTL_FAILS:-}" ] || exit 1
+n=$(cat "$FAKE_N" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$FAKE_N"
+free=$(sed -n "${n}p" "$FAKE_SEQ"); [ -n "$free" ] || free=$(tail -1 "$FAKE_SEQ")
+echo "$free"; echo 263168; echo 13500; echo 17000000
 STUB
 cat > "$tmp/bin/date" <<'STUB'
 #!/bin/sh
-case "$1" in
-	+%M) echo "${FAKE_MIN:-07}" ;;
-	*)   echo 2026-08-28T12:00:00 ;;
-esac
+echo 2026-09-07T12:00:00
 STUB
 # -F output, which is what the script asks for. The space in the third path is
 # the point: the default table format loses everything before it to $NF.
@@ -41,11 +43,9 @@ printf 'p738\ncidea\n'
 printf 'n/Users/landsman/projects/a/one\n'
 printf 'n/Users/landsman/projects/a/two\n'
 printf 'n/Users/landsman/Library/Application Support/x\n'
-printf 'p718\ncchrome\n'
-printf 'n/Applications/Chrome/x\n'
+printf 'p718\ncchrome\nn/Applications/Chrome/x\n'
 STUB
-# top is stubbed with a root-owned process in it on purpose: it is there to
-# cover exactly what lsof cannot see without privileges.
+# A root-owned process on purpose: it is here to cover what lsof cannot see.
 cat > "$tmp/bin/top" <<'STUB'
 #!/bin/sh
 echo "Processes: 900 total"
@@ -57,76 +57,73 @@ STUB
 cat > "$tmp/bin/log" <<'STUB'
 #!/bin/sh
 echo "Timestamp               Ty Process[PID:TID]"
-echo "2026-08-28 12:00:00.000 Df kernel[0:1] vnode: table is full"
+echo "2026-09-07 12:00:00.000 Df kernel[0:1] vnode: table is full"
 STUB
-chmod +x "$tmp/bin/sysctl" "$tmp/bin/date" "$tmp/bin/lsof" "$tmp/bin/top" "$tmp/bin/log"
-export PATH="$tmp/bin:$PATH" VNODE_WATCH_DIR="$tmp/logs"
+chmod +x "$tmp"/bin/*
+export PATH="$tmp/bin:$PATH" VNODE_WATCH_DIR="$tmp/logs" VNODE_WATCH_INTERVAL=1
+export FAKE_SEQ="$tmp/seq" FAKE_N="$tmp/n"
 
 counters="$tmp/logs/vnode-watch.log"
 holders="$tmp/logs/vnode-watch-holders.log"
 
-# == an ordinary tick: the curve, and nothing expensive
-FAKE_MIN=07 "$script"
-check "writes one counters line" 1 "$(wc -l < "$counters" | tr -d ' ')"
+run() {  # run <iterations> <snapshot-every> <free values...>
+	rm -f "$counters" "$holders" "$FAKE_N"
+	local iters=$1 snap=$2; shift 2
+	printf '%s\n' "$@" > "$FAKE_SEQ"
+	VNODE_WATCH_ITERATIONS="$iters" VNODE_WATCH_SNAPSHOT="$snap" "$script"
+}
+
+# == ordinary iterations: the curve, and nothing expensive
+run 2 99 190000 190000
+check "writes one line per iteration" 2 "$(wc -l < "$counters" | tr -d ' ')"
 check "with every counter in it" \
-	"2026-08-28T12:00:00 free=190000 num=263168 files=13500 recycled=17000000 delta=0" \
-	"$(cat "$counters")"
+	"2026-09-07T12:00:00 free=190000 num=263168 files=13500 recycled=17000000 d60=0" \
+	"$(sed -n 1p "$counters")"
 check "and no snapshot" "no" "$([ -f "$holders" ] && echo yes || echo no)"
 
-# == appends, because a truncating sampler loses the run-up it exists to show
-FAKE_MIN=07 "$script"
-check "appends rather than truncates" 2 "$(wc -l < "$counters" | tr -d ' ')"
-
-# == every fifth minute: who holds what
-FAKE_MIN=15 "$script"
-check "snapshots on the fifth minute" "yes" "$([ -f "$holders" ] && echo yes || echo no)"
+# == the scheduled snapshot
+run 2 2 190000 190000
+check "snapshots on the scheduled iteration" 1 "$(grep -c '^== ' "$holders")"
 check "names the biggest holder first" "3 738 idea" "$(sed -n 3p "$holders")"
 check "reaches processes lsof cannot see" 1 "$(grep -c '^548  mds_stores' "$holders")"
-check "records the free count beside it" \
-	"== 2026-08-28T12:00:00 free=190000 delta=0 trigger=schedule" "$(sed -n 1p "$holders")"
+check "records the trigger" \
+	"== 2026-09-07T12:00:00 free=190000 d60=0 trigger=schedule" "$(sed -n 1p "$holders")"
 check "leaves the paths out while nothing is wrong" 0 "$(grep -c '^-- paths' "$holders")"
-check "and leaves the kernel log alone too" 0 "$(grep -c '^-- kernel' "$holders")"
+check "and the kernel log too" 0 "$(grep -c '^-- kernel' "$holders")"
 check "but always records page-ins" 1 "$(grep -c '^-- pageins' "$holders")"
 
-# == below the threshold: every tick, and the paths too
-rm -f "$holders"
-FAKE_MIN=07 FAKE_FREE=40000 "$script"
-check "snapshots off-schedule when the free list is low" "yes" \
-	"$([ -f "$holders" ] && echo yes || echo no)"
-check "says which trigger fired" \
-	"== 2026-08-28T12:00:00 free=40000 delta=-150000 trigger=low" "$(sed -n 1p "$holders")"
+# == a burst: still far above the threshold, but the free list fell off a cliff
+run 2 99 190000 165000
+check "fires on a sudden drop far above the floor" \
+	"== 2026-09-07T12:00:00 free=165000 d60=-25000 trigger=burst" "$(sed -n 1p "$holders")"
 check "adds the paths, so the count has a subject" 1 \
 	"$(grep -c '2 /Users/landsman/projects$' "$holders")"
-# The regression this format exists to prevent: with the default table format
-# $NF is "Support/x", which fails the leading-slash guard and vanishes.
+# With the default table format $NF is "Support/x", which fails the leading
+# slash guard and vanishes. This is the regression check for that.
 check "counts a path with a space in it" 1 \
 	"$(grep -c '1 /Users/landsman/Library$' "$holders")"
-# The whole reason for the agent: this line does not survive the reboot, so it
-# has to be copied out while the machine is still up.
-check "copies the kernel out before the reboot eats it" 1 \
+check "copies the kernel out before a reboot eats it" 1 \
 	"$(grep -c 'vnode: table is full' "$holders")"
 
-# == the threshold is a threshold, not a constant
-rm -f "$holders"
-FAKE_MIN=07 FAKE_FREE=40000 VNODE_WATCH_LOW=1000 "$script"
-check "a lower threshold stops it firing" "no" \
-	"$([ -f "$holders" ] && echo yes || echo no)"
-
-# == a burst: still far from the threshold, but the free list just fell off a
-# cliff. 54h of real samples put 98% of ticks within 2500 of no change, so a
-# drop this size is the anomaly the absolute threshold would sleep through.
-rm -f "$holders"; echo 190000 > "$tmp/logs/.vnode-watch-last"
-FAKE_MIN=07 FAKE_FREE=165000 "$script"
-check "fires on a sudden drop far above the threshold" "yes" \
-	"$([ -f "$holders" ] && echo yes || echo no)"
-check "and says it was the burst, not the floor" \
-	"== 2026-08-28T12:00:00 free=165000 delta=-25000 trigger=burst" "$(sed -n 1p "$holders")"
-
 # == an ordinary dip is not a burst
-rm -f "$holders"; echo 190000 > "$tmp/logs/.vnode-watch-last"
-FAKE_MIN=07 FAKE_FREE=185000 "$script"
-check "leaves an ordinary dip alone" "no" \
-	"$([ -f "$holders" ] && echo yes || echo no)"
+run 2 99 190000 185000
+check "leaves an ordinary dip alone" "no" "$([ -f "$holders" ] && echo yes || echo no)"
+
+# == below the floor, whatever the slope
+run 1 99 40000
+check "fires on the floor" \
+	"== 2026-09-07T12:00:00 free=40000 d60=0 trigger=low" "$(sed -n 1p "$holders")"
+
+# == the point of the rewrite: sysctl can no longer be run
+# This is what ENFILE looks like from inside the loop, and the reason it is a
+# daemon — a spawned sampler is simply absent from the log instead.
+rm -f "$counters" "$holders" "$FAKE_N"
+printf '190000\n' > "$FAKE_SEQ"
+FAKE_SYSCTL_FAILS=1 VNODE_WATCH_ITERATIONS=2 VNODE_WATCH_SNAPSHOT=99 "$script"
+check "records that it could not sample" 2 "$(grep -c '^SAMPLE-FAILED ' "$counters")"
+check "and keeps looping rather than dying" 2 "$(wc -l < "$counters" | tr -d ' ')"
+check "dating the marker against its own uptime" 2 \
+	"$(grep -c '^SAMPLE-FAILED uptime=[0-9]*s$' "$counters")"
 
 echo
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }
