@@ -57,3 +57,25 @@ Two things to know before picking 3 over 7:
 
 Set `commit-message.prefix: deps` on every entry too, so Dependabot writes this
 account's convention instead of its own `build(deps):`.
+
+## Where the docs live
+
+GitHub's own Actions documentation is `github/docs`, sparse-cloned to
+`~/projects/github/github_docs` — 8 MB of `content/actions`, not the whole site.
+Grep it instead of recalling syntax:
+
+    rg -n "concurrency" ~/projects/github/github_docs/content/actions/reference/workflows-and-actions/workflow-syntax.md
+
+- `content/actions/reference/workflows-and-actions/workflow-syntax.md` — the full
+  `on:` / `jobs:` / `steps:` reference
+- `content/actions/reference/workflows-and-actions/contexts.md` — `github.*`,
+  `needs.*`, `secrets.*`, and which of them exist where
+- `content/actions/reference/runners/` — hosted labels and what is on them
+
+Pages transclude `{% data reusables.… %}` snippets, so `data/` is in the checkout
+too; anything outside `content/actions` is deliberately absent. Not on this
+machine, or stale? `make -C ~/projects/landsman/config agent-docs` clones it and
+fast-forwards it on a re-run — it owns the sparse paths so this file does not.
+
+**The docs are not the version check.** They describe the syntax, not which major
+an action is on — that stays `gh api repos/<owner>/<action>/releases/latest`.

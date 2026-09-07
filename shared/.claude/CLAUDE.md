@@ -2,9 +2,10 @@ Every rule lives in [`rules/`](rules/), one file each. This file is the index.
 
 A rule there loads unconditionally unless it declares `paths:` frontmatter,
 which scopes it to the files it is about. A rule earns that scoping only when
-its trigger is a file path *and* breaking it shows up in a diff — GitHub Actions
-and Makefiles are the two so far. The rest override a default I would otherwise
-fall back to, so they have to be in context before the mistake, not after.
+its trigger is a file path *and* breaking it shows up in a diff — GitHub Actions,
+Forgejo Actions and Makefiles are the three so far. The rest override a default
+I would otherwise fall back to, so they have to be in context before the
+mistake, not after.
 
 | Rule | Applies when |
 |------|--------------|
@@ -16,6 +17,7 @@ fall back to, so they have to be in context before the mistake, not after.
 | [Linking to work](rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
 | [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
+| [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/`, or porting a workflow from GitHub — scoped, loads itself |
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
 | [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 

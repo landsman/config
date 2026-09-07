@@ -67,8 +67,8 @@ paths:
 ```
 
 The `**/` prefix is not decoration — the glob is matched against the path as
-given, so without it the rule misses anything below the repo root. Two rules use
-this today: `github-actions.md` and `makefiles.md`.
+given, so without it the rule misses anything below the repo root. Three rules
+use this today: `github-actions.md`, `makefiles.md` and `forgejo-workflows.md`.
 
 **A rule earns scoping only when its trigger is a file path *and* breaking it
 shows up in a diff.** Everything else overrides a default that would otherwise be
@@ -80,6 +80,16 @@ from a skill, drawn one level finer.
 read first, so nothing matches, so the rule never loads — precisely when it is
 needed most. `CLAUDE.md` carries a one-line pointer per scoped rule to cover it;
 that row in the index is load-bearing, not a table of contents.
+
+**When the trigger is a request, the pair is a rule and a skill.** Forgejo
+Actions is the case that forced it: the rule is worth scoping, because most of it
+applies while a `.forgejo/workflows/` file is open — but the sentence that starts
+the work is "port these workflows to Forgejo", spoken in a repo where no such
+file exists yet. A skill description sits in context every session for the price
+of one line, so the `forgejo-workflows` skill carries the procedure and points at
+the rule for the facts, the same division `commit-messages` already uses. The
+index row still earns its place; a skill is discovered when the model looks for
+one, and the row is what is simply *there*.
 
 **Claude Code is the only harness that honours it.** opencode injects every rule
 body through one glob, and Codex, Zed and Gemini CLI are told to read the whole
