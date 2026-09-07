@@ -57,20 +57,66 @@ docs() {
 	[ $# -eq 0 ] || git -C "$dest" sparse-checkout set "$@"
 }
 
+# Not every documentation site is a git repository. A site publishing llms.txt
+# lists its pages as markdown, which is the same thing arriving over HTTP: fetch
+# the list, fetch what it names, keep the site's own directory structure.
+#
+# Only links ending in `.md` are followed. That is not fussiness — Stripe's list
+# opens with a paragraph of prose that happens to contain a URL, and a downloader
+# taking every link creates a directory named after the sentence.
+llmstxt() {
+	local name="$1" dest="$root/$1" url="$2" listed missing
+	echo "== $name"
+	mkdir -p "$dest"
+
+	# The list itself is kept: a diff of it is how a page that upstream added or
+	# dropped becomes visible.
+	curl -sSfL -o "$dest/llms.txt" "$url"
+	listed=$(grep -oE 'https?://[^)"'"'"'[:space:]]+\.md' "$dest/llms.txt" | sort -u)
+	[ -n "$listed" ] || { echo "   no .md links in $url" >&2; return; }
+
+	# -z asks for the file only if it changed, so a re-run is a few hundred 304s
+	# rather than a few hundred downloads. Five at a time, which is what the site
+	# would see from one browser opening a page.
+	printf '%s\n' "$listed" | DEST="$dest" xargs -P 5 -n 8 sh -c '
+		for u; do
+			p=${u#*://}; p=${p#*/}
+			mkdir -p "$DEST/$(dirname "$p")"
+			if [ -f "$DEST/$p" ]; then
+				curl -sSfL -z "$DEST/$p" -o "$DEST/$p" "$u" || echo "   gone: $u" >&2
+			else
+				curl -sSfL -o "$DEST/$p" "$u" || echo "   gone: $u" >&2
+			fi
+		done' _
+
+	missing=$(printf '%s\n' "$listed" | wc -l | tr -d ' ')
+	echo "   $missing pages listed, $(find "$dest" -name '*.md' | wc -l | tr -d ' ') on disk"
+}
+
 die() { echo "$conf:$1: $2" >&2; exit 1; }
 
-section= url= ref= sparse= line=0 opened=0
+section= url= llms= ref= sparse= line=0 opened=0
 
 # Clone the section that just ended. Sections are flushed on the next header and
 # once more at EOF, which is the only reason `opened` exists: without it an empty
 # file and a file whose first section is still being read look the same.
 flush() {
 	[ "$opened" -eq 1 ] || return 0
-	[ -n "$url" ] || die "$1" "[$section] has no url"
-	# $sparse unquoted on purpose: it is a list of paths, not one path.
-	# shellcheck disable=SC2086
-	docs "$section" "$url" "$ref" $sparse
-	section= url= ref= sparse= opened=0
+
+	if [ -n "$url" ] && [ -n "$llms" ]; then
+		die "$1" "[$section] has url and llms - a section is one or the other"
+	elif [ -n "$url" ]; then
+		# $sparse unquoted on purpose: it is a list of paths, not one path.
+		# shellcheck disable=SC2086
+		docs "$section" "$url" "$ref" $sparse
+	elif [ -n "$llms" ]; then
+		[ -z "$ref$sparse" ] || die "$1" "[$section] has llms with ref or sparse, which only a clone can use"
+		llmstxt "$section" "$llms"
+	else
+		die "$1" "[$section] has no url or llms"
+	fi
+
+	section= url= llms= ref= sparse= opened=0
 }
 
 while read -r key sep value; do
@@ -90,9 +136,10 @@ while read -r key sep value; do
 
 	case $key in
 		url) url=$value ;;
+		llms) llms=$value ;;
 		ref) ref=$value ;;
 		sparse) sparse=$value ;;
-		*) die "$line" "unknown key '$key' in [$section] - url, ref or sparse" ;;
+		*) die "$line" "unknown key '$key' in [$section] - url, llms, ref or sparse" ;;
 	esac
 done < "$conf"
 

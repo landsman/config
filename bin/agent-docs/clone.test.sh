@@ -34,7 +34,42 @@ if [ "${1:-}" = clone ]; then
 fi
 STUB
 chmod +x "$tmp/bin/git"
+
+# curl is stubbed the same way. The fixture list carries the trap the real
+# Stripe one carries: a paragraph of prose with a URL in it, and a link that is
+# not markdown. Neither may be downloaded.
+cat > "$tmp/bin/curl" <<'STUB'
+#!/usr/bin/env bash
+echo "curl $*" >> "$CURL_LOG"
+out=; url=
+while [ $# -gt 0 ]; do
+	case $1 in
+		-o) out=$2; shift 2 ;;
+		-z) shift 2 ;;
+		-*) shift ;;
+		*) url=$1; shift ;;
+	esac
+done
+case $url in
+	*llms.txt) printf '%s\n' "$FIXTURE_LIST" > "$out" ;;
+	*) echo "a page" > "$out" ;;
+esac
+STUB
+chmod +x "$tmp/bin/curl"
 export PATH="$tmp/bin:$PATH"
+
+FIXTURE_LIST=$(cat <<'LIST'
+# Docs
+
+When installing, check https://example.invalid/registry rather than guessing.
+
+- [One](https://example.invalid/one.md): the first
+- [Two](https://example.invalid/deep/two.md): the second
+- [Site](https://example.invalid/three.html): not markdown
+LIST
+)
+export FIXTURE_LIST
+export CURL_LOG="$tmp/curl.log"; : > "$CURL_LOG"
 
 # HOME is redirected because the script defaults its root to ~/projects, and a
 # test that forgot to pass one would otherwise pull the real clones.
@@ -97,6 +132,26 @@ out=$("$script" "$root" "$tmp/repos.conf" 2>&1 >/dev/null)
 check "an occupied path is left alone" 0 "$(grep -c 'b.git' "$GIT_LOG" || true)"
 check "and says so" 1 "$(printf '%s\n' "$out" | grep -c 'left alone' || true)"
 
+# A site is not a repository. `llms` fetches the list and then the pages it
+# names; the traps are prose that mentions a URL, and a link that is not
+# markdown. The real Stripe list has both.
+cat > "$tmp/llms.conf" <<'FIXTURE'
+[a/site]
+llms = https://example.invalid/llms.txt
+FIXTURE
+
+export GIT_LOG="$tmp/llms.git.log"; : > "$GIT_LOG"
+: > "$CURL_LOG"
+"$script" "$root" "$tmp/llms.conf" >/dev/null
+
+check "the list itself is kept" 1 "$(grep -c "o $root/a/site/llms.txt" "$CURL_LOG" || true)"
+check "the markdown pages are fetched" 2 "$(grep -cE 'example.invalid/(one|deep/two)[.]md' "$CURL_LOG" || true)"
+check "the site's paths are preserved" "ok" \
+	"$([ -f "$root/a/site/one.md" ] && [ -f "$root/a/site/deep/two.md" ] && echo ok || echo missing)"
+check "prose that mentions a url is not a page" 0 "$(grep -c registry "$CURL_LOG" || true)"
+check "a link that is not markdown is not a page" 0 "$(grep -c three.html "$CURL_LOG" || true)"
+check "and git is not involved" 0 "$(grep -c . "$GIT_LOG" || true)"
+
 # The conf is parsed by hand, so the parser is the part that can be wrong. Each
 # case writes a broken conf and asserts the script refuses it and clones nothing
 # — a typo that half-runs is worse than one that stops.
@@ -120,13 +175,17 @@ bad "a typo in a key is refused" "unknown key 'sparce'" "$(printf '[a/b]\nurl = 
 bad "a section without a url is refused" "has no url" "[a/b]"
 bad "a key outside a section is refused" "before any [section]" "url = u"
 bad "a line that is not key = value is refused" "expected 'key = value'" "$(printf '[a/b]\nurl: u\n')"
+bad "url and llms together are refused" "one or the other" "$(printf '[a/b]\nurl = u\nllms = l\n')"
+bad "llms with sparse is refused" "only a clone can use" "$(printf '[a/b]\nllms = l\nsparse = docs\n')"
 
 # repos.conf itself: it parses, and every section in it reaches git. This is the
 # one assertion that moves when a source is added, and it moves on its own.
 export GIT_LOG="$tmp/real.log"; : > "$GIT_LOG"
+: > "$CURL_LOG"
 "$script" "$tmp/realroot" "$conf" >/dev/null
-check "every section of repos.conf is cloned" \
-	"$(grep -c '^\[' "$conf")" "$(grep -c ' clone ' "$GIT_LOG" || true)"
+check "every section of repos.conf is fetched, by git or by curl" \
+	"$(grep -c '^\[' "$conf")" \
+	"$(( $(grep -c ' clone ' "$GIT_LOG" || true) + $(grep -c 'llms.txt$' "$CURL_LOG" || true) ))"
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }
 echo "all ok"
