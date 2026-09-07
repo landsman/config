@@ -55,13 +55,18 @@ Then from the repo root:
 It picks up `.forgejo/workflows/` automatically. Use it to validate syntax and
 step resolution before pushing.
 
-### Local docs mirror
+### Where the docs live
 
-The upstream documentation is checked out at `~/projects/codeberg/forgejo-docs/`
-on the `v16.0` branch, matching this instance's version. It is grep-able — reach
-for it before inventing a trigger, builtin action or config key:
+The upstream documentation is reachable three ways, so an agent can check a
+trigger, builtin action or config key without guessing from memory:
 
-    rg -n "gitea" ~/projects/codeberg/forgejo-docs/docs/user/actions/reference.md
+- **Online:** https://forgejo.org/docs/latest/
+- **Private mirror on this instance:** https://git.insuit.cz/tools-mirror/forgejo-docs
+  (a `tools-mirror` repo, public, reachable on the homelab network even when
+  codeberg.org is not)
+- **Local clone:** `~/projects/codeberg/forgejo/docs/` — grep-able:
+
+      rg -n "forgejo" ~/projects/codeberg/forgejo/docs/docs/user/actions/reference.md
 
 Most useful pages:
 
@@ -71,8 +76,10 @@ Most useful pages:
 - `docs/user/actions/security-openid-connect.md` — OIDC tokens from Actions
 - `docs/admin/actions/configuration.md` — runner/instance config keys
 
-Refresh with `git -C ~/projects/codeberg/forgejo-docs pull --ff-only`. If the
-instance later runs a different major, check out that branch instead.
+Refresh with `git -C ~/projects/codeberg/forgejo/docs pull --ff-only`, or
+`git fetch` the mirror. A version branch (`v16.0`, …) is what to read when
+writing for a pinned instance; `next` (the mirror's default) tracks the
+development version.
 
 ## The homelab instance (git.insuit.cz)
 
