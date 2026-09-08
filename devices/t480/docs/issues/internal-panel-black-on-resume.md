@@ -203,12 +203,27 @@ an error, because a dead panel then looks like a result. Enable it before the
 test, not during:
 
 ```
-sudo sysctl -w kernel.sysrq=1        # all functions; resets at reboot
+sudo sysctl -w kernel.sysrq=240      # 176 + 64, the one bit E needs
 ```
 
-Deliberately not a drop-in under `system/etc/sysctl.d/`. It is wanted for one
-diagnostic, not as a standing configuration, and a reboot undoing it is the
-desired behaviour.
+**Not `=1`.** That is not a bit, it is the special value meaning *all
+functions*, and it would also hand out `c` (deliberate kernel panic), memory
+dumps and keyboard control for a test that needs none of them. 240 adds bit 64
+and nothing else.
+
+`sysctl -w` writes to `/proc/sys/kernel/sysrq`, which is tmpfs — **a reboot
+puts it back to 176.** Deliberately not a drop-in under
+`system/etc/sysctl.d/`: it is wanted for one diagnostic, not as standing
+configuration, and being undone is the desired behaviour.
+
+That matters because bit 64 is not free. Ubuntu's own comment in
+`55-magic-sysrq.conf` names the cost — sysrq lets someone at the console *"kill
+arbitrary processes including the running screen lock"*, and killing the locker
+is exactly what bit 64 permits. On a laptop that leaves the house, leave it
+enabled only as long as the test runs.
+
+For orientation: `Alt+SysRq+B`, an instant reboot with no sync and no unmount,
+is **already enabled** in the shipped 176. Bit 64 does not introduce that one.
 
 **What `E` costs:** SIGTERM to every process except init. That is the whole
 session and every open application, so unsaved work is gone — *more* damage than
@@ -221,8 +236,8 @@ proves, not because it is cheap.
    months of CVE fixes newer than the pin. Run a deliberate series of suspends
    on it and count with the commands above. This is the likely end of the pin.
 2. **Run the VT-switch and SysRq tests** at the next black screen, before
-   restarting anything — and run `sysctl -w kernel.sysrq=1` *now*, while there is
-   a working screen to type it on. Setting it up after the panel dies means
+   restarting anything — and run `sysctl -w kernel.sysrq=240` *now*, while there
+   is a working screen to type it on. Setting it up after the panel dies means
    typing it blind into a TTY.
 3. **Re-qualify the Launchpad report** — narrow to -28, correct the metric, add
    the EACCES variant, and reference #520008 with a request to reopen it against
