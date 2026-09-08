@@ -69,6 +69,25 @@ on:
           repeating a limit they would all have picked anyway.
         type: number
         default: 150
+      ignorefile:
+        description: >-
+          A trivy ignore file for the config scan, relative to the repo root.
+          Empty by default, and the default is the one to keep: this exists for
+          a check the Dockerfile cannot satisfy by construction, not for one
+          nobody has got round to fixing.
+
+          The distinction that matters is where the reasoning lives. A repo-wide
+          `.trivyignore` — which trivy picks up on its own from the working
+          directory — turns a check off for every Dockerfile in the repo,
+          including the one added next year by someone who never read this. A
+          file named here sits next to the Dockerfile it excuses, says why in a
+          comment, and is invisible to every other caller.
+
+          The case it was added for: a runner image whose entrypoint has to start
+          as root to align the docker group with a mounted socket, which no
+          `USER` line can survive.
+        type: string
+        default: ''
 
 jobs:
   scan:
@@ -120,6 +139,11 @@ jobs:
       # every caller gets the new one on its next run.
       - name: Scan the Dockerfile for misconfiguration
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          # An env var rather than an action input, because there is none for it,
+          # and unset is the same as empty here — a caller that passes nothing
+          # gets today's behaviour with no ignore file read at all.
+          TRIVY_IGNOREFILE: ${{ inputs.ignorefile }}
         with:
           # The action defaults to trivy v0.70.0 and v0.74.0 is out. The binary
           # version is an input, not the action tag, so the Dependabot bump above
