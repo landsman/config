@@ -106,8 +106,12 @@
       "mcp__pencil"
     ],
     "deny": [
-      "Bash(git push*main*)",
-      "Bash(git push*master*)",
+      "Bash(git push* main*)",
+      "Bash(git push*:main*)",
+      "Bash(git push* +main*)",
+      "Bash(git push* master*)",
+      "Bash(git push*:master*)",
+      "Bash(git push* +master*)",
       "Bash(gh pr merge*)",
       "Bash(gh pr close*)",
       "Bash(gh repo delete*)",
