@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Why this machine kernel-panics every week or two:
+    https://github.com/landsman/config/issues/82
+
+  The root half of the sampler. Installed by `make macos-vnode-watch`, which is
+  also where the reasoning about needing root at all lives; the LaunchAgent
+  version of this file is under os/macos/Library/LaunchAgents and needs no
+  password.
+
+  Root buys exactly one thing, and the 2026-09-08 capture is what made it the
+  only option left: fs_usage is the only interface that reports open() rate per
+  process, and that capture showed 120851 vnodes consumed in 61 seconds while
+  the largest change in any process's open-file count was +1. Everything this
+  has measured through lsof has been looking at holders, and the cause is
+  touches. VNODE_WATCH_TRACE turns the trace on; it stays 0 for the agent, which
+  cannot run fs_usage anyway.
+
+  Program is /usr/local/bin/vnode-watch.sh rather than the stowed copy in
+  ~/.local/bin on purpose. A root job that execs a file any process running as
+  the user can rewrite is a privilege escalation wearing a diagnostic's clothes.
+  The Makefile target installs it root:wheel 755.
+
+  ProcessType Interactive because the default makes the job eligible for timer
+  coalescing, and a 5-second sample rate that the system is free to smear is not
+  a 5-second sample rate. The event this exists to catch is 31 seconds wide.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.vnode-watch</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/local/bin/vnode-watch.sh</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<!-- Root has no business writing into a user's Library, and $HOME here
+		     is /var/root, which is not somewhere anyone looks. -->
+		<key>VNODE_WATCH_DIR</key>
+		<string>/usr/local/var/log/vnode-watch</string>
+		<!-- Seconds of fs_usage on a burst. The capture had 31 seconds of
+		     runway before the floor, so 20 lands inside the event. -->
+		<key>VNODE_WATCH_TRACE</key>
+		<string>20</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Interactive</string>
+</dict>
+</plist>
