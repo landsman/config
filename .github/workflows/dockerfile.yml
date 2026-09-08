@@ -121,6 +121,10 @@ jobs:
       - name: Scan the Dockerfile for misconfiguration
         uses: aquasecurity/trivy-action@v0.36.0
         with:
+          # The action defaults to trivy v0.70.0 and v0.74.0 is out. The binary
+          # version is an input, not the action tag, so the Dependabot bump above
+          # does not carry it. Drop this line when the default catches up.
+          version: v0.74.0
           scan-type: config
           scan-ref: ${{ inputs.dockerfile }}
           # CRITICAL,HIGH on both scans, and the same list on purpose: below that
@@ -176,6 +180,7 @@ jobs:
         env:
           TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
         with:
+          version: v0.74.0   # see the config scan above
           scan-type: image
           image-ref: ${{ inputs.build && steps.built.outputs.image || steps.base.outputs.image }}
           severity: CRITICAL,HIGH
