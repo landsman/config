@@ -1,6 +1,10 @@
 #!/bin/sh
-# Sampler behind ~/Library/LaunchAgents/local.vnode-watch.plist. See that file
-# for why this exists at all; this one is about what it records.
+# Why this machine kernel-panics every week or two:
+#   https://github.com/landsman/config/issues/82
+#
+# Sampler behind the launchd job that runs it — the LaunchAgent plist beside
+# this in the repo, or the root LaunchDaemon under os/macos/system/. Those say
+# why it exists at all; this one is about what it records.
 #
 #   vnode-watch.log          the counters, every 5s — the curve
 #   vnode-watch-holders.log  who holds open files, throttled — the name
@@ -46,6 +50,13 @@
 # readings landed within 2500 of no change (p1 -2539, p99 +1380) and the largest
 # single drop was -23354, once.
 #
+# fs_usage is the only thing that measures open() rate per process, which is what
+# the 2026-09-08 capture showed this actually is: 120851 vnodes gone in 61s while
+# the largest change in any process's open-file count was +1. It needs root, so
+# it is off unless the daemon plist turns it on — see os/macos/system/. The
+# budget is real rather than hoped for: that capture had 31 seconds between the
+# first burst sample and the floor.
+#
 # ponytail: the window lives in memory, so a restart is blind for its first
 # minute, and the logs are append-only with no rotation. The throttle bounds the
 # worst case to one snapshot a minute; a vnode storm can still put ~250 KB in
@@ -58,6 +69,8 @@ burst=${VNODE_WATCH_BURST:--20000}
 every=${VNODE_WATCH_INTERVAL:-5}
 snap_every=${VNODE_WATCH_SNAPSHOT:-60}     # iterations between scheduled snapshots
 cooldown=${VNODE_WATCH_COOLDOWN:-12}       # minimum iterations between triggered ones
+trace=${VNODE_WATCH_TRACE:-0}              # seconds of fs_usage on a trigger; 0 = off
+trace_lines=${VNODE_WATCH_TRACE_LINES:-400000}
 max_iter=${VNODE_WATCH_ITERATIONS:-0}      # 0 = forever; the test bounds it
 
 [ "$every" -ge 1 ] || every=1
@@ -139,12 +152,22 @@ printf '%s STARTED interval=%ss wait=%s win=%s cooldown=%s\n' \
 
 window=
 n=0
+fs_pid=0
+fs_until=0
 # One cooldown in the past, so the first trigger after startup fires at once
 # instead of waiting out a window it never had.
 last_snap=$((0 - cooldown))
 snap_pid=0
 while :; do
 	n=$((n + 1))
+
+	# Stopping the trace is driven from here rather than from a `sleep` in a
+	# subshell: under ENFILE that sleep would not exec, and an fs_usage nobody
+	# stops writes a firehose into a disk that is already having a bad minute.
+	if [ "$fs_pid" -ne 0 ] && [ "$n" -ge "$fs_until" ]; then
+		kill "$fs_pid" || true
+		fs_pid=0
+	fi
 
 	# No 2>/dev/null: that redirect is a file table entry, and this is the hot
 	# path. sysctl's own complaints go to the err log instead.
@@ -199,6 +222,17 @@ while :; do
 			snapshot "$ts" "$free" "$d60" "$trigger" \
 				>> "$dir/vnode-watch-holders.log" 2>/dev/null &
 			snap_pid=$!
+
+			# Capped by head rather than by trusting the timer: fs_usage emits
+			# thousands of lines a second and SIGPIPE stops it on its own.
+			if [ "$trace" -gt 0 ] && [ "$fs_pid" -eq 0 ] && [ "$trigger" != schedule ]; then
+				printf '== %s trigger=%s free=%s\n' "$ts" "$trigger" "$free" \
+					>> "$dir/vnode-watch-fsusage.log"
+				fs_usage -w -f filesys 2>/dev/null | head -n "$trace_lines" \
+					>> "$dir/vnode-watch-fsusage.log" &
+				fs_pid=$!
+				fs_until=$((n + (trace + every - 1) / every))
+			fi
 		fi
 	fi
 
@@ -206,6 +240,11 @@ while :; do
 	tick
 done
 
-# Only reached when bounded. A backgrounded snapshot outlives the loop, so
-# without this the last one is half-written when the process goes away.
-[ "$snap_pid" -eq 0 ] || wait "$snap_pid" 2>/dev/null || true
+# Only reached when bounded, which in normal operation never happens. A
+# backgrounded snapshot or trace outlives the loop, so without this the last one
+# is half-written when the process goes away. Waited on rather than killed: $!
+# is the head at the end of the trace pipeline, and killing it truncates output
+# that has not been read yet. A bounded run against a real fs_usage therefore
+# waits out the trace budget; the loop's own fs_until is what stops it in
+# production.
+wait 2>/dev/null || true

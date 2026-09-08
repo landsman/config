@@ -414,6 +414,45 @@ macos-spotlight-on: ## index files again (rebuilds what it missed — hours of l
 	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }
 	sudo mdutil -i on /System/Volumes/Data
 
+.PHONY: macos-vnode-watch macos-vnode-watch-off
+macos-vnode-watch: ## sample the vnode free list as root, tracing a burst with fs_usage (root; see landsman/config#82)
+	@# The user-level half of this needs no password and is stowed like any other
+	@# dotfile — os/macos/Library/LaunchAgents. This target is only for the one
+	@# thing that half cannot do.
+	@#
+	@# What root buys: fs_usage is the only interface that reports open() rate per
+	@# process. The 2026-09-08 capture is what settled it — 120851 vnodes consumed
+	@# in 61 seconds while the largest change in any process's open-file count was
+	@# +1 — so every lsof-based reading in that issue has been watching holders
+	@# while the cause is touches. What it costs: a diagnostic running as root
+	@# indefinitely. Reverse it with macos-vnode-watch-off.
+	@#
+	@# The script is copied to /usr/local/bin root:wheel rather than run from the
+	@# stowed path, because a root job exec'ing a file the user can rewrite is a
+	@# privilege escalation, not a monitor. That also means this target is what
+	@# updates it — a `make restow` does not.
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }
+	@# Both halves would sample and both would write. The agent goes first.
+	@launchctl bootout gui/$$(id -u)/local.vnode-watch 2>/dev/null || true
+	sudo install -d -m 755 -o root -g wheel /usr/local/var/log/vnode-watch
+	sudo install -m 755 -o root -g wheel os/macos/.local/bin/vnode-watch.sh /usr/local/bin/vnode-watch.sh
+	sudo install -m 644 -o root -g wheel \
+		os/macos/system/Library/LaunchDaemons/local.vnode-watch.plist \
+		/Library/LaunchDaemons/local.vnode-watch.plist
+	@# bootout first so re-running this picks up a changed script or plist.
+	@sudo launchctl bootout system/local.vnode-watch 2>/dev/null || true
+	sudo launchctl bootstrap system /Library/LaunchDaemons/local.vnode-watch.plist
+	@echo "logs: /usr/local/var/log/vnode-watch/ - fsusage.log only fills on a burst"
+
+macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }
+	@sudo launchctl bootout system/local.vnode-watch 2>/dev/null || true
+	sudo rm -f /Library/LaunchDaemons/local.vnode-watch.plist /usr/local/bin/vnode-watch.sh
+	@# The logs are the point of having run it, so they stay. Delete them by hand.
+	@launchctl bootstrap gui/$$(id -u) "$$HOME/Library/LaunchAgents/local.vnode-watch.plist" \
+		2>/dev/null && echo "user-level sampler back" \
+		|| echo "no user-level sampler to restore - run: make restow"
+
 ##@ GIT config
 
 .PHONY: git git-config-test git-config-format

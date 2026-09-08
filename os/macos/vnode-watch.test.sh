@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Self-check for .local/bin/vnode-watch.sh. No framework: sysctl, lsof, top,
+# Self-check for .local/bin/vnode-watch.sh, the sampler behind
+# https://github.com/landsman/config/issues/82
+# No framework: sysctl, lsof, top,
 # date, log and sleep are stubbed onto PATH, so this runs anywhere — including
 # the Linux legs of CI — and asserts on the files left behind.
 #
@@ -66,6 +68,10 @@ cat > "$tmp/bin/log" <<'STUB'
 echo "Timestamp               Ty Process[PID:TID]"
 echo "2026-09-07 12:00:00.000 Df kernel[0:1] vnode: table is full"
 STUB
+cat > "$tmp/bin/fs_usage" <<'STUB'
+#!/bin/sh
+echo "12:00:00  open      F=3   (R___)  /some/path   0.000018   somebody"
+STUB
 # Records that it ran, so "the wait is exec-free" is checkable rather than assumed.
 cat > "$tmp/bin/sleep" <<'STUB'
 #!/bin/sh
@@ -77,11 +83,12 @@ export PATH="$tmp/bin:$PATH" VNODE_WATCH_DIR="$tmp/logs" VNODE_WATCH_INTERVAL=1
 export FAKE_SEQ="$tmp/seq" FAKE_N="$tmp/n" FAKE_SLEEPS="$tmp/sleeps"
 
 counters="$tmp/logs/vnode-watch.log"
+fsusage="$tmp/logs/vnode-watch-fsusage.log"
 holders="$tmp/logs/vnode-watch-holders.log"
 errlog="$tmp/logs/vnode-watch.err"
 
 run() {  # run <iterations> <snapshot-every> <free values...>
-	rm -f "$counters" "$holders" "$errlog" "$FAKE_N" "$FAKE_SLEEPS"
+	rm -f "$counters" "$holders" "$errlog" "$fsusage" "$FAKE_N" "$FAKE_SLEEPS"
 	local iters=$1 snap=$2; shift 2
 	printf '%s\n' "$@" > "$FAKE_SEQ"
 	VNODE_WATCH_ITERATIONS="$iters" VNODE_WATCH_SNAPSHOT="$snap" "$script"
@@ -176,6 +183,25 @@ check "records that it could not sample" 2 \
 	"$(grep -c '^SAMPLE-FAILED iter=[0-9]* values=0$' "$counters")"
 check "and keeps counting iterations rather than dying on the first" 1 \
 	"$(grep -c '^SAMPLE-FAILED iter=2 ' "$counters")"
+
+# == fs_usage: off unless asked for, and only for a real trigger
+# It is the only thing that measures open() rate per process, which is what the
+# 2026-09-08 capture showed this is — and it needs root, so the agent leaves it
+# off and the daemon plist turns it on.
+run 1 99 40000
+check "no trace unless it is asked for" "no" "$([ -f "$fsusage" ] && echo yes || echo no)"
+
+VNODE_WATCH_TRACE=10 run 1 99 40000
+check "traces a trigger when asked" 1 "$(grep -c '^== .*trigger=low ' "$fsusage")"
+check "and captures what fs_usage said" 1 "$(grep -c 'open  ' "$fsusage")"
+
+VNODE_WATCH_TRACE=10 run 2 2 190000 190000
+check "does not trace a routine snapshot" "no" "$([ -f "$fsusage" ] && echo yes || echo no)"
+
+# A trigger that holds must not start a trace per snapshot: fs_usage is a
+# firehose and several of them at once would be the instrument making it worse.
+VNODE_WATCH_TRACE=10 VNODE_WATCH_COOLDOWN=1 run 3 99 40000 40000 40000
+check "starts one trace, not one per snapshot" 1 "$(grep -c '^== ' "$fsusage")"
 
 echo
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

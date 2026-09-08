@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Samples the vnode free list every few seconds, because the panic in #82 destroys
+  Why this machine kernel-panics every week or two:
+    https://github.com/landsman/config/issues/82
+
+  Samples the vnode free list every few seconds, because that panic destroys
   the evidence for its own cause. The kernel says `vnode: table is full` while
   it is happening and none of that survives the reboot: the unified log kept
   zero kernel messages from the panicked boot session, on 2026-08-26 and
