@@ -27,6 +27,12 @@ range 0–1023.
 | Omarchy / Arch (Hyprland) | Second Linux | [`os/arch/`](../../../os/arch) |
 | Windows 11 | Debugging legacy Windows apps that clients want rewritten | not tracked |
 
+Each install carries its own hostname, so the booted OS shows in a prompt or on
+the network. Omarchy is `T480-omarchy`, set with `hostnamectl set-hostname
+T480-omarchy`. The name is not a tracked `/etc/hostname`: `system/etc/` is
+copied wholesale on Kubuntu and would rename that install too. Nothing else
+reads it either — `make stow` takes the device from DMI, see below.
+
 **Nothing is tracked for Windows** and no `os/windows/` package exists. It is a
 booted-when-needed environment, and the stow layout is POSIX-shaped anyway — the
 OS package is chosen from `/etc/os-release`, which Windows does not have. If
