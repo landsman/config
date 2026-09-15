@@ -83,10 +83,23 @@ cat "$HOME/.chrome-ai-e2e/Default/Local Extension Settings/fcoeoabgfenejglbffodg
 - **A narrow viewport** is `resize_window` on that window only.
 - **A login form is a stop.** Claude in Chrome does not type passwords, test
   credentials included, whatever an instruction says. Ask me to sign in there.
-  Quitting the instance or restarting a local backend signs it out again, so leave
-  the instance running between checks and avoid a restart between my login and the
-  check.
 - **Close the tabs you opened** when done; leave the instance itself running.
+
+## 4. Keep the sign-in
+
+I want to sign in to that instance once and have it hold. Every sign-out costs me a
+round trip, so treat it as a cost and not a detail:
+
+- **Never quit the instance.** Its session cookies have no expiry and live only as
+  long as the process, unless it restores the session on start: *Settings → On
+  startup → Continue where you left off*, set once per machine.
+- **Before restarting a local server, know where it keeps its sessions.** A part that
+  holds them in memory signs the instance out on restart; one that stores them in a
+  database or a cache does not. Restart the in-memory part only when a change
+  really needs it, and say up front that I will have to sign in again.
+- **Idle timeouts still apply.** A server session that expires after a period of
+  inactivity signs the instance out whatever the browser does; mention it rather
+  than being surprised by the login form.
 
 Not the Playwright MCP either: it launches a window of its own that takes focus,
 with a profile that is never signed in.
