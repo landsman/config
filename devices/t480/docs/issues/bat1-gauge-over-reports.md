@@ -41,14 +41,23 @@ is 12.7 W against a suspend's fraction of a watt.
 | 2026-08-27 16:12 | 5.98 | 2.35 | **0.39** |
 | 2026-08-27 22:25 | 9.17 | 3.55 | **0.39** |
 | 2026-08-28 07:55 | 1.38 | 0.55 | **0.40** |
+| 2026-09-08 16:05 | 166.42 | 36.41 | **0.22** |
 
-Three runs across an order of magnitude of duration, same rate. **0.39 W is
-healthy S3** for a T480, and it is the one number here that never moved.
+The last one is not a test. The machine was left suspended for **6.9 days** on
+battery and woke with 36.54 Wh still in the packs — against 36.41 Wh spent,
+a balance that closes to a tenth of a watt-hour. It is the strongest evidence
+in this file and nobody set it up: the hook was already there.
 
-All three were taken while the gauge was still misbehaving, which does not
-touch them: they measure a delta over hours in the upper part of the range,
-where the gauge tracks `power_now` to within 4 %. The reading it cannot be
-trusted on is the absolute one.
+Four runs across two orders of magnitude of duration, all well under the 0.8 W
+a healthy T480 should draw in S3. This is the one finding here that never
+moved.
+
+The first three were taken while the gauge was still misbehaving, which does
+not touch them: they measure a delta over hours in the upper part of the
+range, where the gauge tracks `power_now` to within 4 %. The reading it cannot
+be trusted on is the absolute one. The fourth came after the threshold was
+fixed, on a pack charged properly for the first time — and reads lower, not
+higher.
 
 ## The charge measurement, which found the fault
 
