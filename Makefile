@@ -417,6 +417,15 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
 		|| true
 
+##@ Hostname
+
+.PHONY: hostname
+hostname: ## name this install from bin/hostname/names.conf (Linux; asks for root)
+	@# DEVICE is passed in, so `make hostname DEVICE=x1` overrides it the way it
+	@# does for stow. The os id is read by the script: see names.conf for why it
+	@# is the raw /etc/os-release ID rather than the os/ package name.
+	@./bin/hostname/set.sh apply '$(DEVICE)'
+
 ##@ Claude Code
 #
 # The MCP servers are stowed like any other dotfile. Two of the values they
