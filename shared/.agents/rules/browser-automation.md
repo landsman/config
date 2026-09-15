@@ -9,6 +9,10 @@ The reason is that driving my own browser gets in my way. Every action pulls foc
 away from what I am doing, resizing to test a narrow viewport resizes the window I
 am using, and a click lands inside my signed-in sessions as me.
 
+**The goal is to bother me as little as possible.** A one-time setup per machine is
+fine; after that, starting, picking and using the instance runs without me. Every
+question, prompt or sign-in this rule does not strictly need is a failure of it.
+
 **A second profile is not enough.** Profiles of one Chrome share one browser
 process, and Chrome shows "Claude started debugging this browser" in every window
 of that process, mine included. Only its own `--user-data-dir` makes it a process
@@ -77,6 +81,10 @@ cat "$HOME/.chrome-ai-e2e/Default/Local Extension Settings/fcoeoabgfenejglbffodg
   it was already running and the file is empty, ask me.
 - **Never `switch_browser`.** Its pairing prompt opens in every connected Chrome,
   mine included.
+- **The confirmation disappears with one browser connected.** The tool only asks
+  which browser to use when more than one is listed. When the extension in my own
+  Chrome is disabled, the instance is the only entry and picking it needs no
+  question; suggest that once if I keep being asked.
 
 ## 3. Inside it
 
