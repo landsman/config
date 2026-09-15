@@ -36,6 +36,41 @@ Placing the window, on macOS with an external monitor attached:
   come back blank or fail. Out of sight on the laptop screen is enough.
 - On Linux, leave the window where it is.
 
+The displays, as frames with a bottom-left origin:
+
+```bash
+osascript -l JavaScript -e 'ObjC.import("AppKit"); var s = $.NSScreen.screens, out = [];
+for (var i = 0; i < s.count; i++) { var sc = s.objectAtIndex(i), f = sc.frame;
+  out.push({name: ObjC.unwrap(sc.localizedName), x: f.origin.x, y: f.origin.y,
+            w: f.size.width, h: f.size.height}); }
+JSON.stringify(out)'
+```
+
+The move, after `javascript_tool` has set the marker title in the tab you opened.
+Bounds are `{left, top, right, bottom}`; for the built-in frame that is
+`{x, mainHeight - (y + h), x + w, mainHeight - y}`, and macOS nudges the top below
+the menu bar by itself:
+
+```bash
+osascript <<'APPLESCRIPT'
+tell application "Google Chrome"
+    repeat with w in windows
+        repeat with t in tabs of w
+            if title of t is "ai-e2e-window-marker" then
+                set bounds of w to {778, 1890, 2834, 3219}
+                return "moved"
+            end if
+        end repeat
+    end repeat
+    return "marker window not found"
+end tell
+APPLESCRIPT
+```
+
+The first run asks macOS for permission to control Chrome; that prompt is mine to
+answer, once per machine. The app sets its own title again on the next navigation,
+so the marker needs no clean-up.
+
 Inside that profile:
 
 - **A narrow viewport** is `resize_window` on that window only.
