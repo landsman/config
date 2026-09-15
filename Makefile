@@ -394,7 +394,7 @@ stow-test: ## stow and unstow every package in the repo into a throwaway $HOME
 		case $$p in devices/*) v="DEVICE=$${p#devices/} OS=";; *) v="DEVICE= OS=$${p#os/}";; esac; \
 		echo "== $$p"; t=$$(mktemp -d); \
 		HOME=$$t $(MAKE) -s stow $$v; \
-		ls "$$t" | grep -qxE 'docs|system|README.md' \
+		ls "$$t" | grep -qxE 'docs|system|patches|README.md' \
 			&& { echo "$$p put a non-dotfile in \$$HOME - fix its .stow-local-ignore"; exit 1; } || true; \
 		HOME=$$t $(MAKE) -s unstow $$v; rm -rf "$$t"; \
 	done
