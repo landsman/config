@@ -14,7 +14,7 @@ lives wherever it stays true.
 | `devices/t480/` | This hardware, whichever OS is booted (Intel GPU, thinkpad_acpi) | `make stow` (auto) |
 | `devices/macbook-pro-m5-16/` | The MacBook — nothing stowed yet, macOS-only machine | `make stow` (auto) |
 | `os/ubuntu/` | Kubuntu userland — KDE, Dolphin, xdg portals — see [its README](os/ubuntu/README.md) | `make stow` (auto) |
-| `os/arch/` | Omarchy/Arch userland — Hyprland, hyprmon | `make stow` (auto) |
+| `os/arch/` | Omarchy/Arch userland — Hyprland, hyprmon, shell plugins — see [its README](os/arch/README.md) | `make stow` (auto), `make plugins` |
 | `os/macos/` | macOS userland — `~/.zshrc`: PATH, mise, completion | `make stow` (auto) |
 | `devices/t480/system/` | Root-owned files under `/` for that machine — see [its README](devices/t480/system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
@@ -61,6 +61,7 @@ make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 make claude  # ask for the Azure DevOps org the MCP server needs (once per machine)
 make hostname  # Linux: name this install from bin/hostname/names.conf (asks for root)
+make plugins   # Omarchy: the shell plugins in os/arch/install-plugins.sh, pinned and patched
 
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-hosts     # macOS only: install /etc/hosts from os/macos/system (asks for root)

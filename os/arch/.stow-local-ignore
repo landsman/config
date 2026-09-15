@@ -1,11 +1,13 @@
 # Only the dotfile trees in this package belong in $HOME. Everything else here —
-# the patches applied on top of installed plugins — must be listed, or stow will
-# happily symlink it into the home directory.
+# the plugin installer, its test, and the patches it applies — must be listed,
+# or stow will happily symlink it into the home directory.
 #
 # Stow ignores `^/README.*` by default, but a local ignore file replaces the
 # whole default list rather than extending it, so the usual entries are repeated.
 ^/README.*
 ^/patches$
+^/install-plugins\.sh$
+.*\.test\.sh$
 ^/\.stow-local-ignore$
 \.git
 \.gitignore

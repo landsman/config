@@ -5,7 +5,7 @@ This adds `"separator"` to the widget's shell.json entry (default " ", so the
 plugin looks as upstream until it is set) and spells memory as GB throughout.
 
 Base: KabirBhattarai/omarchy-system-pulse@d12eb18
-Apply: git -C ~/.config/omarchy/plugins/kb.system-pulse apply <this file>
+Applied by ../install-plugins.sh (make plugins), which pins that commit.
 
 diff --git a/BarWidget.qml b/BarWidget.qml
 index b9dd9e6..a1d2770 100644

@@ -426,6 +426,14 @@ hostname: ## name this install from bin/hostname/names.conf (Linux; asks for roo
 	@# is the raw /etc/os-release ID rather than the os/ package name.
 	@./bin/hostname/set.sh apply '$(DEVICE)'
 
+##@ Omarchy
+
+.PHONY: plugins
+plugins: ## add, pin, patch and enable the shell plugins listed in os/arch/install-plugins.sh (after stow)
+	@# By path, not os/$(OS)/: Omarchy reports ID=omarchy, so $(OS) never names
+	@# the arch package there. The script skips itself where there is no omarchy.
+	@bash os/arch/install-plugins.sh
+
 ##@ Claude Code
 #
 # The MCP servers are stowed like any other dotfile. Two of the values they
