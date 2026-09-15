@@ -21,17 +21,28 @@ range 0–1023.
 
 ## Operating systems
 
-| OS | Role | Config tracked in |
-|----|------|-------------------|
-| Kubuntu 26.04 (KDE, Wayland) | Daily driver | [`os/ubuntu/`](../../../os/ubuntu) |
-| Omarchy / Arch (Hyprland) | Second Linux | [`os/arch/`](../../../os/arch) |
-| Windows 11 | Debugging legacy Windows apps that clients want rewritten | not tracked |
+| OS | Hostname | Role | Config tracked in |
+|----|----------|------|-------------------|
+| Kubuntu 26.04 (KDE, Wayland) | `T480-kubuntu` | Daily driver | [`os/ubuntu/`](../../../os/ubuntu) |
+| Omarchy / Arch (Hyprland) | `T480-omarchy` | Second Linux | [`os/arch/`](../../../os/arch) |
+| Windows 11 | `T480-windows` | Debugging legacy Windows apps that clients want rewritten | not tracked |
 
-Each install carries its own hostname, so the booted OS shows in a prompt or on
-the network. Omarchy is `T480-omarchy`, set with `hostnamectl set-hostname
-T480-omarchy`. The name is not a tracked `/etc/hostname`: `system/etc/` is
-copied wholesale on Kubuntu and would rename that install too. Nothing else
-reads it either — `make stow` takes the device from DMI, see below.
+**Each OS gets its own hostname**, because they share one machine and one
+network identity otherwise — a prompt, an SSH session or the router's client
+list could not tell which one is booted. The pattern is `T480-<os>`. Set by hand
+once per install, not tracked as `/etc/hostname`: `system/etc/` is copied
+wholesale, so a file there would give every Linux install the same name.
+
+```
+sudo hostnamectl set-hostname T480-omarchy        # Omarchy
+sudo hostnamectl set-hostname T480-kubuntu        # Kubuntu — then fix the 127.0.1.1 line in /etc/hosts
+Rename-Computer -NewName T480-windows -Restart    # Windows, in an admin PowerShell
+```
+
+Kubuntu's installer writes the hostname into `/etc/hosts` as `127.0.1.1`; left
+stale, `sudo` warns it cannot resolve the host. Arch has no such line. Nothing
+in this repo reads the hostname — `make stow` takes the device from DMI, see
+below.
 
 **Nothing is tracked for Windows** and no `os/windows/` package exists. It is a
 booted-when-needed environment, and the stow layout is POSIX-shaped anyway — the
