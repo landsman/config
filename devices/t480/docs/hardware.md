@@ -21,11 +21,31 @@ range 0–1023.
 
 ## Operating systems
 
-| OS | Role | Config tracked in |
-|----|------|-------------------|
-| Kubuntu 26.04 (KDE, Wayland) | Daily driver | [`os/ubuntu/`](../../../os/ubuntu) |
-| Omarchy / Arch (Hyprland) | Second Linux | [`os/arch/`](../../../os/arch) |
-| Windows 11 | Debugging legacy Windows apps that clients want rewritten | not tracked |
+| OS | Hostname | Role | Config tracked in |
+|----|----------|------|-------------------|
+| Kubuntu 26.04 (KDE, Wayland) | `T480-kubuntu` | Daily driver | [`os/ubuntu/`](../../../os/ubuntu) |
+| Omarchy / Arch (Hyprland) | `T480-omarchy` | Second Linux | [`os/arch/`](../../../os/arch) |
+| Windows 11 | `T480-windows` | Debugging legacy Windows apps that clients want rewritten | not tracked |
+
+**Each OS gets its own hostname**, because they share one machine and one
+network identity otherwise — a prompt, an SSH session or the router's client
+list could not tell which one is booted. The pattern is `T480-<os>`.
+
+The Linux names are in [`bin/hostname/names.conf`](../../../bin/hostname/names.conf)
+and `make hostname` applies the one for the booted install — including the
+`127.0.1.1` line Kubuntu's installer writes into `/etc/hosts`, which would
+otherwise go stale. Not a tracked `/etc/hostname`: `system/etc/` is copied
+wholesale, so a file there would give every Linux install the same name.
+
+Windows is outside the repo's reach, so it is named by hand, once, in an admin
+PowerShell:
+
+```
+Rename-Computer -NewName T480-windows -Restart
+```
+
+Nothing in this repo reads the hostname — `make stow` takes the device from DMI,
+see below.
 
 **Nothing is tracked for Windows** and no `os/windows/` package exists. It is a
 booted-when-needed environment, and the stow layout is POSIX-shaped anyway — the

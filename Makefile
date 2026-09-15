@@ -394,7 +394,7 @@ stow-test: ## stow and unstow every package in the repo into a throwaway $HOME
 		case $$p in devices/*) v="DEVICE=$${p#devices/} OS=";; *) v="DEVICE= OS=$${p#os/}";; esac; \
 		echo "== $$p"; t=$$(mktemp -d); \
 		HOME=$$t $(MAKE) -s stow $$v; \
-		ls "$$t" | grep -qxE 'docs|system|README.md' \
+		ls "$$t" | grep -qxE 'docs|system|patches|README.md' \
 			&& { echo "$$p put a non-dotfile in \$$HOME - fix its .stow-local-ignore"; exit 1; } || true; \
 		HOME=$$t $(MAKE) -s unstow $$v; rm -rf "$$t"; \
 	done
@@ -416,6 +416,23 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 	@grep -qF 'bash_aliases.d' "$$HOME/.bashrc" \
 		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
 		|| true
+
+##@ Hostname
+
+.PHONY: hostname
+hostname: ## name this install from bin/hostname/names.conf (Linux; asks for root)
+	@# DEVICE is passed in, so `make hostname DEVICE=x1` overrides it the way it
+	@# does for stow. The os id is read by the script: see names.conf for why it
+	@# is the raw /etc/os-release ID rather than the os/ package name.
+	@./bin/hostname/set.sh apply '$(DEVICE)'
+
+##@ Omarchy
+
+.PHONY: plugins
+plugins: ## add, pin, patch and enable the shell plugins listed in os/arch/install-plugins.sh (after stow)
+	@# By path, not os/$(OS)/: Omarchy reports ID=omarchy, so $(OS) never names
+	@# the arch package there. The script skips itself where there is no omarchy.
+	@bash os/arch/install-plugins.sh
 
 ##@ Claude Code
 #
