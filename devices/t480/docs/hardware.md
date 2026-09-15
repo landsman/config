@@ -29,20 +29,23 @@ range 0–1023.
 
 **Each OS gets its own hostname**, because they share one machine and one
 network identity otherwise — a prompt, an SSH session or the router's client
-list could not tell which one is booted. The pattern is `T480-<os>`. Set by hand
-once per install, not tracked as `/etc/hostname`: `system/etc/` is copied
+list could not tell which one is booted. The pattern is `T480-<os>`.
+
+The Linux names are in [`bin/hostname/names.conf`](../../../bin/hostname/names.conf)
+and `make hostname` applies the one for the booted install — including the
+`127.0.1.1` line Kubuntu's installer writes into `/etc/hosts`, which would
+otherwise go stale. Not a tracked `/etc/hostname`: `system/etc/` is copied
 wholesale, so a file there would give every Linux install the same name.
 
+Windows is outside the repo's reach, so it is named by hand, once, in an admin
+PowerShell:
+
 ```
-sudo hostnamectl set-hostname T480-omarchy        # Omarchy
-sudo hostnamectl set-hostname T480-kubuntu        # Kubuntu — then fix the 127.0.1.1 line in /etc/hosts
-Rename-Computer -NewName T480-windows -Restart    # Windows, in an admin PowerShell
+Rename-Computer -NewName T480-windows -Restart
 ```
 
-Kubuntu's installer writes the hostname into `/etc/hosts` as `127.0.1.1`; left
-stale, `sudo` warns it cannot resolve the host. Arch has no such line. Nothing
-in this repo reads the hostname — `make stow` takes the device from DMI, see
-below.
+Nothing in this repo reads the hostname — `make stow` takes the device from DMI,
+see below.
 
 **Nothing is tracked for Windows** and no `os/windows/` package exists. It is a
 booted-when-needed environment, and the stow layout is POSIX-shaped anyway — the
