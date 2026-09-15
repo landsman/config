@@ -488,12 +488,20 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 # The panes stow cannot reach, see bin/macos/defaults.sh
 #
 
-.PHONY: macos macos-touchid macos-spotlight-off macos-spotlight-on
+.PHONY: macos macos-hosts macos-touchid macos-spotlight-off macos-spotlight-on
 macos: ## apply the macOS settings this repo owns (menu bar, Dock, Finder, trackpad, file associations)
 	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; ./bin/macos/defaults.sh
 	@# Its own script and not a `defaults write` line: the associations live in one
 	@# array that has to be merged, not overwritten. See bin/macos/file-associations.sh.
 	@[ "$$(uname -s)" = Darwin ] || exit 0; ./bin/macos/file-associations.sh
+
+macos-hosts: ## install /etc/hosts from os/macos/system (root; prints the diff first)
+	@# A replace, not a merge: a line some installer added to /etc/hosts and the
+	@# repo does not have is gone after this. The diff is printed before sudo asks,
+	@# so that is the moment to stop and commit the line instead.
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; \
+	diff -u /etc/hosts os/macos/system/etc/hosts && { echo "already in place: /etc/hosts"; exit 0; }; \
+	sudo install -m 644 -o root -g wheel os/macos/system/etc/hosts /etc/hosts && sudo killall -HUP mDNSResponder
 
 macos-touchid: ## authenticate sudo with Touch ID (root-owned, so its own target)
 	@# There is no System Settings toggle for this: the Touch ID pane covers the
