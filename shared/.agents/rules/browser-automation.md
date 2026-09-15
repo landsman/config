@@ -55,12 +55,20 @@ already running, leave its window where I put it.
 **Never minimise it.** A minimised Chrome window stops rendering, and screenshots
 come back blank or fail. Out of sight on the laptop screen is enough.
 
-The first start on a machine is mine to finish: install the Claude extension in that
-instance and sign in to whatever it is going to check.
+The first start on a machine is mine to finish, once. Point me to these steps, in the
+instance's window:
+
+1. Install the Claude extension:
+   <https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn>
+2. *Settings → On startup → Continue where you left off*, so a restart of the
+   instance keeps its sessions.
+3. Sign in to whatever it is going to check.
 
 ## 2. Pick it
 
-The extension stores its `deviceId` in the instance's own data directory:
+The extension stores its `deviceId` in the instance's own data directory, under its
+own storage folder. `fcoeoabgfenejglbffodgkkbkcdhcgfn` is the Claude extension's
+Chrome Web Store id, the same on every machine; the `deviceId` inside is not:
 
 ```bash
 cat "$HOME/.chrome-ai-e2e/Default/Local Extension Settings/fcoeoabgfenejglbffodgkkbkcdhcgfn/"* 2>/dev/null \
@@ -99,8 +107,8 @@ I want to sign in to that instance once and have it hold. Every sign-out costs m
 round trip, so treat it as a cost and not a detail:
 
 - **Never quit the instance.** Its session cookies have no expiry and live only as
-  long as the process, unless it restores the session on start: *Settings → On
-  startup → Continue where you left off*, set once per machine.
+  long as the process, unless it restores the session on start (step 2 of the
+  one-time setup).
 - **Before restarting a local server, know where it keeps its sessions.** A part that
   holds them in memory signs the instance out on restart; one that stores them in a
   database or a cache does not. Restart the in-memory part only when a change
