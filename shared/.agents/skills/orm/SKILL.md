@@ -88,6 +88,12 @@ When it clears that bar, propose it; don't wait for approval:
 
 Doctrine's EntityManager lives per-request. Long-running processes (daemons, workers) grow the identity map and serve stale entities. Call `$em->clear()` manually if your worker (like Messenger) doesn't do it.
 
+**A tenant or soft-delete filter lives on one session.** A Hibernate `@Filter` is enabled per Session, usually by an aspect:
+- **No transaction means no filter.** Spring's shared `EntityManager` (`@PersistenceContext`) then opens a throwaway, unfiltered one, and the query returns every tenant's rows without an error. A filtered read requires an active transaction and fails loudly without one: `EntityManagerFactoryUtils.getTransactionalEntityManager(emf)` returns `null` there.
+- **Inside a transaction there is no "other session".** The shared proxy and `getTransactionalEntityManager` resolve to the same Session, on any Hibernate version. A filter that goes missing there was disabled, or enabled outside the transaction.
+- **The aspect that enables it runs inside the transaction.** Order it after the transaction advice, which in Spring means a higher `@Order` value than `@EnableTransactionManagement(order = …)`.
+- **`disableFilter` lasts for the rest of the transaction,** not just one query. A helper that switches it off leaves it off for every later query of its caller. Declare the exemption in the mapping (a read-only entity) instead. Doctrine's `$em->getFilters()->disable()` does the same for the rest of the request.
+
 ## Batches: bounded memory, batched writes
 
 Reading:
@@ -137,6 +143,7 @@ Production fails when fixtures omit NULLs:
 - Native SQL only with a measured reason, commented beside it and called out in the PR? Filter bypasses in the mapping, infrastructure SQL outside repositories?
 - Entities mapped to DTOs inside the service transaction? No `@Transactional` and no entity reads in controllers?
 - No `open-in-view`, `enable_lazy_load_no_trans`, or `EAGER` used as bandaids?
+- Filtered reads inside a transaction, failing loudly without one? No `disableFilter` in a helper?
 - Loops stream, flush, clear, and commit per chunk? Writes batched (no `IDENTITY`), or bulk DQL/HQL?
 - No generated `equals`, `hashCode`, or `toString`?
 - Nullable columns mapped to nullable types? Collections modified in place?
