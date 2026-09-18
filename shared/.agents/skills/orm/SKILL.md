@@ -16,8 +16,11 @@ ORMs disguise expensive queries as property access. Because the code looks ident
 - **Hibernate:** `org.hibernate.SQL` at DEBUG, or `hibernate.generate_statistics=true` with `getStatistics().getPrepareStatementCount()` in tests.
 - **Symfony:** Doctrine profiler, or `$client->enableProfiler()` and `getProfile()->getCollector('db')->getQueryCount()` in functional tests.
 - **Nette:** Tracy Doctrine panel.
+- **Running PostgreSQL:** `pg_stat_statements`. N+1 shows up in `calls`, as a statement run far more often than the endpoint behind it.
 
-Always seed >1 parent with >1 child. N+1 on a single row yields 1 query, passing tests for the wrong reason. Pin the count in a test to prevent regressions using existing project tools; avoid adding libraries just for this.
+**Pin it with an N vs 2N test.** Seed N parents (each with >1 child) and count, then seed 2N and count again. Assert that the count did not grow, or grew only by a small constant slack. A fixed number breaks on every unrelated change, but a flat delta keeps holding. N+1 over a single row is 1 query and passes for the wrong reason.
+
+**Then watch it fail.** Revert the fix and confirm the test goes red; a guard that never failed has proven nothing. A build cache can replay a stale pass, so force the rerun (Gradle: `--rerun`). Use the project's existing tools; avoid adding libraries just for this.
 
 ## Lazy in the mapping, explicit in the query
 
@@ -27,8 +30,14 @@ Mappings define what *can* load; queries define what *this use case* loads.
 - **Fetch per query.** Hibernate: `join fetch` (JPQL/HQL) or `@EntityGraph` (Spring Data). Doctrine: `->leftJoin('o.items', 'i')->addSelect('i')` (`addSelect` turns a filter join into a fetch join).
 - **EntityGraph types:** Spring Data's `@EntityGraph` defaults to `FETCH` (unmapped fields stay lazy). `LOAD` respects legacy mapped EAGERs. If everything is mapped lazy, they behave identically.
 - **Batch fetching is a fallback, not a fix.** It turns N queries into N/size `IN (...)` queries. Hibernate: `hibernate.default_batch_fetch_size` or `@BatchSize`. Doctrine: `setFetchMode(..., FETCH_EAGER)`.
+- **Batching is not N+1.** With batch fetching on, a child table that shows up a few times per page as `IN (...)` / `= ANY(?)` is the batching doing its job. Don't "fix" it with `@BatchSize`; the N vs 2N test tells the two apart.
 
 N+1 hides where queries aren't visible: serializers (Jackson, API Platform), Twig/Latte loops (`{{ order.customer.name }}`), DTO mappers, or generated `toString`s. Ensure every touched association is explicitly fetched or batched.
+
+**N+1 needs no association.** An explicit call per row does the same thing:
+- **A lookup inside a loop or `map`.** A repository or service call per row. Collect the keys, send one `IN (:keys)` query (`findAllByIdIn`), and group in memory.
+- **Loading all to find one.** A whole table (with its EAGERs) fetched to pick a row by id. Use a targeted query instead.
+- **One child query per parent.** Query the whole subtree once and group by parent.
 
 ## One collection per query, no naive limits
 
@@ -38,6 +47,7 @@ Collection fetches multiply rows (1 order × 20 items = 20 SQL rows).
 - **Hibernate before 7.4:** `setMaxResults` / Spring Data `Pageable` over a collection fetch pages in *memory* (warning `HHH90003004`). Set `hibernate.query.fail_on_pagination_over_collection_fetch=true` to fail fast. Fix: query IDs with a limit, then fetch entities `where id in :ids`.
 - **Hibernate 7.4+:** Paginates collection fetches natively in SQL (except Sybase ASE). Never set the `hibernate.limitInMemory` hint.
 - **Doctrine:** `setMaxResults` limits SQL rows, truncating fetch-joined collections. Use `Paginator` (counts, limits IDs via `DISTINCT`, then `WHERE IN`). `toIterable()` outright refuses fetch-joined collections.
+- **Filter by a collection with `EXISTS`, not a join.** `where exists (select i from Item i where i.order = o and i.status = :s)` returns each parent once (Criteria: `cb.exists`). A join multiplies rows and then needs `DISTINCT`, `GROUP BY` or `count(distinct)`, which stops the database from walking an index in order to satisfy the `LIMIT`. On PostgreSQL, `count(distinct)` also cannot run as a parallel aggregate. Once the query yields one row per parent, count it with `count(*)`.
 
 ## Read-only means no entities
 
@@ -58,13 +68,19 @@ Default to the ORM's query language: Spring Data derived queries, `@Query` in JP
 
 **Native SQL needs a measured performance reason** the ORM cannot meet after a fetch plan, a DTO projection, a bulk DQL/HQL statement and an index were tried. Current HQL has window functions, CTEs, `union` and `insert ... on conflict`, so check the installed version before assuming only SQL can do it.
 
+Two things that look like reasons but aren't:
+- **Bypassing a filter:** declare that in the mapping, not in a SQL string. Use a read-only `@Immutable` entity over the same table without the `@Filter`, so the exemption is visible in the model instead of taken on trust.
+- **Infrastructure:** an advisory lock, a stored-procedure call or a table the framework owns (a session store, say) is not a query over entities. It goes through `JdbcTemplate` or the DBAL `Connection`, outside repository code, and never becomes the back door for ordinary queries.
+
+If the project gates native SQL with a lint and a baseline, the baseline records history. It is never regenerated to make a new finding pass.
+
 When it clears that bar, propose it; don't wait for approval:
 - **Comment beside the query:** ORM cost vs native cost (measured on representative data), and what it gives up.
 - **Call it out in the PR:** a section of its own with the query and the numbers, requesting review of that query specifically.
 
 ## Load inside the transaction
 
-`LazyInitializationException` means a missing fetch found too late. Fix the originating query's fetch plan. These are **not** fixes:
+`LazyInitializationException` means a missing fetch found too late. Fix the originating query's fetch plan, and map the entity to a DTO **inside** the service transaction. The controller receives the DTO and never reads an entity. `@Transactional` belongs on the service, never on a controller, because annotating the controller only widens the transaction around the same lazy loads. These are **not** fixes:
 
 - **`spring.jpa.open-in-view`:** Defers N+1 to serialization where tests miss it. Turn it off in new projects; disable carefully in legacy ones.
 - **`hibernate.enable_lazy_load_no_trans`:** Unsafe. Opens a new connection/transaction for every lazy load.
@@ -113,13 +129,15 @@ Production fails when fixtures omit NULLs:
 - Measured statement count for multiple parent rows?
 - Every `@ManyToOne`/`@OneToOne` explicitly `LAZY`? No `EAGER` added?
 - All accessed associations (loops, serializers, templates) fetched or batched?
+- No lookup per row inside a loop or `map`? Keys collected into one `IN` query?
 - Collection pagination: Hibernate 7.4+, two queries, or Doctrine `Paginator`?
-- Max ONE fetch-joined collection per query?
+- Max ONE fetch-joined collection per query? Filtering by a collection via `EXISTS`, not a join plus `DISTINCT`?
 - Read-only endpoints return DTOs/projections?
 - No `PARTIAL` results flushed?
-- Native SQL only with a measured reason, commented beside it and called out in the PR?
+- Native SQL only with a measured reason, commented beside it and called out in the PR? Filter bypasses in the mapping, infrastructure SQL outside repositories?
+- Entities mapped to DTOs inside the service transaction? No `@Transactional` and no entity reads in controllers?
 - No `open-in-view`, `enable_lazy_load_no_trans`, or `EAGER` used as bandaids?
 - Loops stream, flush, clear, and commit per chunk? Writes batched (no `IDENTITY`), or bulk DQL/HQL?
 - No generated `equals`, `hashCode`, or `toString`?
 - Nullable columns mapped to nullable types? Collections modified in place?
-- Test pins the query count?
+- An N vs 2N test pins the query count, and was seen failing without the fix?
