@@ -21,19 +21,32 @@ A changeset that has run anywhere is history. Every trap below either rewrites t
 
 - **Insert after the *last* line of the previous changeset.** In YAML, a changeset pasted between another one's `path:` and its trailing `splitStatements:` / `stripComments:` steals those attributes. Git shows only added lines, so nobody sees the old changeset lose anything. This happens most often while resolving a merge conflict, so re-read the neighbours after every one.
 - **Dollar-quoted bodies need `splitStatements: false`.** Liquibase splits SQL at every `;` by default, which cuts a `do $$ … $$` block or a function body apart. The tag can be `$func$` or any other name, not only `$$`. The changeset then fails on the first database that has not run it yet.
-- **`stripComments: false`** keeps a comment inside a string or a function body intact.
+- **`includeAll` runs files in alphabetical order, and alphabetical is not numeric:** `10-…` sorts before `2-…`, so zero-pad or date-prefix the names. A new file that sorts before files already applied runs *last* on an existing database but in its sorted place on a fresh one, so the two databases apply changes in different orders. Name new files so they sort at the end, or use explicit `include`s.
 
 ## One change, one transaction
 
 - **PostgreSQL runs DDL inside the transaction**, so a failed changeset rolls back whole.
 - **MySQL and MariaDB commit implicitly after every DDL statement.** A changeset with two DDL statements can fail halfway and cannot be re-run. Keep it to one statement per changeset there.
 - **`create index concurrently` cannot run in a transaction**, so it needs `runInTransaction: false` on its own changeset.
+- **DDL against a live table sets a lock timeout first** (the `postgres` skill says why). On PostgreSQL that is `set local lock_timeout = '5s';` inside the changeset. A plain `set` outlives the changeset on Liquibase's connection and applies to every changeset after it.
 - **A large data migration** updates in chunks rather than locking the table in one statement. It never shares a changeset with the DDL it depends on.
 - **Rollback:** `sql` and `sqlFile` changes generate none. Write the `rollback` (`--rollback` in formatted SQL), or say the changeset is forward-only.
+
+## Old and new code run side by side
+
+A rolling deploy, or Liquibase running at application startup, applies the migration while instances of the previous release are still serving. A change those instances cannot survive takes them down mid-deploy:
+- **Dropping or renaming a column or table,** or adding `not null` without a default, goes through expand and contract:
+  1. Add the new column.
+  2. Release code that writes both columns.
+  3. Backfill.
+  4. Switch the reads to the new column.
+  5. Drop the old column in a *later* release.
+- **A rename is an add, a copy and a drop** across releases, never one `rename column`.
 
 ## Environments
 
 - **Labels and contexts decide what runs where:** test data only locally, a data migration only where the legacy data exists.
+- **No filter runs everything.** `update` without a context or label filter deploys every changeset, test data included. A changeset with no context or label runs under any filter. Every environment passes its filter explicitly, production included.
 - **Permanent DDL is never filtered.** A schema change hidden behind a label or context makes the schema differ between environments. Anything that moves data between them, an export or an import, fails on the missing column.
 - **Seed and test data are idempotent** (`on conflict do nothing`), and never reach production through a missing filter.
 - **A conditional change** uses `preConditions` with `onFail: MARK_RAN`, not a changeset that fails where it does not apply.
@@ -51,6 +64,9 @@ A changeset that has run anywhere is history. Every trap below either rewrites t
 - New changeset after the last line of the previous one, with the neighbours unchanged?
 - `splitStatements: false` wherever a dollar-quoted body appears?
 - One DDL statement per changeset on MySQL/MariaDB, concurrent indexes outside a transaction?
-- Permanent DDL unfiltered, test data labelled and idempotent?
+- Permanent DDL unfiltered, test data labelled and idempotent, every environment passing its filter explicitly?
+- No drop or rename that the previous release still reads? Expand now, contract later?
+- `set local lock_timeout` before DDL on a live table?
+- `includeAll` file names that sort new files last?
 - Rollback written, or forward-only stated?
 - Whole changelog applied to a fresh database in CI?
