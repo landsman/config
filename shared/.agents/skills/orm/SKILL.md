@@ -35,7 +35,7 @@ Mappings define what *can* load; queries define what *this use case* loads.
 N+1 hides where queries aren't visible: serializers (Jackson, API Platform), Twig/Latte loops (`{{ order.customer.name }}`), DTO mappers, or generated `toString`s. Ensure every touched association is explicitly fetched or batched.
 
 **N+1 needs no association.** An explicit call per row does the same thing:
-- **A lookup inside a loop or `map`.** A repository or service call per row. Collect the keys, send one `IN (:keys)` query (`findAllByIdIn`), and group in memory.
+- **A lookup inside a loop or `map`.** A repository or service call per row. Collect the keys, send one `IN (:keys)` query (`findAllByIdIn`), and group in memory. The `postgres` skill covers what the length of that list costs.
 - **Loading all to find one.** A whole table (with its EAGERs) fetched to pick a row by id. Use a targeted query instead.
 - **One child query per parent.** Query the whole subtree once and group by parent.
 
@@ -66,7 +66,7 @@ Default to the ORM's query language: Spring Data derived queries, `@Query` in JP
 - **Renames fail early.** Spring Data validates JPQL `@Query` at startup; native SQL breaks on its first call in production.
 - **The mapping still applies.** Native SQL silently skips soft-delete and tenant filters (`@SQLRestriction`, `@Filter`, Doctrine SQL filters), converters and inheritance.
 
-**Native SQL needs a measured performance reason** the ORM cannot meet after a fetch plan, a DTO projection, a bulk DQL/HQL statement and an index were tried. Current HQL has window functions, CTEs, `union` and `insert ... on conflict`, so check the installed version before assuming only SQL can do it.
+**Native SQL needs a measured performance reason** the ORM cannot meet after a fetch plan, a DTO projection, a bulk DQL/HQL statement and an index were tried. On PostgreSQL, the `postgres` skill says which index the query can actually use. Current HQL has window functions, CTEs, `union` and `insert ... on conflict`, so check the installed version before assuming only SQL can do it.
 
 Two things that look like reasons but aren't:
 - **Bypassing a filter:** declare that in the mapping, not in a SQL string. Use a read-only `@Immutable` entity over the same table without the `@Filter`, so the exemption is visible in the model instead of taken on trust.
@@ -106,7 +106,7 @@ Writing:
 - **Hibernate requires explicit batching config:**
   - `hibernate.jdbc.batch_size` enables it.
   - `order_inserts` / `order_updates` group types to prevent batch breaking.
-  - `GenerationType.IDENTITY` silently disables insert batching (`SEQUENCE` keeps it).
+  - `GenerationType.IDENTITY` silently disables insert batching (`SEQUENCE` keeps it). On PostgreSQL, the `postgres` skill says how to declare an identity column that a sequence can feed.
   - JDBC URLs need `rewriteBatchedStatements=true` (MySQL) or `reWriteBatchedInserts=true` (Postgres).
   - Verify via `org.hibernate.orm.jdbc.batch` TRACE logs.
 - **Doctrine does not batch statements.** Every persist is a single `INSERT`. The "batch" is just the flush interval.
