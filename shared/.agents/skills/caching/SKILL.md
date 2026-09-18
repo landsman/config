@@ -18,6 +18,7 @@ A cache is a second copy of the data with a lifetime of its own. Making it fast 
 - **Runtime write path:** evict on every write (`@CacheEvict`, `$pool->deleteItem()`, tags). A write path added later without eviction serves stale data silently.
 - **Changes only through a migration:** evict at startup, after the migrations ran.
 - **Neither is known:** don't cache it. A TTL is a backstop, not the invalidation.
+- **Evict after the commit, not inside the transaction.** A `@CacheEvict` on a `@Transactional` method runs before the commit. A read that lands between the eviction and the commit loads the old row and puts it back, so the cache stays stale until the TTL. Spring defers `put`, `evict` and `clear` to after commit when the cache manager is transaction-aware (`TransactionAwareCacheManagerProxy`, or `RedisCacheManager.builder(…).transactionAware()`). `evictIfPresent` and `putIfAbsent` still run immediately. This narrows the race but does not close it: a read that loaded before the commit can still put after the eviction, and the TTL is what bounds that.
 
 ## The key is the whole input
 
@@ -30,6 +31,15 @@ A key built from the method arguments ignores everything the method reads implic
 
 - **Redis survives restarts and deploys.** After a migration changes cached data, the old value keeps being served until the TTL runs out. Clear the affected caches on startup, after the migrations (Spring: a listener that runs after Liquibase/Flyway; Symfony: `cache:pool:clear` in the deploy).
 - **An outage of the shared cache** degrades to a database read, not an error (Spring: a `CacheErrorHandler`).
+
+## A hot key expiring is a stampede
+
+When a hot key expires or gets evicted, every concurrent request misses at once and runs the same query. `@Cacheable(sync = true)` lets one thread compute the value while the others wait for it.
+- **It is a hint, and the provider decides what it locks:**
+  - **Caffeine** locks per key, in-process, so each replica still computes the value once.
+  - **Spring Data Redis 3.2+ does not lock at all by default,** so `sync` changes nothing there (up to 3.1 it locked in-process).
+  - **`RedisCacheWriter.lockingRedisCacheWriter(…)`** locks through Redis, across replicas, but per cache (`<cache>~lock`), not per key, so it serialises every load of that cache.
+- **It has limits:** exactly one cache, no `unless`, and no other cache annotation on the same method.
 
 ## Local or shared
 
@@ -59,6 +69,8 @@ A key built from the method arguments ignores everything the method reads implic
 - Key includes tenant, locale and every other implicit input?
 - Shared cache cleared after a migration, and falling back to the database on an outage?
 - Local only for data that changes with a deploy?
+- Eviction deferred to after commit (transaction-aware cache manager)?
+- Hot keys protected against a stampede (`sync = true`), with what the provider actually locks checked?
 - Cached values immutable DTOs, not entities?
 - Cached method public, on another bean, called from outside?
 - Fills, evictions and hit rate visible?
