@@ -187,12 +187,35 @@ own, or a Kotlin `data class`, generate all three over every field:
 Write them by hand, and follow whatever the project's existing entities do,
 whether that is the id or a natural key.
 
+## A nullable column needs a nullable type
+
+Rows with NULL are the ones the fixtures leave out, so this fails in production
+first:
+
+- **A primitive throws on load.** Kotlin's `Int` compiles to Java's `int`, which
+  is the same trap in disguise. Hibernate refuses to assign NULL to a primitive,
+  and PHP's typed `int $age` refuses it on hydration with a `TypeError`.
+- **A non-null reference type does not throw, which is worse.** Hibernate
+  writes the field through reflection, and Kotlin's null safety does not cover
+  that. The null sits in a `String` until the first place that uses it throws an
+  NPE, far from the entity.
+
+The property's nullability follows the column's: `Int?`, `String?`, `?int`.
+
 ## Kotlin entities
 
-A final class cannot be proxied, so a `LAZY` to-one pointing at a Kotlin entity
-quietly loads eagerly. `kotlin("plugin.jpa")` only adds no-arg constructors. The
-classes need `allOpen` on `jakarta.persistence.Entity`, `MappedSuperclass` and
-`Embeddable`.
+- **A final class cannot be proxied**, so a `LAZY` to-one pointing at a Kotlin
+  entity quietly loads eagerly. `kotlin("plugin.jpa")` only adds no-arg
+  constructors. The classes need `allOpen` on `jakarta.persistence.Entity`,
+  `MappedSuperclass` and `Embeddable`.
+- **A collection is a `val`**, as in `val items: MutableList<Item> =
+  mutableListOf()`, so that it changes through `clear()` and `addAll()` and is
+  never reassigned. Hibernate tracks the instance it loaded. With
+  `orphanRemoval = true`, replacing that instance fails the flush with *A
+  collection with cascade="all-delete-orphan" was no longer referenced*. On an
+  owning side, such as a join table or an element collection, the replacement
+  becomes a delete of every row followed by an insert of every row. In Java the
+  same thing means no setter for the collection.
 
 ## Review checklist
 
@@ -212,4 +235,6 @@ classes need `allOpen` on `jakarta.persistence.Entity`, `MappedSuperclass` and
 - Does a loop over a table stream, flush, clear and commit per chunk? Do its
   writes batch (no `IDENTITY` in the way), or are they one DQL/HQL statement?
 - Does no entity have generated `equals`, `hashCode` or `toString`?
+- Does every nullable column map to a nullable type, and is every collection
+  changed in place rather than reassigned?
 - Does a test pin the statement count?
