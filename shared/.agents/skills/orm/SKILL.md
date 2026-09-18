@@ -1,6 +1,6 @@
 ---
 name: orm
-description: Load before writing or reviewing code that goes through Hibernate/JPA (Spring Data included) or Doctrine ORM (Symfony, Nette) — a repository method or query, an entity association or its fetch type, a list or paginated endpoint, a loop over entities, a serializer or template walking relations, an import or batch job. Carries the N+1, fetch-plan, pagination and batch-write traps, the facts that changed between versions, and a review checklist.
+description: Load before writing or reviewing code that goes through Hibernate/JPA (Spring Data included) or Doctrine ORM (Symfony, Nette) — a repository method or query (native SQL included), an entity association or its fetch type, a list or paginated endpoint, a loop over entities, a serializer or template walking relations, an import or batch job. Carries the N+1, fetch-plan, pagination and batch-write traps, the bar for native SQL, the facts that changed between versions, and a review checklist.
 ---
 
 # Hibernate and Doctrine
@@ -49,6 +49,18 @@ Read-only endpoints need no managed entities, dirty checking, or persistence con
 Projections lack lazy associations, strictly preventing accidental N+1s later. This safety beats the raw speed gain.
 
 **Partial entities are not DTOs.** Doctrine's `PARTIAL` returns managed entities with missing fields—flushes silently ignore them, and uninitialized associations look like nulls. Use DTOs instead.
+
+## ORM queries, not native SQL
+
+Default to the ORM's query language: Spring Data derived queries, `@Query` in JPQL/HQL, Criteria; Doctrine DQL or the QueryBuilder. It names entities and fields, not tables and columns:
+- **Renames fail early.** Spring Data validates JPQL `@Query` at startup; native SQL breaks on its first call in production.
+- **The mapping still applies.** Native SQL silently skips soft-delete and tenant filters (`@SQLRestriction`, `@Filter`, Doctrine SQL filters), converters and inheritance.
+
+**Native SQL needs a measured performance reason** the ORM cannot meet after a fetch plan, a DTO projection, a bulk DQL/HQL statement and an index were tried. Current HQL has window functions, CTEs, `union` and `insert ... on conflict`, so check the installed version before assuming only SQL can do it.
+
+When it clears that bar, propose it; don't wait for approval:
+- **Comment beside the query:** ORM cost vs native cost (measured on representative data), and what it gives up.
+- **Call it out in the PR:** a section of its own with the query and the numbers, requesting review of that query specifically.
 
 ## Load inside the transaction
 
@@ -105,6 +117,7 @@ Production fails when fixtures omit NULLs:
 - Max ONE fetch-joined collection per query?
 - Read-only endpoints return DTOs/projections?
 - No `PARTIAL` results flushed?
+- Native SQL only with a measured reason, commented beside it and called out in the PR?
 - No `open-in-view`, `enable_lazy_load_no_trans`, or `EAGER` used as bandaids?
 - Loops stream, flush, clear, and commit per chunk? Writes batched (no `IDENTITY`), or bulk DQL/HQL?
 - No generated `equals`, `hashCode`, or `toString`?
