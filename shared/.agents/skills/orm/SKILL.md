@@ -46,6 +46,11 @@ The mapping says what *can* be loaded; the query says what this use case loads.
   Spring Data method. Doctrine: `->leftJoin('o.items', 'i')->addSelect('i')` —
   the `addSelect` is what makes it a fetch join; without it the join only
   filters.
+- **An entity graph's type only matters where EAGER is still mapped.**
+  Spring Data's `@EntityGraph` defaults to `EntityGraphType.FETCH`: everything
+  outside the graph is lazy, whatever the mapping says. `LOAD` keeps the mapped
+  fetch type for the rest, so a legacy EAGER comes back through it. With every
+  association lazy, the two are the same.
 - **Batch fetching is the fallback, not the fix.** It turns N lazy loads into
   N/size `IN (...)` queries. Hibernate: `hibernate.default_batch_fetch_size`
   globally or `@BatchSize` per association, both off by default. Doctrine:
@@ -128,7 +133,8 @@ Reading:
 
 - **Never `findAll()` or `getResult()` over a table that grows.** Stream it —
   Hibernate `getResultStream()` or `scroll()`, Doctrine `toIterable()` — or walk
-  keyset pages (`where id > :last order by id`).
+  keyset pages (`where id > :last order by id`). Keep it a stream up to the
+  loop: `toList()` or `iterator_to_array()` puts the whole table back in memory.
 - **`flush()` and `clear()` every N rows**, or the persistence context keeps
   every entity it has ever seen. In Doctrine 3 `clear()` takes no argument and
   detaches everything.
@@ -141,30 +147,52 @@ Reading:
 
 Writing:
 
-- **Hibernate batches no statements until `hibernate.jdbc.batch_size` is set.**
-  Add `hibernate.order_inserts` and `hibernate.order_updates` so interleaved
-  entity types still batch. `GenerationType.IDENTITY` turns insert batching off
-  without a word; `SEQUENCE` with a pooled optimizer keeps it. Check the TRACE
-  output of `org.hibernate.orm.jdbc.batch` rather than the config. On MySQL,
-  the driver also needs `rewriteBatchedStatements=true` in the URL; on
-  PostgreSQL, `reWriteBatchedInserts=true`.
+- **Hibernate batches nothing until it is told to**, and each of these is a
+  separate way for it not to:
+  - `hibernate.jdbc.batch_size` switches batching on.
+  - `hibernate.order_inserts` and `hibernate.order_updates` keep interleaved
+    entity types from breaking the batch up.
+  - `GenerationType.IDENTITY` turns insert batching off without a word;
+    `SEQUENCE` with a pooled optimizer keeps it.
+  - The driver has to send the batch as one statement: MySQL needs
+    `rewriteBatchedStatements=true` in the JDBC URL, PostgreSQL
+    `reWriteBatchedInserts=true`.
+  - Check the TRACE output of `org.hibernate.orm.jdbc.batch`, not the config.
 - **Doctrine has no statement batching.** Every persisted entity is its own
   `INSERT` on flush; the batch is the flush interval, not a setting.
 - **A set-based change is one statement.** Updating or deleting rows by a
   condition is a DQL/HQL `UPDATE` or `DELETE`, not a loop of loads. It bypasses
   the persistence context: entities already loaded go stale, and listeners and
   lifecycle callbacks do not run. Decide whether that matters before choosing it.
+- **Commit per chunk, not per job.** One transaction around a whole import holds
+  every row lock it takes until the end, blocks the application for that long,
+  and a failure at the last row rolls back all the others. A bulk `UPDATE` locks
+  every matching row at once, so on a hot table it goes in ranges too. Two jobs
+  writing the same rows in a different order is a deadlock; Hibernate's
+  `order_updates` sorts by primary key, which is also why it helps there.
+
+## No generated `equals`, `hashCode` or `toString` on an entity
+
+Lombok's `@Data` in Java, and its `@ToString` and `@EqualsAndHashCode` on their
+own, or a Kotlin `data class`, generate all three over every field:
+
+- `toString` walks the lazy collections and loads them, so a log line becomes
+  a query.
+- A bidirectional pair makes each side print the other, until the stack
+  overflows.
+- A `hashCode` over mutable fields changes as soon as one of them does,
+  including the id assigned on persist, and the entity is lost from the
+  `HashSet` holding it.
+
+Write them by hand, and follow whatever the project's existing entities do,
+whether that is the id or a natural key.
 
 ## Kotlin entities
 
-- **A final class cannot be proxied**, so a `LAZY` to-one pointing at a Kotlin
-  entity quietly loads eagerly. `kotlin("plugin.jpa")` only adds no-arg
-  constructors. The classes need `allOpen` on `jakarta.persistence.Entity`,
-  `MappedSuperclass` and `Embeddable`.
-- **No `data class` entities**, and no Lombok `@Data` in Java for the same
-  reason: the generated `toString` loads lazy collections, a bidirectional pair
-  recurses until the stack overflows, and a `hashCode` over the id changes on
-  persist, which loses the entity from a `HashSet`.
+A final class cannot be proxied, so a `LAZY` to-one pointing at a Kotlin entity
+quietly loads eagerly. `kotlin("plugin.jpa")` only adds no-arg constructors. The
+classes need `allOpen` on `jakarta.persistence.Entity`, `MappedSuperclass` and
+`Embeddable`.
 
 ## Review checklist
 
@@ -181,6 +209,7 @@ Writing:
 - Does no `PARTIAL` result reach a flush?
 - Was no `open-in-view`, `enable_lazy_load_no_trans` or `EAGER` added to make a
   `LazyInitializationException` go away?
-- Does a loop over a table stream, flush and clear? Do its writes batch (no
-  `IDENTITY` in the way), or are they one DQL/HQL statement?
+- Does a loop over a table stream, flush, clear and commit per chunk? Do its
+  writes batch (no `IDENTITY` in the way), or are they one DQL/HQL statement?
+- Does no entity have generated `equals`, `hashCode` or `toString`?
 - Does a test pin the statement count?
