@@ -130,6 +130,10 @@ if OS.mac?
 	cask "ghostty"
 	# Web browser — the default one, see bin/macos/file-associations.conf
 	cask "google-chrome"
+	# Web browser for the `ai-e2e` instance the agents drive. Only its own bundle
+	# id keeps LaunchServices from routing my links into it; the reasoning is in
+	# shared/.agents/rules/browser-automation.md
+	cask "google-chrome@canary"
 	# Terminal emulator as alternative to Apple's Terminal app
 	cask "iterm2"
 	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so

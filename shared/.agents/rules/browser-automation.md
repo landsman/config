@@ -1,6 +1,6 @@
 # Browser automation
 
-Opening a web app to check or drive it happens in a **separate Chrome instance**,
+Opening a web app to check or drive it happens in a **separate browser instance**,
 `ai-e2e`, never in the Chrome I am working in. Claude in Chrome
 (`mcp__claude-in-chrome__*`) can see every Chrome with the extension installed, and
 by default it picks mine.
@@ -18,9 +18,25 @@ process, and Chrome shows "Claude started debugging this browser" in every windo
 of that process, mine included. Only its own `--user-data-dir` makes it a process
 of its own.
 
+**On macOS, its own `--user-data-dir` is not enough either.** LaunchServices routes
+an `http` URL to a **bundle id**, not to a process, and `--user-data-dir` is
+internal to Chrome, so from the system's side the instance and my own Chrome are one
+application. With both running, `open https://…` goes to whichever registered first,
+and every link I click in the terminal can land in the instance. Nothing configures
+that: `lsappinfo find bundleID=com.google.Chrome` simply lists two entries, and the
+first one wins.
+
+So the instance is **Chrome Canary**, whose bundle is `com.google.Chrome.canary`.
+A separate app is what makes the two distinguishable; a separate data directory
+never was. It is the same browser engine, and the profile is what carries the
+extension and the sign-ins, so nothing else in this rule changes.
+
+Linux does not have this problem: `xdg-open` runs `google-chrome`, which hands the
+URL to whatever instance holds the default data directory. Keep plain Chrome there.
+
 ## 1. Start it, unless it is running
 
-The data directory is `~/.chrome-ai-e2e` on every machine.
+The data directory is `~/.chrome-ai-e2e` on every machine, whichever app opens it.
 
 ```bash
 pgrep -f "user-data-dir=$HOME/.chrome-ai-e2e" >/dev/null && echo running
@@ -38,11 +54,13 @@ L=$(osascript -l JavaScript -e 'ObjC.import("AppKit"); var s = $.NSScreen.screen
       out = [f.origin.x, main.size.height - (f.origin.y + f.size.height),
              f.size.width, f.size.height].join(" "); }
   out')
-if [ -n "$L" ]; then set -- $L
-  open -na "Google Chrome" --args --user-data-dir="$HOME/.chrome-ai-e2e" \
+# ${=L}, not $L: zsh does not word-split an unquoted expansion, so `set -- $L` puts
+# the whole geometry in $1 and the instance starts with --window-size=, and no size.
+if [ -n "$L" ]; then set -- ${=L}
+  open -na "Google Chrome Canary" --args --user-data-dir="$HOME/.chrome-ai-e2e" \
       --window-position="$1,$2" --window-size="$3,$4"
 else
-  open -na "Google Chrome" --args --user-data-dir="$HOME/.chrome-ai-e2e"
+  open -na "Google Chrome Canary" --args --user-data-dir="$HOME/.chrome-ai-e2e"
 fi
 ```
 
@@ -55,7 +73,8 @@ already running, leave its window where I put it.
 **Never minimise it.** A minimised Chrome window stops rendering, and screenshots
 come back blank or fail. Out of sight on the laptop screen is enough.
 
-The first start on a machine is mine to finish, once. Point me to these steps, in the
+The first start on a machine is mine to finish, once. Chrome Canary comes from the
+Brewfile, so `make apps` has already installed it. Point me to these steps, in the
 instance's window:
 
 1. Install the Claude extension:
@@ -63,6 +82,12 @@ instance's window:
 2. *Settings → On startup → Continue where you left off*, so a restart of the
    instance keeps its sessions.
 3. Sign in to whatever it is going to check.
+
+A machine whose `~/.chrome-ai-e2e` was made by plain Chrome skips all three: the
+extension and the sign-ins live in the data directory, not in the app, so Canary
+opens it as it stands. That is one-way, because Canary writes back a newer profile
+version and plain Chrome then refuses the directory. Nothing needs it to, which is
+the point.
 
 ## 2. Pick it
 
