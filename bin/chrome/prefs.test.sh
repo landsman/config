@@ -20,23 +20,36 @@ check() {  # check <name> <expected> <actual>
 # A stand-in profile: one key this repo writes into, and one it must not touch.
 # The nested "keep" is the point — Chrome's Preferences is one blob, and a patch
 # that rewrites a whole subtree instead of a leaf loses site permissions.
-printf '{"vertical_tabs":{"enabled":false,"enabled_first_time":true},"profile":{"keep":"me"}}' > "$tmp/Preferences"
+# The accented value is not decoration. json.dump defaults to ensure_ascii=True,
+# which would rewrite it as \u0159 - a key this script never touches, changed
+# anyway, which is the one thing it promises not to do.
+printf '{"vertical_tabs":{"enabled":false,"enabled_first_time":true},"profile":{"keep":"m\xc3\xa9","name":"Nastaven\xc3\xad"}}' > "$tmp/Preferences"
 
 # pgrep says "nothing running", so the guard lets the write through.
 printf '#!/bin/sh\nexit 1\n' > "$tmp/pgrep"
 chmod +x "$tmp/pgrep"
 
 out=$(PATH="$tmp:$PATH" CHROME_PREFS="$tmp/Preferences" "$script")
+# ensure_ascii=False here too, or the helper escapes what it reports and an
+# accented expectation below could never match it.
 read_key() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]))
 for k in sys.argv[2].split("."): d=d[k]
-print(json.dumps(d))' "$tmp/Preferences" "$1"; }
+print(json.dumps(d, ensure_ascii=False))' "$tmp/Preferences" "$1"; }
 
 check "the file is still valid JSON" '0' "$(python3 -m json.tool "$tmp/Preferences" >/dev/null 2>&1; echo $?)"
 check "vertical tabs are on" 'true' "$(read_key vertical_tabs.enabled)"
 check "the sibling key survives" 'true' "$(read_key vertical_tabs.enabled_first_time)"
-check "an unrelated subtree survives" '"me"' "$(read_key profile.keep)"
+check "an unrelated subtree survives" '"mé"' "$(read_key profile.keep)"
+# Byte-level, not value-level: read_key would decode an escape back to the same
+# string, so it cannot see this. grep the file itself.
+check "non-ASCII stays a character, not \\uXXXX" '0' "$(grep -c '\\u' "$tmp/Preferences")"
+check "and is still the right character" '1' "$(grep -c 'Nastavení' "$tmp/Preferences")"
 check "a missing parent is created" 'false' "$(read_key side_panel.is_right_aligned)"
-check "it reports what it wrote" '4' "$(grep -c '^set [a-z_.]* = [^ ]*$' <<<"$out")"
+# The one number pinned by hand, and deliberately: adding a setting to prefs.py
+# should not slip in without this file noticing. Everything below derives the
+# keys from the dry run instead.
+applied=$(grep -c '^set ' <<<"$out")
+check "it reports what it wrote" '4' "$applied"
 
 # Running it twice must not drift — this is what `make chrome` does on every
 # machine, every time.
@@ -56,14 +69,19 @@ check "and says why" '1' "$(grep -c 'quit Chrome' <<<"$out")"
 # --dry-run must not need a profile, or reach one.
 out=$(CHROME_PREFS="$tmp/absent" "$script" --dry-run)
 check "dry run writes nothing" 'no' "$([ -f "$tmp/absent" ] && echo yes || echo no)"
-check "dry run lists every key" '4' "$(grep -c '^set [a-z_.]* = [^ ]*$' <<<"$out")"
+check "dry run and the real run agree" "$applied" "$(grep -c '^set ' <<<"$out")"
 
-# Same shape the script parses: key, one space, JSON value. A pasted line with a
-# space in the value would set the key to garbage without this.
-keys=$(sed -n 's/^set \([^ ]*\) = .*/\1/p' <<<"$out")
-check "no key listed twice" '' "$(sort <<<"$keys" | uniq -d)"
-check "every value is one JSON token" '4' \
-	"$(grep -c '^set [a-z_.]* = [^ ]*$' <<<"$out")"
+# The list lives in prefs.py, so take it from the dry run rather than repeat it
+# here: a setting added there is covered by this the moment it is added, and a
+# key that prints but does not reach the file fails. Both halves matter - the
+# old version pinned the count at 4 with a regex that also pinned the shape, so
+# a legitimate string value with a space in it was quietly dropped from the
+# count instead of failing, and the two wrongs cancelled.
+missing=
+for k in $(sed -n 's/^set \([^ ]*\) = .*/\1/p' <<<"$out"); do
+	read_key "$k" >/dev/null 2>&1 || missing="$missing $k"
+done
+check "every key the dry run names is set" '' "$missing"
 
 # An unreadable profile is the macOS case: Chrome's data directory carries
 # com.apple.macl, so a terminal without Full Disk Access gets EPERM while

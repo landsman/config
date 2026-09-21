@@ -15,14 +15,14 @@
 # A script and not a stow package: Chrome keeps them in `Default/Preferences`,
 # one JSON blob that also holds site permissions, engagement scores, an upload
 # seed and a window rectangle. Symlinking that into git would track the noise
-# and leak the rest, so only the keys listed below are written and everything
+# and leak the rest, so only the keys in prefs.py are written and everything
 # else is left as the machine has it. Same reasoning as bin/macos/defaults.sh.
 #
 # To add a setting: copy Preferences aside, flip the toggle in Chrome, quit it,
 # then diff — Chrome only flushes the file on exit:
 #   cp "$CHROME_PREFS" /tmp/before   # …flip it, quit Chrome…
 #   python3 -m json.tool "$CHROME_PREFS" | diff <(python3 -m json.tool /tmp/before) -
-# and paste the dotted key here with its JSON value.
+# and add the dotted key to PREFS in prefs.py beside it.
 #
 # usage: prefs.sh [--dry-run]
 #
@@ -38,14 +38,9 @@ case "${1:-}" in
 *)          echo "usage: prefs.sh [--dry-run]" >&2; exit 2 ;;
 esac
 
-# One `dotted.key <json value>` per line. Split on the first space, so a string
-# value has to be JSON without spaces ("en-US", not "en US") — none needs them.
-prefs='
-vertical_tabs.enabled true
-vertical_tabs.collapsed_state false
-vertical_tabs.uncollapsed_width 240
-side_panel.is_right_aligned false
-'
+# The edit itself is prefs.py, next to this file. What stays here is the part
+# that has to be shell: the platform's path, and the refusals below.
+patch="$(cd "$(dirname "$0")" && pwd)/prefs.py"
 
 # ponytail: the Default profile only. A second profile is a second $CHROME_PREFS
 # run, and this repo has never had one.
@@ -56,9 +51,7 @@ esac
 : "${CHROME_PREFS:=$default_prefs}"
 
 if [ -n "$DRY_RUN" ]; then
-	echo "$prefs" | grep -v '^$' | sed "s|^|set |;s| \([^ ]*\)$| = \1|"
-	echo "file $CHROME_PREFS"
-	exit 0
+	exec python3 "$patch" --dry-run "$CHROME_PREFS"
 fi
 
 [ -f "$CHROME_PREFS" ] || { echo "no Chrome profile at $CHROME_PREFS"; exit 1; }
@@ -84,30 +77,7 @@ if pgrep -x "Google Chrome" >/dev/null 2>&1 || pgrep -x chrome >/dev/null 2>&1; 
 fi
 
 # python3 and not jq: it ships with macOS and with every runner, and jq is not
-# in the Brewfile. Written to a temp file and renamed, so an interrupted run
-# leaves the old Preferences intact rather than half a JSON document.
-PREFS="$prefs" python3 - "$CHROME_PREFS" <<'PY'
-import json, os, sys, tempfile
-
-path = sys.argv[1]
-with open(path, encoding="utf-8") as f:
-	prefs = json.load(f)
-
-for line in os.environ["PREFS"].split("\n"):
-	if not line.strip():
-		continue
-	key, value = line.split(" ", 1)
-	*parents, leaf = key.split(".")
-	node = prefs
-	for parent in parents:
-		node = node.setdefault(parent, {})
-	node[leaf] = json.loads(value)
-	print("set %s = %s" % (key, value))
-
-fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".")
-with os.fdopen(fd, "w", encoding="utf-8") as f:
-	json.dump(prefs, f, separators=(",", ":"))   # compact, the way Chrome writes it
-os.replace(tmp, path)
-PY
+# in the Brewfile. The temp-file-plus-rename is in there too.
+python3 "$patch" "$CHROME_PREFS"
 
 echo "applied - start Chrome"
