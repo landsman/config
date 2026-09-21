@@ -82,9 +82,12 @@ make chrome      # Chrome's non-syncing toggles — quit Chrome first
 - **The IDE is last** — opening this repo offers every plugin in
   `.idea/externalDependencies.xml` in one click, and plugins are per IDE, not per
   project, so that one prompt covers every project on the machine.
-- **`make chrome` needs Chrome quit** — it rewrites `Default/Preferences` on
-  exit, so a write made underneath it vanishes. Only the non-syncing toggles are
-  patched; site permissions, history and the window rectangle are left alone.
+- **`make chrome` needs Chrome quit, and Full Disk Access** — it rewrites
+  `Default/Preferences` on exit, so a write made underneath it vanishes. macOS
+  also guards that directory: without the terminal in System Settings > Privacy
+  & Security > Full Disk Access, even listing it is `Operation not permitted`.
+  Only the non-syncing toggles are patched; site permissions, history and the
+  window rectangle are left alone.
 - **Root-owned files are not installed by any of this** — see
   [devices/t480/system/README.md](devices/t480/system/README.md).
 

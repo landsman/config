@@ -65,6 +65,30 @@ check "no key listed twice" '' "$(sort <<<"$keys" | uniq -d)"
 check "every value is one JSON token" '4' \
 	"$(grep -c '^set [a-z_.]* = [^ ]*$' <<<"$out")"
 
+# An unreadable profile is the macOS case: Chrome's data directory carries
+# com.apple.macl, so a terminal without Full Disk Access gets EPERM while
+# `test -f` still says the file is there. chmod 000 is the portable stand-in.
+# Skipped as root, which ignores the mode and would read it anyway.
+#
+# The pgrep stub goes back to "nothing running" first. The block above left it
+# saying Chrome is up, and that guard would answer before this one - the test
+# would pass on the wrong refusal.
+printf '#!/bin/sh\nexit 1\n' > "$tmp/pgrep"
+if [ "$(id -u)" != 0 ]; then
+	chmod 000 "$tmp/Preferences"
+	set +e
+	out=$(PATH="$tmp:$PATH" CHROME_PREFS="$tmp/Preferences" "$script" 2>&1); status=$?
+	set -e
+	chmod 600 "$tmp/Preferences"
+	check "refuses an unreadable profile" '1' "$status"
+	check "and points at Full Disk Access" '1' "$(grep -c 'Full Disk Access' <<<"$out")"
+	# The status alone proves nothing: the traceback this replaced also exited
+	# non-zero. What regressed is the python reaching a file it cannot open.
+	check "without a python traceback" '0' "$(grep -c 'Traceback' <<<"$out")"
+else
+	echo "skip refuses an unreadable profile (running as root)"
+fi
+
 # A mistyped flag must refuse, not fall through to the write path - that is the
 # whole reason --dry-run is spelled out rather than "anything but a flag".
 set +e

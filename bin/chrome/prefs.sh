@@ -25,6 +25,9 @@
 # and paste the dotted key here with its JSON value.
 #
 # usage: prefs.sh [--dry-run]
+#
+# macOS asks for Full Disk Access on the terminal before this can touch the
+# profile at all — see the guard below for why -f alone does not catch it.
 set -eu
 
 # Anything unrecognised is refused rather than ignored: a mistyped `--dryrun`
@@ -59,6 +62,19 @@ if [ -n "$DRY_RUN" ]; then
 fi
 
 [ -f "$CHROME_PREFS" ] || { echo "no Chrome profile at $CHROME_PREFS"; exit 1; }
+
+# -f is not enough on macOS. Chrome's data directory carries com.apple.macl, so
+# a terminal without Full Disk Access gets EPERM on read *and* on listing, while
+# stat still succeeds — `test -f` says yes and the write then dies on its face.
+# Reproduce it with:
+#   ls "$HOME/Library/Application Support/Google/Chrome"
+# The rename needs the directory, not just the file, hence both checks.
+if [ ! -r "$CHROME_PREFS" ] || [ ! -w "$(dirname "$CHROME_PREFS")" ]; then
+	echo "cannot read or replace $CHROME_PREFS"
+	echo "macOS guards Chrome's profile: System Settings > Privacy & Security >"
+	echo "Full Disk Access > add this terminal, then run this again"
+	exit 1
+fi
 
 # Chrome holds the whole file in memory and rewrites it on exit, so a write made
 # while it runs is silently discarded a few hours later — the worst kind of
