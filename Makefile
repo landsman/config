@@ -69,6 +69,11 @@ lint: ## parse every shell file without running it
 	@# stowed rc file otherwise surfaces as a broken login shell on the next
 	@# machine, which is a bad place to find out.
 	@for f in $$(git ls-files '*.sh' '.bashrc'); do echo "== $$f"; bash -n "$$f" || exit 1; done
+	@# Python gets the same treatment, for the same reason: ast.parse rather than
+	@# py_compile, which is also parse-only but leaves a __pycache__ behind in a
+	@# tree that has no reason to hold one.
+	@for f in $$(git ls-files '*.py'); do echo "== $$f"; \
+		python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$$f" || exit 1; done
 	@# The zsh file gets the zsh parser: bash accepts most of it and would miss
 	@# the rest (fpath arrays, autoload).
 	@# Skipped where there is no zsh, which is every Linux box here — the file is
@@ -482,6 +487,15 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 	@# the IDE offer to install the lot, and plugins are per IDE, not per project.
 	@echo
 	@echo "plugins: open $(CURDIR) in the IDE and accept the 'required plugins' prompt"
+
+##@ Google Chrome
+#
+# The toggles Google does not sync, see bin/chrome/prefs.sh
+#
+
+.PHONY: chrome
+chrome: ## apply the Chrome settings that do not sync (vertical tabs, side panel)
+	./bin/chrome/prefs.sh
 
 ##@ macOS System Settings
 #
