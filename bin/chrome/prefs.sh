@@ -5,6 +5,13 @@
 # but a handful of window-chrome toggles are per-installation and never leave
 # the machine — vertical tabs is the obvious one. Those are what this writes.
 #
+# Not a guess: chrome/browser/sync/prefs/chrome_syncable_prefs_database.cc has
+#   // kVerticalTabsEnabled = 100330, (no longer synced)
+# so that one had a sync id and Google took it away; the other three keys are
+# absent from that file entirely, having never had one. Two such tombstones
+# exist in those 2300 lines, so it is a decision rather than an oversight — and
+# it is the line to re-read if a new Chrome starts syncing this after all.
+#
 # A script and not a stow package: Chrome keeps them in `Default/Preferences`,
 # one JSON blob that also holds site permissions, engagement scores, an upload
 # seed and a window rectangle. Symlinking that into git would track the noise
@@ -20,8 +27,13 @@
 # usage: prefs.sh [--dry-run]
 set -eu
 
-[ "${1:-}" != "--dry-run" ] || DRY_RUN=1
-: "${DRY_RUN:=}"
+# Anything unrecognised is refused rather than ignored: a mistyped `--dryrun`
+# would otherwise patch the profile for real, which is what the flag is for.
+case "${1:-}" in
+"")         DRY_RUN= ;;
+--dry-run)  DRY_RUN=1 ;;
+*)          echo "usage: prefs.sh [--dry-run]" >&2; exit 2 ;;
+esac
 
 # One `dotted.key <json value>` per line. Split on the first space, so a string
 # value has to be JSON without spaces ("en-US", not "en US") — none needs them.
@@ -41,7 +53,7 @@ esac
 : "${CHROME_PREFS:=$default_prefs}"
 
 if [ -n "$DRY_RUN" ]; then
-	echo "$prefs" | grep -v '^$' | sed "s|^|set |"
+	echo "$prefs" | grep -v '^$' | sed "s|^|set |;s| \([^ ]*\)$| = \1|"
 	echo "file $CHROME_PREFS"
 	exit 0
 fi

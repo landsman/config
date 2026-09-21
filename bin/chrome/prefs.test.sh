@@ -36,7 +36,7 @@ check "vertical tabs are on" 'true' "$(read_key vertical_tabs.enabled)"
 check "the sibling key survives" 'true' "$(read_key vertical_tabs.enabled_first_time)"
 check "an unrelated subtree survives" '"me"' "$(read_key profile.keep)"
 check "a missing parent is created" 'false' "$(read_key side_panel.is_right_aligned)"
-check "it reports what it wrote" '4' "$(grep -c '^set ' <<<"$out")"
+check "it reports what it wrote" '4' "$(grep -c '^set [a-z_.]* = [^ ]*$' <<<"$out")"
 
 # Running it twice must not drift — this is what `make chrome` does on every
 # machine, every time.
@@ -56,14 +56,22 @@ check "and says why" '1' "$(grep -c 'quit Chrome' <<<"$out")"
 # --dry-run must not need a profile, or reach one.
 out=$(CHROME_PREFS="$tmp/absent" "$script" --dry-run)
 check "dry run writes nothing" 'no' "$([ -f "$tmp/absent" ] && echo yes || echo no)"
-check "dry run lists every key" '4' "$(grep -c '^set ' <<<"$out")"
+check "dry run lists every key" '4' "$(grep -c '^set [a-z_.]* = [^ ]*$' <<<"$out")"
 
 # Same shape the script parses: key, one space, JSON value. A pasted line with a
 # space in the value would set the key to garbage without this.
-keys=$(sed -n 's/^set \([^ ]*\) .*/\1/p' <<<"$out")
+keys=$(sed -n 's/^set \([^ ]*\) = .*/\1/p' <<<"$out")
 check "no key listed twice" '' "$(sort <<<"$keys" | uniq -d)"
 check "every value is one JSON token" '4' \
-	"$(grep -c '^set [a-z_.]* [^ ]*$' <<<"$out")"
+	"$(grep -c '^set [a-z_.]* = [^ ]*$' <<<"$out")"
+
+# A mistyped flag must refuse, not fall through to the write path - that is the
+# whole reason --dry-run is spelled out rather than "anything but a flag".
+set +e
+out=$(CHROME_PREFS="$tmp/Preferences" "$script" --dryrun 2>&1); status=$?
+set -e
+check "an unknown argument refuses" '2' "$status"
+check "and prints the usage" '1' "$(grep -c '^usage: ' <<<"$out")"
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }
 echo "all passed"
