@@ -75,7 +75,10 @@ check "the first one is still the first one" "Example" "$(attr "$opml" https://e
 # so this row failing is what an unescaped write looks like.
 "$script" "$opml" 'https://example.com/feed?a=1&b=2' "Bob's & Alice's" > /dev/null
 check "escapes & and ' " "Bob's & Alice's" "$(attr "$opml" 'https://example.com/feed?a=1&b=2' '+@text')"
-check "file still parses" "valid" "$(xmllint --noout "$opml" 2>&1 && echo valid)"
+# yq and not xmllint: libxml2-utils is not on a GitHub Ubuntu runner, and a
+# check that needs a second XML parser installed is a check that skips. yq
+# exits non-zero on a file it cannot parse, so an empty count is the failure.
+check "file still parses" 4 "$("${yq[@]}" -p=xml -oy '[.opml.body.outline] | flatten | length' "$opml")"
 
 # == a title that is not passed in, but read off the feed
 cat > "$tmp/rss.xml" <<'EOF'
