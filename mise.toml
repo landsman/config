@@ -1,0 +1,12 @@
+# Tools this repo's scripts call, installed with `mise install`.
+#
+# mise itself is a Brewfile line, so `make apps` is still the only bootstrap
+# step — this file is what a script may then assume is on PATH.
+#
+# Pinned rather than `latest`: yq's XML support is configurable, and the two
+# defaults bin/feeds/add.sh relies on are the attribute prefix (`+@`) and the
+# preserved `<?xml?>` declaration. A minor release changing either would edit
+# the OPML wrongly while still writing valid XML, which is the failure nothing
+# downstream notices.
+[tools]
+yq = "4.53.6"

@@ -63,6 +63,16 @@ qa-deps:
 	if [ -z "$$CI" ]; then echo "qa needs stow - run: make apps"; exit 1; \
 	elif command -v brew >/dev/null; then brew install stow; \
 	else sudo apt-get update && sudo apt-get install -y stow; fi
+	@# yq, for the same reason: bin/feeds/add.test.sh skips itself without one,
+	@# and a check that silently runs nothing is worse than no check. A laptop
+	@# needs neither branch — mise.toml pins the version and the scripts reach
+	@# it with `mise x`, so having mise is enough. Both runners carry brew, so
+	@# that is the branch CI actually takes; the apt line is for a Linux box
+	@# with neither, and is deliberately not how the pinned version is got.
+	@if command -v yq >/dev/null || command -v mise >/dev/null; then exit 0; fi; \
+	if [ -z "$$CI" ]; then echo "qa needs yq - run: make apps, then mise install"; exit 1; \
+	elif command -v brew >/dev/null; then brew install yq; \
+	else sudo apt-get update && sudo apt-get install -y yq; fi
 
 lint: ## parse every shell file without running it
 	@# -n is parse-only, so nothing here is sourced or executed. A typo in a
@@ -324,14 +334,14 @@ agent-docs: ## clone (or fast-forward) the upstream docs an agent should grep in
 
 ##@ RSS feeds
 #
-# One list, shared/feeds.opml, stowed into $HOME like any other dotfile and
+# One list, shared/.config/feeds.opml, stowed into $HOME like any other dotfile and
 # imported from there into whatever reader a machine has. OPML because that is
 # the one format every reader imports and exports — it is Dave Winer's, not a
 # standards body's, but universal adoption is what makes it the portable half.
 #
 
 .PHONY: feed
-feed: ## add an RSS feed to shared/feeds.opml (prompts; reads the title off the feed)
+feed: ## add an RSS feed to the OPML list (prompts; reads the title off the feed)
 	@# Prompted rather than `make feed URL=...`: a feed URL with a `&` in it has
 	@# to be quoted on a command line and a paste into `read` does not, which is
 	@# the difference between adding a feed and debugging a backgrounded job.
@@ -339,7 +349,7 @@ feed: ## add an RSS feed to shared/feeds.opml (prompts; reads the title off the 
 	@# resolves to a feed — see bin/feeds/add.py.
 	@read -p "feed url: " u; [ -n "$$u" ] || { echo "nothing to add"; exit 0; }; \
 	read -p "title [read from the feed]: " t; \
-	./bin/feeds/add.py shared/feeds.opml "$$u" "$$t"
+	./bin/feeds/add.sh shared/.config/feeds.opml "$$u" "$$t"
 
 ##@ Dotfiles ($HOME) via GNU stow
 
