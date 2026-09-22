@@ -7,6 +7,17 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "auto_install_extensions": {
+    "make": true,
+    "dockerfile": true,
+    "sql": true,
+    "java": true,
+    "kotlin": true,
+    "php": true,
+    "terraform": true,
+    "toml": true,
+    "html": true
+  },
   "agent_servers": {
     "claude-acp": {
       "default_config_options": {
