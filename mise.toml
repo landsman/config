@@ -1,7 +1,13 @@
 # Tools this repo's scripts call, installed with `mise install`.
 #
 # mise itself is a Brewfile line, so `make apps` is still the only bootstrap
-# step — this file is what a script may then assume is on PATH.
+# step — this file is what a script may then assume is installable.
+#
+# Installed is not the same as on PATH here: `mise activate` is in
+# os/macos/.zshrc and in no bash rc, so an interactive zsh finds `yq` and
+# `make` — which runs a non-interactive /bin/bash — does not, as does any
+# shell on the Linux boxes. That is why bin/feeds/add.sh resolves the tool
+# through `mise x` rather than calling `yq` and hoping.
 #
 # Pinned rather than `latest`: yq's XML support is configurable, and the two
 # defaults bin/feeds/add.sh relies on are the attribute prefix (`+@`) and the
