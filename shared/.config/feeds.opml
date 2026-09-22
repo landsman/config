@@ -5,5 +5,6 @@
   </head>
   <body>
     <outline type="rss" text="Forgejo News" title="Forgejo News" xmlUrl="https://forgejo.org/rss.xml"></outline>
+    <outline type="rss" text="Hacker News" title="Hacker News" xmlUrl="https://news.ycombinator.com/rss"></outline>
   </body>
 </opml>
