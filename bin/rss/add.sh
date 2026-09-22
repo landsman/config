@@ -3,7 +3,7 @@
 #
 #     add.sh <opml> <url> [title]
 #
-# The entry point is `make feed`, which owns the prompting. By the time this
+# The entry point is `make rss`, which owns the prompting. By the time this
 # runs the only thing left is the edit.
 #
 # yq and not sed, because a feed URL routinely carries a `&` and a title

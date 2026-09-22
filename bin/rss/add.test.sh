@@ -99,7 +99,7 @@ check "keeps the xml declaration" "1" "$(grep -c '^<?xml' "$opml")"
 check "ends with a newline" "" "$(tail -c1 "$opml")"
 
 # == the tracked list, which nothing else parses
-# `make feed` is the only thing that reads the tracked list, so a hand-edit
+# `make rss` is the only thing that reads the tracked list, so a hand-edit
 # that broke it would otherwise surface the next time one is added.
 check "shared/.config/feeds.opml parses, every outline has a url" "" \
 	"$("${yq[@]}" -p=xml -oy \

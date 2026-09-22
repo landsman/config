@@ -6,11 +6,11 @@
 # Installed is not the same as on PATH here: `mise activate` is in
 # os/macos/.zshrc and in no bash rc, so an interactive zsh finds `yq` and
 # `make` — which runs a non-interactive /bin/bash — does not, as does any
-# shell on the Linux boxes. That is why bin/feeds/add.sh resolves the tool
+# shell on the Linux boxes. That is why bin/rss/add.sh resolves the tool
 # through `mise x` rather than calling `yq` and hoping.
 #
 # Pinned rather than `latest`: yq's XML support is configurable, and the two
-# defaults bin/feeds/add.sh relies on are the attribute prefix (`+@`) and the
+# defaults bin/rss/add.sh relies on are the attribute prefix (`+@`) and the
 # preserved `<?xml?>` declaration. A minor release changing either would edit
 # the OPML wrongly while still writing valid XML, which is the failure nothing
 # downstream notices.

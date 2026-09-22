@@ -63,7 +63,7 @@ qa-deps:
 	if [ -z "$$CI" ]; then echo "qa needs stow - run: make apps"; exit 1; \
 	elif command -v brew >/dev/null; then brew install stow; \
 	else sudo apt-get update && sudo apt-get install -y stow; fi
-	@# yq, for the same reason: bin/feeds/add.test.sh skips itself without one,
+	@# yq, for the same reason: bin/rss/add.test.sh skips itself without one,
 	@# and a check that silently runs nothing is worse than no check. A laptop
 	@# needs neither branch — mise.toml pins the version and the scripts reach
 	@# it with `mise x`, so having mise is enough. Both runners carry brew, so
@@ -340,16 +340,16 @@ agent-docs: ## clone (or fast-forward) the upstream docs an agent should grep in
 # standards body's, but universal adoption is what makes it the portable half.
 #
 
-.PHONY: feed
-feed: ## add an RSS feed to the OPML list (prompts; reads the title off the feed)
-	@# Prompted rather than `make feed URL=...`: a feed URL with a `&` in it has
+.PHONY: rss
+rss: ## add an RSS feed to the OPML list (prompts; reads the title off the feed)
+	@# Prompted rather than `make rss URL=...`: a feed URL with a `&` in it has
 	@# to be quoted on a command line and a paste into `read` does not, which is
 	@# the difference between adding a feed and debugging a backgrounded job.
 	@# The title is read from the feed when left empty, which also proves the URL
-	@# resolves to a feed — see bin/feeds/add.py.
+	@# resolves to a feed — see bin/rss/add.sh.
 	@read -p "feed url: " u; [ -n "$$u" ] || { echo "nothing to add"; exit 0; }; \
 	read -p "title [read from the feed]: " t; \
-	./bin/feeds/add.sh shared/.config/feeds.opml "$$u" "$$t"
+	./bin/rss/add.sh shared/.config/feeds.opml "$$u" "$$t"
 
 ##@ Dotfiles ($HOME) via GNU stow
 
