@@ -322,6 +322,25 @@ agent-docs: ## clone (or fast-forward) the upstream docs an agent should grep in
 	@# source.
 	@bin/agent-docs/clone.sh
 
+##@ RSS feeds
+#
+# One list, shared/feeds.opml, stowed into $HOME like any other dotfile and
+# imported from there into whatever reader a machine has. OPML because that is
+# the one format every reader imports and exports — it is Dave Winer's, not a
+# standards body's, but universal adoption is what makes it the portable half.
+#
+
+.PHONY: feed
+feed: ## add an RSS feed to shared/feeds.opml (prompts; reads the title off the feed)
+	@# Prompted rather than `make feed URL=...`: a feed URL with a `&` in it has
+	@# to be quoted on a command line and a paste into `read` does not, which is
+	@# the difference between adding a feed and debugging a backgrounded job.
+	@# The title is read from the feed when left empty, which also proves the URL
+	@# resolves to a feed — see bin/feeds/add.py.
+	@read -p "feed url: " u; [ -n "$$u" ] || { echo "nothing to add"; exit 0; }; \
+	read -p "title [read from the feed]: " t; \
+	./bin/feeds/add.py shared/feeds.opml "$$u" "$$t"
+
 ##@ Dotfiles ($HOME) via GNU stow
 
 .PHONY: stow restow unstow stow-backup stow-test agents-link
