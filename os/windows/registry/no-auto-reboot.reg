@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+; Do not restart for Windows Update while someone is signed in.
+; The update still installs; the restart waits until I do it.
+; See os/windows/README.md for why.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU]
+"NoAutoRebootWithLoggedOnUsers"=dword:00000001

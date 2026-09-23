@@ -1,0 +1,2 @@
+# regedit expects CRLF; keep them whatever core.autocrlf says on the committing machine.
+*.reg text eol=crlf

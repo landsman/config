@@ -1,0 +1,14 @@
+# Windows never runs `make stow` — nothing here is a dotfile. The package exists
+# so the Windows side of a multi-boot machine is tracked next to the others, and
+# this file exists so `make stow-test`, which stows every package, leaves the
+# throwaway $HOME empty.
+#
+# Stow ignores `^/README.*` by default, but a local ignore file replaces the
+# whole default list rather than extending it, so the usual entries are repeated.
+^/README.*
+^/registry$
+^/\.stow-local-ignore$
+\.git
+\.gitignore
+.+~
+\#.*\#
