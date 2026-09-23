@@ -108,6 +108,8 @@ brew "zsh-autocomplete" if OS.mac?
 cask "1password-cli"
 # Open-source cross-platform alternative to AirDrop
 cask "localsend"
+# Open-source remote desktop
+cask "rustdesk"
 
 # GUI apps — nearly every cask is macOS-only, so the rest are guarded. Anything
 # the Linux boxes are better off getting from apt/pacman belongs in here too.
