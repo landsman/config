@@ -147,6 +147,12 @@ server instead of a failing one. `command -v` first so an Arch box that
 installed `forgejo-mcp` from the AUR uses that copy; `~/go/bin` is the fallback
 because it is not on `PATH` here.
 
+Windows has no `sh` on `PATH`, so this entry cannot start there.
+[`os/windows/forgejo-mcp.ps1`](../os/windows/forgejo-mcp.ps1) builds the same
+tag and registers a user-scope `forgejo` that runs the `.exe` directly. Smart
+App Control blocks a local build, and has no allowlist to add it to: the
+[Windows README](../os/windows/README.md#forgejo-mcp) has the options.
+
 One thing to know before allow-listing the server: `FORGEJO_MCP_ALLOW_FILE_PATH_UPLOAD`
 lets attachment tools read the host filesystem and upload it. It is off by
 default and should stay off — an injected prompt uploading `~/.ssh/id_ed25519`

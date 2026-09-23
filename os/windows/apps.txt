@@ -5,6 +5,7 @@ Git.Git                # bootstrap.ps1 installs it first, it is here so apply.ps
 GitHub.cli             # gh, for pull requests; also in the Brewfile
 Anthropic.ClaudeCode
 GLab.GLab              # glab, the GitLab CLI; also in the Brewfile
+GoLang.Go              # builds forgejo-mcp.ps1; also in the Brewfile
 Google.Chrome
 LocalSend.LocalSend
 Microsoft.Teams
