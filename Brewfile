@@ -36,6 +36,8 @@ brew "git"
 # Large file storage — .gitconfig sets the lfs filter as required, so an LFS
 # repo will not even clone without it
 brew "git-lfs"
+# GitLab command-line tool
+brew "glab"
 # Bash and zsh history suggest box
 brew "hstr"
 # Interactive process viewer — the one every host already knows, beside btop
