@@ -74,7 +74,7 @@ if ((Get-CimInstance Win32_OperatingSystem).ProductType -ne 1) {
 Write-Host '== registry'
 $regs = Get-ChildItem -Path (Join-Path $PSScriptRoot 'registry') -Filter '*.reg' | Sort-Object Name
 foreach ($reg in $regs) {
-    Invoke-Native reg '/import', $reg.FullName
+    Invoke-Native reg 'import', $reg.FullName
     Write-Host "   $($reg.Name)"
 }
 
