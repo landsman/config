@@ -4,6 +4,8 @@
 # Chrome syncs bookmarks, extensions, passwords and most of the Settings page,
 # but a handful of window-chrome toggles are per-installation and never leave
 # the machine — vertical tabs is the obvious one. Those are what this writes.
+# Memory Saver is the other shape: browser-wide, so it is in `Local State` one
+# directory up, a file sync never reads.
 #
 # Not a guess: chrome/browser/sync/prefs/chrome_syncable_prefs_database.cc has
 #   // kVerticalTabsEnabled = 100330, (no longer synced)
@@ -22,7 +24,8 @@
 # then diff — Chrome only flushes the file on exit:
 #   cp "$CHROME_PREFS" /tmp/before   # …flip it, quit Chrome…
 #   python3 -m json.tool "$CHROME_PREFS" | diff <(python3 -m json.tool /tmp/before) -
-# and add the dotted key to PREFS in prefs.py beside it.
+# and add the dotted key to PREFS in prefs.py beside it - or to LOCAL_STATE,
+# diffing that file the same way, if Preferences did not change.
 #
 # usage: prefs.sh [--dry-run]
 #
@@ -49,12 +52,14 @@ Darwin) default_prefs="$HOME/Library/Application Support/Google/Chrome/Default/P
 *)      default_prefs="$HOME/.config/google-chrome/Default/Preferences" ;;
 esac
 : "${CHROME_PREFS:=$default_prefs}"
+: "${CHROME_LOCAL_STATE:=$(dirname "$(dirname "$CHROME_PREFS")")/Local State}"
 
 if [ -n "$DRY_RUN" ]; then
-	exec python3 "$patch" --dry-run "$CHROME_PREFS"
+	exec python3 "$patch" --dry-run "$CHROME_PREFS" "$CHROME_LOCAL_STATE"
 fi
 
 [ -f "$CHROME_PREFS" ] || { echo "no Chrome profile at $CHROME_PREFS"; exit 1; }
+[ -f "$CHROME_LOCAL_STATE" ] || { echo "no Chrome Local State at $CHROME_LOCAL_STATE"; exit 1; }
 
 # -f is not enough on macOS. Chrome's data directory carries com.apple.macl, so
 # a terminal without Full Disk Access gets EPERM on read *and* on listing, while
@@ -62,12 +67,13 @@ fi
 # Reproduce it with:
 #   ls "$HOME/Library/Application Support/Google/Chrome"
 # The rename needs the directory, not just the file, hence both checks.
-if [ ! -r "$CHROME_PREFS" ] || [ ! -w "$(dirname "$CHROME_PREFS")" ]; then
-	echo "cannot read or replace $CHROME_PREFS"
+for f in "$CHROME_PREFS" "$CHROME_LOCAL_STATE"; do
+	[ -r "$f" ] && [ -w "$(dirname "$f")" ] && continue
+	echo "cannot read or replace $f"
 	echo "macOS guards Chrome's profile: System Settings > Privacy & Security >"
 	echo "Full Disk Access > add this terminal, then run this again"
 	exit 1
-fi
+done
 
 # Chrome holds the whole file in memory and rewrites it on exit, so a write made
 # while it runs is silently discarded a few hours later — the worst kind of
@@ -78,6 +84,6 @@ fi
 
 # python3 and not jq: it ships with macOS and with every runner, and jq is not
 # in the Brewfile. The temp-file-plus-rename is in there too.
-python3 "$patch" "$CHROME_PREFS"
+python3 "$patch" "$CHROME_PREFS" "$CHROME_LOCAL_STATE"
 
 echo "applied - start Chrome"

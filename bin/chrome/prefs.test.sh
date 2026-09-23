@@ -25,6 +25,10 @@ check() {  # check <name> <expected> <actual>
 # anyway, which is the one thing it promises not to do.
 printf '{"vertical_tabs":{"enabled":false,"enabled_first_time":true},"profile":{"keep":"m\xc3\xa9","name":"Nastaven\xc3\xad"}}' > "$tmp/Preferences"
 
+# Memory Saver lives in Local State, a separate file with its own unrelated keys.
+export CHROME_LOCAL_STATE="$tmp/Local State"
+printf '{"performance_tuning":{"last_battery_use":{"timestamp":"1"}},"browser":{"keep":true}}' > "$CHROME_LOCAL_STATE"
+
 # pgrep says "nothing running", so the guard lets the write through.
 printf '#!/bin/sh\nexit 1\n' > "$tmp/pgrep"
 chmod +x "$tmp/pgrep"
@@ -32,9 +36,14 @@ chmod +x "$tmp/pgrep"
 out=$(PATH="$tmp:$PATH" CHROME_PREFS="$tmp/Preferences" "$script")
 # ensure_ascii=False here too, or the helper escapes what it reports and an
 # accented expectation below could never match it.
-read_key() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]))
-for k in sys.argv[2].split("."): d=d[k]
-print(json.dumps(d, ensure_ascii=False))' "$tmp/Preferences" "$1"; }
+read_key() { python3 -c 'import json,sys
+for f in sys.argv[1:3]:
+  d=json.load(open(f))
+  try:
+    for k in sys.argv[3].split("."): d=d[k]
+  except KeyError: continue
+  print(json.dumps(d, ensure_ascii=False)); break
+else: sys.exit(1)' "$tmp/Preferences" "$CHROME_LOCAL_STATE" "$1"; }
 
 check "the file is still valid JSON" '0' "$(python3 -m json.tool "$tmp/Preferences" >/dev/null 2>&1; echo $?)"
 check "vertical tabs are on" 'true' "$(read_key vertical_tabs.enabled)"
@@ -45,17 +54,19 @@ check "an unrelated subtree survives" '"mé"' "$(read_key profile.keep)"
 check "non-ASCII stays a character, not \\uXXXX" '0' "$(grep -c '\\u' "$tmp/Preferences")"
 check "and is still the right character" '1' "$(grep -c 'Nastavení' "$tmp/Preferences")"
 check "a missing parent is created" 'false' "$(read_key side_panel.is_right_aligned)"
+check "memory saver is on, in Local State" '2' "$(read_key performance_tuning.high_efficiency_mode.state)"
+check "a Local State sibling survives" '"1"' "$(read_key performance_tuning.last_battery_use.timestamp)"
 # The one number pinned by hand, and deliberately: adding a setting to prefs.py
 # should not slip in without this file noticing. Everything below derives the
 # keys from the dry run instead.
 applied=$(grep -c '^set ' <<<"$out")
-check "it reports what it wrote" '4' "$applied"
+check "it reports what it wrote" '6' "$applied"
 
 # Running it twice must not drift — this is what `make chrome` does on every
 # machine, every time.
-before=$(cat "$tmp/Preferences")
+before=$(cat "$tmp/Preferences" "$CHROME_LOCAL_STATE")
 PATH="$tmp:$PATH" CHROME_PREFS="$tmp/Preferences" "$script" >/dev/null
-check "idempotent" "$before" "$(cat "$tmp/Preferences")"
+check "idempotent" "$before" "$(cat "$tmp/Preferences" "$CHROME_LOCAL_STATE")"
 
 # The guard: with Chrome running the write is discarded on its exit, so it must
 # refuse rather than pretend.
