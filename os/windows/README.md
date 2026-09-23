@@ -12,6 +12,12 @@ On a fresh install, from an elevated PowerShell:
 
 ```
 winget install --id Git.Git -e
+```
+
+winget does not refresh `PATH` in the shell it ran in, so open a new elevated
+PowerShell before the rest:
+
+```
 git clone https://github.com/landsman/config
 cd config
 powershell -ExecutionPolicy Bypass -File os\windows\apply.ps1
@@ -82,8 +88,8 @@ than pausing updates. A pause runs out after five weeks, and until then it
 skips the patches too.
 
 `apply.ps1` imports it. On its own, double-click the file, accept the UAC
-prompt, then restart once. To check it took, go to Windows Update → Advanced options → Configured
-update policies. The policy should be listed there.
+prompt, then restart once. To check it took, go to Windows Update → Advanced
+options → Configured update policies. The policy should be listed there.
 
 To undo it, delete the `NoAutoRebootWithLoggedOnUsers` value in `regedit`.
 
