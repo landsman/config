@@ -6,6 +6,7 @@ Anthropic.ClaudeCode
 Google.Chrome
 LocalSend.LocalSend
 Microsoft.Teams
+Microsoft.WindowsTerminal  # usually preinstalled on Windows 11; this keeps it there on an LTSC or a debloated install
 Tailscale.Tailscale
 TeamViewer.TeamViewer
 ZedIndustries.Zed
