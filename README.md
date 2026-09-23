@@ -16,6 +16,7 @@ lives wherever it stays true.
 | `os/ubuntu/` | Kubuntu userland — KDE, Dolphin, xdg portals — see [its README](os/ubuntu/README.md) | `make stow` (auto) |
 | `os/arch/` | Omarchy/Arch userland — Hyprland, hyprmon | `make stow` (auto) |
 | `os/macos/` | macOS userland — `~/.zshrc`: PATH, mise, completion | `make stow` (auto) |
+| `os/windows/` | Windows 11 on the T480 — apps, power settings and registry policies, see [its README](os/windows/README.md) | `bootstrap.ps1`, not stowable |
 | `devices/t480/system/` | Root-owned files under `/` for that machine — see [its README](devices/t480/system/README.md) | `sudo cp` (root, not stowable) |
 | `.gitconfig` | Git settings, *included* into `~/.gitconfig` by absolute path | `make git` |
 | `.bashrc` | Fragment *sourced* from the distro `~/.bashrc` by absolute path | `make shell` |
@@ -300,6 +301,7 @@ otherwise it is a `.bak.<timestamp>` you have to go find.
 - [HP ProDesk 600 G3](devices/hp-prodesk-600-g3/README.md) — the pollos cluster, provisioned from [landsman/homelab](https://github.com/landsman/homelab/tree/main/pollos)
 - [Omarchy/Arch userland](os/arch/README.md) — Hyprland config, and the AUR packages that stay out of the Brewfile
 - [Kubuntu userland](os/ubuntu/README.md) — KDE config, and the apt packages that stay out of the Brewfile (1Password)
+- [Windows 11](os/windows/README.md) — one command for apps, power settings and policies, and why Windows Update no longer restarts while I am signed in
 - [T480 system config (root-owned)](devices/t480/system/README.md)
 - [JetBrains](bin/jetbrains/README.md) — Toolbox install, the plugin list, and why the IDE heap is patched rather than stowed
 - [Coding agents](.docs-llm/README.md) — MCP server notes, and where the files an agent loads actually live
