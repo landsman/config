@@ -7,6 +7,8 @@
 # whole default list rather than extending it, so the usual entries are repeated.
 ^/README.*
 ^/apply\.ps1$
+^/apps\.txt$
+^/bootstrap\.ps1$
 ^/registry$
 ^/\.stow-local-ignore$
 \.git

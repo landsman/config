@@ -1,0 +1,10 @@
+# winget package ids, one per line; apply.ps1 installs whichever are missing.
+# Find an id with `winget search <name>`. A comment after the id is fine.
+# Not installable this way: see "Apps" in README.md.
+Git.Git                # bootstrap.ps1 installs it first, it is here so apply.ps1 alone is complete
+Anthropic.ClaudeCode
+Google.Chrome
+LocalSend.LocalSend
+Microsoft.Teams
+TeamViewer.TeamViewer
+ZedIndustries.Zed

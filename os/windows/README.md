@@ -11,29 +11,42 @@ in one machine's registry.
 On a fresh install, from an elevated PowerShell:
 
 ```
-winget install --id Git.Git -e
+irm https://raw.githubusercontent.com/landsman/config/main/os/windows/bootstrap.ps1 | iex
 ```
 
-winget does not refresh `PATH` in the shell it ran in, so open a new elevated
-PowerShell before the rest:
+That installs Git, clones this repo into `~\projects\landsman\config` (or
+pulls it, if it is already there), and runs `apply.ps1`. Then restart once.
+Running it again changes nothing, so it is also how a setting that drifted gets
+put back. With the repo already cloned, `apply.ps1` on its own does the same:
 
 ```
-git clone https://github.com/landsman/config
-cd config
 powershell -ExecutionPolicy Bypass -File os\windows\apply.ps1
 ```
 
-Then restart once. Running it again changes nothing, so it is also how a
-setting that drifted gets put back.
+To try a branch before it is merged, set `$env:CONFIG_BRANCH = '<branch>'` and
+swap `main` for the branch in the URL.
 
 | Path | What |
 |------|------|
-| [`apply.ps1`](apply.ps1) | The one command: power plan, timeouts and power mode, then every `.reg` under `registry/` |
+| [`bootstrap.ps1`](bootstrap.ps1) | Git and the clone, for a machine that has neither, then `apply.ps1` |
+| [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, then every app in `apps.txt` |
+| [`apps.txt`](apps.txt) | The apps, as winget ids |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
 
 The values live at the top of `apply.ps1`, not in this README, so they cannot
 drift apart. A new registry policy is a new `.reg` file in `registry/`, and the
 script picks it up without an edit.
+
+## Apps
+
+[`apps.txt`](apps.txt) is the Windows counterpart of the Brewfile: one winget id
+per line, and `apply.ps1` installs whichever are missing. It does not upgrade
+them; `winget upgrade --all` does. One app that fails to install does not stop
+the others, and the run ends with the list of those that failed.
+
+| Not installable this way | Why | Instead |
+|--------------------------|-----|---------|
+| RustDesk | Removed from the winget repository | The installer from [its releases](https://github.com/rustdesk/rustdesk/releases) |
 
 ## Power
 

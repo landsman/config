@@ -1,8 +1,8 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    Apply the Windows config this repo owns: power timeouts, power mode, and
-    every registry policy under registry/.
+    Apply the Windows config this repo owns: power timeouts, power mode, every
+    registry policy under registry/, and every app in apps.txt.
 
 .DESCRIPTION
     Safe to run again: every step sets a value rather than toggling one, so a
@@ -73,5 +73,20 @@ foreach ($reg in $regs) {
     Write-Host "   $($reg.Name)"
 }
 
+Write-Host '== apps'
+# Last, because it is the slow, network-bound step: power and policy are in
+# place even if a download fails. One failed app does not stop the rest.
+$failed = @()
+$apps = Get-Content (Join-Path $PSScriptRoot 'apps.txt') |
+    ForEach-Object { ($_ -replace '#.*', '').Trim() } | Where-Object { $_ }
+foreach ($id in $apps) {
+    winget list --id $id -e --accept-source-agreements | Out-Null
+    if ($LASTEXITCODE -eq 0) { Write-Host "   $id  (installed)"; continue }
+    Write-Host "   $id"
+    winget install --id $id -e --silent --accept-source-agreements --accept-package-agreements
+    if ($LASTEXITCODE -ne 0) { $failed += "$id ($LASTEXITCODE)" }
+}
+
 Write-Host ''
+if ($failed) { throw "winget could not install: $($failed -join ', ')" }
 Write-Host 'Done. Restart once so the power mode and the Windows Update policy take effect.'
