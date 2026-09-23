@@ -6,5 +6,6 @@ Anthropic.ClaudeCode
 Google.Chrome
 LocalSend.LocalSend
 Microsoft.Teams
+Tailscale.Tailscale
 TeamViewer.TeamViewer
 ZedIndustries.Zed
