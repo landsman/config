@@ -523,7 +523,7 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 #
 
 .PHONY: chrome
-chrome: ## apply the Chrome settings that do not sync (vertical tabs, side panel)
+chrome: ## apply the Chrome settings that do not sync (vertical tabs, side panel, memory saver)
 	./bin/chrome/prefs.sh
 
 ##@ macOS System Settings

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch the Chrome settings Google does not sync into Default/Preferences.
+"""Patch the Chrome settings Google does not sync into Default/Preferences and Local State.
 
 Driven by prefs.sh, which is the entry point `make chrome` calls: it owns the
 platform's profile path and the refusals that have to happen before this runs
@@ -10,7 +10,7 @@ A file of its own rather than a heredoc inside prefs.sh, so it is editable with
 indentation that means something, greppable, and parsed by `make lint` like
 every other source here.
 
-usage: prefs.py [--dry-run] <path to Preferences>
+usage: prefs.py [--dry-run] <path to Preferences> <path to Local State>
 """
 
 import json
@@ -31,20 +31,31 @@ PREFS = {
     "side_panel.is_right_aligned": False,
 }
 
+# Browser-wide rather than per profile, so these live in `Local State`, one
+# directory above Default/ - a file sync never reads at all.
+#
+# Memory Saver, Settings > Performance: discard inactive tabs, reload on click.
+# Copied from what the toggle wrote rather than decoded from Chromium's enums -
+# state 2 with the toggle on, aggressiveness 2 for the level picked under it.
+LOCAL_STATE = {
+    "performance_tuning.high_efficiency_mode.state": 2,
+    "performance_tuning.high_efficiency_mode.aggressiveness": 2,
+}
 
-def described():
+
+def described(keys):
     """The lines both the dry run and the real run print, so they cannot drift."""
-    return ["set %s = %s" % (key, json.dumps(value)) for key, value in PREFS.items()]
+    return ["set %s = %s" % (key, json.dumps(value)) for key, value in keys.items()]
 
 
-def patched(prefs):
+def patched(prefs, keys):
     """Set each key in place, creating missing parents, touching nothing else.
 
     A leaf at a time and never a whole subtree: Preferences is one blob, and
     replacing `vertical_tabs` wholesale would take `enabled_first_time` with it
     — or, a level up, every site permission on the machine.
     """
-    for key, value in PREFS.items():
+    for key, value in keys.items():
         *parents, leaf = key.split(".")
         node = prefs
         for parent in parents:
@@ -53,26 +64,13 @@ def patched(prefs):
     return prefs
 
 
-def main(argv):
-    args = argv[1:]
-    dry_run = bool(args) and args[0] == "--dry-run"
-    if dry_run:
-        args = args[1:]
-    if len(args) != 1:
-        return "usage: prefs.py [--dry-run] <path to Preferences>"
-    path = args[0]
-
-    if dry_run:
-        print("\n".join(described()))
-        print("file %s" % path)
-        return 0
-
+def write(path, keys):
     with open(path, encoding="utf-8") as f:
-        prefs = patched(json.load(f))
+        prefs = patched(json.load(f), keys)
 
-    # Temp file plus rename, so an interrupted run leaves the old Preferences
-    # intact rather than half a JSON document. mkstemp lands in the same
-    # directory, because os.replace is only atomic within one filesystem.
+    # Temp file plus rename, so an interrupted run leaves the old file intact
+    # rather than half a JSON document. mkstemp lands in the same directory,
+    # because os.replace is only atomic within one filesystem.
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         # Compact and unescaped, which is how Chrome writes it. The separators
@@ -87,8 +85,22 @@ def main(argv):
     os.chmod(tmp, os.stat(path).st_mode & 0o777)
     os.replace(tmp, path)
 
-    # After the rename, not before: nothing is set until the file is in place.
-    print("\n".join(described()))
+
+def main(argv):
+    args = argv[1:]
+    dry_run = bool(args) and args[0] == "--dry-run"
+    if dry_run:
+        args = args[1:]
+    if len(args) != 2:
+        return "usage: prefs.py [--dry-run] <path to Preferences> <path to Local State>"
+    files = [(args[0], PREFS), (args[1], LOCAL_STATE)]
+
+    for path, keys in files:
+        if not dry_run:
+            write(path, keys)
+        # After the rename, not before: nothing is set until the file is in place.
+        print("\n".join(described(keys)))
+        print("file %s" % path)
     return 0
 
 
