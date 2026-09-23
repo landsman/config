@@ -136,4 +136,4 @@ foreach ($id in $apps) {
 
 Write-Host ''
 if ($failed) { throw "winget could not install: $($failed -join ', ')" }
-Write-Host 'Done. Restart once so the Windows Update policy takes effect.'
+Write-Host 'Done. Restart once so the Windows Update policy and Smart App Control take effect.'

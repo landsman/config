@@ -1,0 +1,9 @@
+Windows Registry Editor Version 5.00
+
+; Turn Smart App Control off. It blocks every binary built on this machine
+; (forgejo-mcp included) and has no per-app exception. Off for every app, and
+; on many builds it cannot be turned back on without a reinstall.
+; Takes effect after a restart. See os/windows/CAVEATS.md.
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Policy]
+"VerifiedAndReputablePolicyState"=dword:00000000
