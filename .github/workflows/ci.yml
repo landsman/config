@@ -20,14 +20,19 @@ jobs:
       - uses: actions/checkout@v7
       - run: make qa
 
-  # The Windows half runs for real rather than being parsed: Windows 11 is the
-  # only hosted image with the client power settings, and the Server images
-  # have no winget. It is Arm where the T480 is x64, so an app that fails here
-  # only for that reason is not a bug in apps.txt.
+  # The Windows half runs for real rather than being parsed. x64, like the
+  # T480; the only hosted Windows 11 image is Arm, where x64 installers run
+  # emulated and prove little. Server ships without winget, so it is installed
+  # first. What Server cannot check is the Power & battery mode, which is a
+  # client setting; the T480 run covers that.
   windows:
-    runs-on: windows-11-arm
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Install winget
+        run: |
+          Install-Module Microsoft.WinGet.Client -Force -Repository PSGallery
+          Repair-WinGetPackageManager -AllUsers -Latest -Force
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File os\windows\apply.ps1
 
   # Its own job, not a matrix step: semgrep reads the files, not the machine, so
