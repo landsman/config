@@ -39,7 +39,9 @@ if (Test-Path (Join-Path $repo '.git')) {
     git -C $repo pull --ff-only
 } else {
     Write-Host "== clone into $repo ($branch)"
-    git clone --branch $branch https://github.com/landsman/config $repo
+    # The repo tracks symlinks (CLAUDE.md -> AGENTS.md); without this Git for
+    # Windows checks them out as text files holding the target path.
+    git clone -c core.symlinks=true --branch $branch https://github.com/landsman/config $repo
 }
 if ($LASTEXITCODE -ne 0) { throw "git exited $LASTEXITCODE" }
 

@@ -2,7 +2,8 @@
 <#
 .SYNOPSIS
     Apply the Windows config this repo owns: power timeouts, power mode, every
-    registry policy under registry/, and every app in apps.txt.
+    registry policy under registry/, the agent config links, and every app in
+    apps.txt.
 
 .DESCRIPTION
     Safe to run again: every step sets a value rather than toggling one, so a
@@ -47,6 +48,24 @@ function Invoke-Native {
     if ($LASTEXITCODE -ne 0) { throw "$Exe $($Arguments -join ' ') exited $LASTEXITCODE" }
 }
 
+function Set-Link {
+    # A symlink into the repo, which is what `make stow` makes on the other
+    # OSes. A real file already there is moved aside rather than overwritten.
+    param([string]$Path, [string]$Target)
+    $item = Get-Item $Path -Force -ErrorAction SilentlyContinue
+    if ($item.LinkType -and "$($item.Target)" -eq $Target) { Write-Host "   $Path  (linked)"; return }
+    if ($item.LinkType) {
+        $item.Delete()  # the link only; Remove-Item -Recurse would empty the target
+    } elseif ($item) {
+        $bak = "$Path.bak-$(Get-Date -Format yyyyMMddHHmmss)"
+        Move-Item $Path $bak
+        Write-Host "   moved aside: $bak"
+    }
+    New-Item -ItemType Directory -Force (Split-Path $Path) | Out-Null
+    New-Item -ItemType SymbolicLink -Path $Path -Target $Target | Out-Null
+    Write-Host "   $Path"
+}
+
 Write-Host '== power plan'
 # Power mode overlays only apply on top of the Balanced plan.
 Invoke-Native powercfg '/setactive', 'SCHEME_BALANCED'
@@ -77,6 +96,23 @@ foreach ($reg in $regs) {
     Invoke-Native reg 'import', $reg.FullName
     Write-Host "   $($reg.Name)"
 }
+
+Write-Host '== agents'
+# The agent config `make stow` links on macOS and Linux: every entry of
+# shared\.agents and shared\.claude, plus ~\.claude\rules and skills pointing
+# at the shared copies. Whole directories rather than stow's per-file links,
+# so a new rule or skill is live after a pull, with no re-run.
+# settings.json comes along: Claude Code runs its status line through Git Bash.
+$shared = Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'shared'
+$links = [ordered]@{}
+foreach ($dir in '.agents', '.claude') {
+    Get-ChildItem -Force (Join-Path $shared $dir) |
+        ForEach-Object { $links[(Join-Path $HOME "$dir\$($_.Name)")] = $_.FullName }
+}
+foreach ($name in 'rules', 'skills') {
+    $links[(Join-Path $HOME ".claude\$name")] = Join-Path $shared ".agents\$name"
+}
+foreach ($path in $links.Keys) { Set-Link $path $links[$path] }
 
 Write-Host '== apps'
 # Last, because it is the slow, network-bound step: power and policy are in
