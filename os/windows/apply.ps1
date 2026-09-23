@@ -20,14 +20,15 @@ $ErrorActionPreference = 'Stop'
 
 # Minutes; 0 means never. AC is plugged in, DC is on battery.
 # Plugged in, the machine is a workstation that must not drop a session.
-# On battery the Windows defaults stay, so a forgotten laptop still sleeps.
+# On battery a forgotten laptop still sleeps, but never hibernates on a timer:
+# resuming from hibernation goes through GRUB, which boots Linux by default.
 $Timeouts = [ordered]@{
     'monitor-timeout-ac'   = 0
     'standby-timeout-ac'   = 0
     'hibernate-timeout-ac' = 0
     'monitor-timeout-dc'   = 3
     'standby-timeout-dc'   = 10
-    'hibernate-timeout-dc' = 180
+    'hibernate-timeout-dc' = 0
 }
 
 # Settings > System > Power & battery > Power mode, stored as an overlay GUID.

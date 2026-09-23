@@ -7,6 +7,7 @@ Google.Chrome
 LocalSend.LocalSend
 Microsoft.Teams
 Microsoft.WindowsTerminal  # usually preinstalled on Windows 11; this keeps it there on an LTSC or a debloated install
+Python.Python.3.14        # pinned to a minor on purpose: winget has one id per 3.x, bump it by hand
 Tailscale.Tailscale
 TeamViewer.TeamViewer
 ZedIndustries.Zed
