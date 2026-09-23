@@ -1,2 +1,3 @@
-# regedit expects CRLF; keep them whatever core.autocrlf says on the committing machine.
+# regedit and Windows PowerShell expect CRLF; keep them whatever core.autocrlf says on the committing machine.
 *.reg text eol=crlf
+*.ps1 text eol=crlf

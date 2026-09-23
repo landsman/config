@@ -93,6 +93,11 @@ lint: ## parse every shell file without running it
 	@# off, so a syntax error still turns a pull request red.
 	@if command -v zsh >/dev/null; then echo "== os/macos/.zshrc"; zsh -n os/macos/.zshrc; \
 	else echo "== os/macos/.zshrc  SKIPPED (no zsh here - CI's macOS leg parses it)"; fi
+	@# PowerShell the same way, with its own parser and skipped the same way:
+	@# Windows never runs make, but both CI runners ship pwsh, so a broken
+	@# os/windows/apply.ps1 still turns a pull request red.
+	@if command -v pwsh >/dev/null; then for f in $$(git ls-files '*.ps1'); do echo "== $$f"; F="$$f" pwsh -NoProfile -Command '$$e = $$null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $$env:F), [ref]$$null, [ref]$$e); if ($$e) { $$e | ForEach-Object { "$$_" }; exit 1 }' || exit 1; done; \
+	else echo "== *.ps1  SKIPPED (no pwsh here - CI parses them)"; fi
 
 bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	@# `|| exit 1`, because a for loop exits with the status of its *last*
