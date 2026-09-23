@@ -34,6 +34,7 @@ swap `main` for the branch in the URL.
 | [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
 | [`CAVEATS.md`](CAVEATS.md) | What bites on Windows that the scripts do not or cannot fix: Smart App Control, `sh`, GRUB, first-run git and `gh` |
+| [`forgejo-mcp.ps1`](forgejo-mcp.ps1) | Builds the Forgejo MCP server, asks for its token and registers it with Claude Code. Run by hand, not elevated |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
 | [`registry/no-fast-startup.reg`](registry/no-fast-startup.reg) | Shutting down really shuts down, so the Windows volume is closed cleanly for the Linux installs |
 
@@ -72,13 +73,57 @@ overwritten.
 the status line included, through Git Bash, which `bootstrap.ps1` installs
 first. The two MCP servers in the `mcp-servers` skill that start through `sh`,
 Azure DevOps and Forgejo, are the known gap: `sh` is not on the Windows `PATH`,
-so they fail to connect there. The rest of the session is unaffected.
+so they fail to connect there. The rest of the session is unaffected. Forgejo
+has a Windows path of its own, described below. Azure DevOps is still the gap.
 
 Creating a symlink on Windows needs an elevated shell or Developer Mode, which
 is one more reason the script runs elevated. The clone in `bootstrap.ps1` sets
 `core.symlinks=true` for the symlinks the repo itself tracks. A checkout cloned
 without it keeps text files in their place until
 `git config core.symlinks true` and a fresh checkout of those files.
+
+## Forgejo MCP
+
+[`forgejo-mcp.ps1`](forgejo-mcp.ps1) is the Windows half of `make forgejo-mcp`
+and `make claude`. The Forgejo section of
+[`mcp-servers.md`](../../.docs-llm/mcp-servers.md) explains the mirror, the
+token scopes and the upload flag that stays off. Run it as yourself, not
+elevated:
+
+```
+powershell -ExecutionPolicy Bypass -File os\windows\forgejo-mcp.ps1
+```
+
+It installs Git, Go and the Claude CLI through winget if any is missing. It
+builds the newest stable tag from the mirror into `~\go\bin`. It asks for the
+token and keeps it as the user environment variable `FORGEJO_ACCESS_TOKEN`, the
+counterpart of the shell drop-in on the other OSes. Last, it registers the
+server with `claude mcp add --scope user`, pointing straight at the `.exe`, so
+no `sh` is involved. That user-scope `forgejo` shadows the skill's failing
+entry of the same name. Restart Claude afterwards, so it picks up the new
+environment variable.
+
+### Smart App Control blocks the build
+
+On the T480 the first build would not run: *An Application Control policy has
+blocked this file*. The CodeIntegrity log (event 3118) names Smart App Control,
+which is on and enforcing. It blocks every unsigned binary that Microsoft has no
+reputation data for, and a binary built on the machine is always one. The
+script checks that the binary runs before it registers anything, and stops
+with a pointer here if it does not.
+
+Smart App Control has **no allowlist**. There is no per-file or per-path
+exception, and it ignores supplemental policies, so there is nothing to
+whitelist from a script. The ways out:
+
+| Option | Cost |
+|--------|------|
+| Turn Smart App Control off: Windows Security → App & browser control → Smart App Control | Loses the protection for everything else. On older builds it cannot be turned back on without a reinstall |
+| Sign the binary with a publicly trusted code-signing certificate, such as Azure Trusted Signing | A paid certificate, and a signing step after every build. A self-signed certificate does not count |
+| Run forgejo-mcp in WSL, where the Linux setup already works | WSL on the machine, and a Claude that runs there too |
+
+Which one is a decision about the machine's security, so this repo does not
+make it. Once Smart App Control is off, run the script again.
 
 ## Power
 
