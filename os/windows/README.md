@@ -31,12 +31,13 @@ swap `main` for the branch in the URL.
 | Path | What |
 |------|------|
 | [`bootstrap.ps1`](bootstrap.ps1) | Git and the clone, for a machine that has neither, then `apply.ps1` |
-| [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt`. `-DisableSmartAppControl` also turns Smart App Control off |
+| [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
-| [`CAVEATS.md`](CAVEATS.md) | What bites on Windows that the scripts do not or cannot fix: Smart App Control, `sh`, GRUB, first-run git and `gh` |
+| [`CAVEATS.md`](CAVEATS.md) | What bites on Windows, and what it costs to fix: Smart App Control, `sh`, GRUB, first-run git and `gh` |
 | [`forgejo-mcp.ps1`](forgejo-mcp.ps1) | Builds the Forgejo MCP server, asks for its token and registers it with Claude Code. Run by hand, not elevated |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
 | [`registry/no-fast-startup.reg`](registry/no-fast-startup.reg) | Shutting down really shuts down, so the Windows volume is closed cleanly for the Linux installs |
+| [`registry/no-smart-app-control.reg`](registry/no-smart-app-control.reg) | Smart App Control off, so a binary built here can run. See [CAVEATS.md](CAVEATS.md) |
 
 The values live at the top of `apply.ps1`, not in this README, so they cannot
 drift apart. A new registry policy is a new `.reg` file in `registry/`, and the
@@ -107,10 +108,10 @@ environment variable.
 
 Smart App Control, on and enforcing on the T480, blocks the local build. It has
 no per-app exception, so the script checks that the binary runs before it
-registers anything. To get past it, run `apply.ps1 -DisableSmartAppControl`
-elevated, restart, and run `forgejo-mcp.ps1` again. Read the
+registers anything. `apply.ps1` turns Smart App Control off, and after the
+restart that follows it the build runs. Read the
 [Smart App Control caveat](CAVEATS.md#smart-app-control-blocks-anything-built-on-the-machine)
-first: the switch turns it off for every app, often for good.
+for what that costs: it is off for every app, often for good.
 
 ## Power
 
