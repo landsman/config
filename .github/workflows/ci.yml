@@ -32,7 +32,7 @@ jobs:
       - name: Install winget
         run: |
           Install-Module Microsoft.WinGet.Client -Force -Repository PSGallery
-          Repair-WinGetPackageManager -AllUsers -Latest -Force
+          Repair-WinGetPackageManager -AllUsers -Force
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File os\windows\apply.ps1
 
   # Its own job, not a matrix step: semgrep reads the files, not the machine, so
