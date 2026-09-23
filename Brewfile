@@ -30,6 +30,12 @@ brew "deno"
 brew "ffmpeg"
 # GitHub command-line tool
 brew "gh"
+# Distributed revision control — a current one on both platforms, not the
+# Xcode tools copy on macOS or whatever the distro froze
+brew "git"
+# Large file storage — .gitconfig sets the lfs filter as required, so an LFS
+# repo will not even clone without it
+brew "git-lfs"
 # Bash and zsh history suggest box
 brew "hstr"
 # Open source programming language to build simple/reliable/efficient software
