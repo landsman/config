@@ -3,6 +3,7 @@
 # Not installable this way: see "Apps" in README.md.
 Git.Git                # bootstrap.ps1 installs it first, it is here so apply.ps1 alone is complete
 Anthropic.ClaudeCode
+GLab.GLab              # glab, the GitLab CLI; also in the Brewfile
 Google.Chrome
 LocalSend.LocalSend
 Microsoft.Teams
