@@ -63,10 +63,13 @@ laptop forgotten in a bag still sleeps.
 
 Power mode was **Best Performance** while plugged in, which kept the CPU
 clocked up and the fan running constantly. Under Linux the same machine is
-quiet. Balanced lets the CPU clock down again. The mode is stored as an overlay
-GUID in `HKLM\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes`, and it
-only applies on top of the Balanced power plan, which is why the script sets
-that plan first.
+quiet. Balanced lets the CPU clock down again. The mode is an overlay on top of
+the Balanced power plan, which is why the script sets that plan first. It is
+set with `powercfg /overlaysetactive`, not by writing the registry value
+directly, because only SYSTEM may write that key. That command sets the mode
+for whichever power source is in use, so run the script plugged in. The battery
+side is Balanced by default; if Settings shows something else there, change it
+once by hand.
 
 ## Windows Update restarted the machine mid-day, without warning
 

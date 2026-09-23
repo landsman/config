@@ -31,14 +31,13 @@ $Timeouts = [ordered]@{
 }
 
 # Settings > System > Power & battery > Power mode, stored as an overlay GUID.
-# Best Performance kept the T480 fan running for nothing, so both are Balanced.
+# Best Performance kept the T480 fan running for nothing.
 $Overlays = @{
     'Balanced'              = '00000000-0000-0000-0000-000000000000'
     'Best Performance'      = 'ded574b5-45a0-4f42-8737-46345c09c238'
     'Best Power Efficiency' = '961cc777-2547-4f9d-8174-7d86181b8a7a'
 }
-$PowerModeAC = 'Balanced'
-$PowerModeDC = 'Balanced'
+$PowerMode = 'Balanced'
 
 function Invoke-Native {
     # Native tools do not throw on failure, so ErrorActionPreference alone
@@ -60,11 +59,17 @@ foreach ($name in $Timeouts.Keys) {
 }
 
 Write-Host '== power mode'
-$schemes = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes'
-Set-ItemProperty -Path $schemes -Name 'ActiveOverlayAcPowerScheme' -Value $Overlays[$PowerModeAC]
-Set-ItemProperty -Path $schemes -Name 'ActiveOverlayDcPowerScheme' -Value $Overlays[$PowerModeDC]
-Write-Host "   plugged in  $PowerModeAC"
-Write-Host "   on battery  $PowerModeDC"
+if ((Get-CimInstance Win32_OperatingSystem).ProductType -ne 1) {
+    # CI runs on Windows Server, which has no power mode to set.
+    Write-Host '   skipped, not a client edition of Windows'
+} else {
+    # Through the power service, not the registry: the PowerSchemes key is
+    # writable by SYSTEM only, and Set-ItemProperty is denied even elevated.
+    # ponytail: sets the mode for the power source in use, so run this plugged
+    # in; switch to the battery and check Settings once if that side matters.
+    Invoke-Native powercfg '/overlaysetactive', $Overlays[$PowerMode]
+    Write-Host "   $PowerMode"
+}
 
 Write-Host '== registry'
 $regs = Get-ChildItem -Path (Join-Path $PSScriptRoot 'registry') -Filter '*.reg' | Sort-Object Name
@@ -89,4 +94,4 @@ foreach ($id in $apps) {
 
 Write-Host ''
 if ($failed) { throw "winget could not install: $($failed -join ', ')" }
-Write-Host 'Done. Restart once so the power mode and the Windows Update policy take effect.'
+Write-Host 'Done. Restart once so the Windows Update policy takes effect.'
