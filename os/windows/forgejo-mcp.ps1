@@ -70,7 +70,7 @@ Write-Host "   $bin"
 # that can never start.
 try { & $bin --version | Out-Null } catch { $LASTEXITCODE = 1 }
 if ($LASTEXITCODE -ne 0) {
-    throw "$bin does not run. If Smart App Control is on, it blocks local builds: see the Forgejo section in os/windows/README.md"
+    throw "$bin does not run. If Smart App Control is on, it blocks local builds: run apply.ps1 -DisableSmartAppControl elevated, restart, then run this again. Read the Smart App Control section in os/windows/CAVEATS.md first"
 }
 
 Write-Host '== token'

@@ -31,7 +31,7 @@ swap `main` for the branch in the URL.
 | Path | What |
 |------|------|
 | [`bootstrap.ps1`](bootstrap.ps1) | Git and the clone, for a machine that has neither, then `apply.ps1` |
-| [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
+| [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt`. `-DisableSmartAppControl` also turns Smart App Control off |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
 | [`CAVEATS.md`](CAVEATS.md) | What bites on Windows that the scripts do not or cannot fix: Smart App Control, `sh`, GRUB, first-run git and `gh` |
 | [`forgejo-mcp.ps1`](forgejo-mcp.ps1) | Builds the Forgejo MCP server, asks for its token and registers it with Claude Code. Run by hand, not elevated |
@@ -105,25 +105,12 @@ environment variable.
 
 ### Smart App Control blocks the build
 
-On the T480 the first build would not run: *An Application Control policy has
-blocked this file*. The CodeIntegrity log (event 3118) names Smart App Control,
-which is on and enforcing. It blocks every unsigned binary that Microsoft has no
-reputation data for, and a binary built on the machine is always one. The
-script checks that the binary runs before it registers anything, and stops
-with a pointer here if it does not.
-
-Smart App Control has **no allowlist**. There is no per-file or per-path
-exception, and it ignores supplemental policies, so there is nothing to
-whitelist from a script. The ways out:
-
-| Option | Cost |
-|--------|------|
-| Turn Smart App Control off: Windows Security → App & browser control → Smart App Control | Loses the protection for everything else. On older builds it cannot be turned back on without a reinstall |
-| Sign the binary with a publicly trusted code-signing certificate, such as Azure Trusted Signing | A paid certificate, and a signing step after every build. A self-signed certificate does not count |
-| Run forgejo-mcp in WSL, where the Linux setup already works | WSL on the machine, and a Claude that runs there too |
-
-Which one is a decision about the machine's security, so this repo does not
-make it. Once Smart App Control is off, run the script again.
+Smart App Control, on and enforcing on the T480, blocks the local build. It has
+no per-app exception, so the script checks that the binary runs before it
+registers anything. To get past it, run `apply.ps1 -DisableSmartAppControl`
+elevated, restart, and run `forgejo-mcp.ps1` again. Read the
+[Smart App Control caveat](CAVEATS.md#smart-app-control-blocks-anything-built-on-the-machine)
+first: the switch turns it off for every app, often for good.
 
 ## Power
 

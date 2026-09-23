@@ -22,18 +22,25 @@ There is **no exception for a single app**. No per-file or per-path rule, no
 | Sign the binary with a publicly trusted code-signing certificate, such as Azure Trusted Signing | A paid certificate, and a signing step after every build. A self-signed certificate does not count |
 | Run the tool in WSL | Smart App Control does not apply there, and the Linux setup already works |
 
-To see the state, and to turn it off from an elevated shell instead of the
-Windows Security toggle:
+To turn it off, run `apply.ps1` with the switch, elevated, then restart:
+
+```
+powershell -ExecutionPolicy Bypass -File os\windows\apply.ps1 -DisableSmartAppControl
+```
+
+It sets `VerifiedAndReputablePolicyState = 0` under
+`HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy`, the value the Windows
+Security toggle writes. `1` is on, `2` is evaluation, `0` is off. To see the
+state:
 
 ```
 reg query HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy /v VerifiedAndReputablePolicyState
-reg add   HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy /v VerifiedAndReputablePolicyState /t REG_DWORD /d 0 /f
 ```
 
-`1` is on, `2` is evaluation, `0` is off. The change needs a restart. It is
-kept here as a command, not as a `.reg` file under `registry/`, because
-`apply.ps1` imports all of those. Switching off a security feature, often for
-good, is a decision to make per machine, not a side effect of a fresh install.
+It is a switch, not a `.reg` file under `registry/`, because `apply.ps1`
+imports all of those on every run. Switching off a security feature, often for
+good, should be a decision made per machine, not a side effect of a fresh
+install. A plain run leaves Smart App Control as it is.
 
 ## `sh` is not on `PATH`
 

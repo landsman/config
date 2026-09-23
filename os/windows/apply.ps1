@@ -15,7 +15,15 @@
 
     Kept to ASCII on purpose: Windows PowerShell 5.1 reads a BOM-less file as
     the ANSI code page, and a stray dash in a comment is enough to break parsing.
+
+.PARAMETER DisableSmartAppControl
+    Also turn Smart App Control off, which a locally built binary such as
+    forgejo-mcp needs. Off for every app, and on many builds it cannot be
+    turned back on without a reinstall, so a plain run leaves it alone.
+    See "Smart App Control" in CAVEATS.md. Takes effect after a restart.
 #>
+
+param([switch]$DisableSmartAppControl)
 
 $ErrorActionPreference = 'Stop'
 
@@ -96,6 +104,17 @@ $regs = Get-ChildItem -Path (Join-Path $PSScriptRoot 'registry') -Filter '*.reg'
 foreach ($reg in $regs) {
     Invoke-Native reg 'import', $reg.FullName
     Write-Host "   $($reg.Name)"
+}
+
+Write-Host '== smart app control'
+# Not a .reg under registry/: those are imported on every run, and this one
+# switches a security feature off, often for good. Only on request.
+$ciPolicy = 'HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy'
+if ($DisableSmartAppControl) {
+    Invoke-Native reg 'add', $ciPolicy, '/v', 'VerifiedAndReputablePolicyState', '/t', 'REG_DWORD', '/d', '0', '/f'
+    Write-Host '   off after a restart'
+} else {
+    Write-Host '   left as it is; -DisableSmartAppControl turns it off'
 }
 
 Write-Host '== agents'
