@@ -2,7 +2,9 @@
 
 The Windows 11 side of the [T480](../../devices/t480/README.md), which
 triple-boots it next to Kubuntu and Omarchy. Nothing here is stowed. Windows
-never runs `make stow`, and none of it is a dotfile. The package exists so the
+never runs `make stow`, and none of it is a dotfile. The one piece of `shared/`
+it does need, the agent config, `apply.ps1` links by hand; see
+[Agent config](#agent-config). The package exists so the
 Windows config is written down next to the other OSes rather than living only
 in one machine's registry.
 
@@ -29,7 +31,7 @@ swap `main` for the branch in the URL.
 | Path | What |
 |------|------|
 | [`bootstrap.ps1`](bootstrap.ps1) | Git and the clone, for a machine that has neither, then `apply.ps1` |
-| [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, then every app in `apps.txt` |
+| [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
 
@@ -47,6 +49,34 @@ the others, and the run ends with the list of those that failed.
 | Not installable this way | Why | Instead |
 |--------------------------|-----|---------|
 | RustDesk | Removed from the winget repository | The installer from [its releases](https://github.com/rustdesk/rustdesk/releases) |
+
+## Agent config
+
+The rules, skills and Claude Code settings reach Windows the way they reach the
+other OSes: as symlinks into this checkout, never copies. `apply.ps1` links
+every entry of [`shared/.agents`](../../shared/.agents) into `~\.agents` and of
+[`shared/.claude`](../../shared/.claude) into `~\.claude`, plus `~\.claude\rules`
+and `~\.claude\skills` pointing at the shared rules and skills. That is the
+layout [`global-rules-and-skills.md`](../../.docs-llm/global-rules-and-skills.md)
+describes, with one difference: the rules and skills are linked as whole
+directories, not file by file as stow does it, so a new one is live after a
+`git pull` without running anything again.
+
+A real file already in one of those places, such as a `settings.json` left by
+an earlier install, is moved aside to `<name>.bak-<timestamp>`, not
+overwritten.
+
+`settings.json` is shared as is. Claude Code on Windows runs its shell commands,
+the status line included, through Git Bash, which `bootstrap.ps1` installs
+first. The two MCP servers in the `mcp-servers` skill that start through `sh`,
+Azure DevOps and Forgejo, are the known gap: `sh` is not on the Windows `PATH`,
+so they fail to connect there. The rest of the session is unaffected.
+
+Creating a symlink on Windows needs an elevated shell or Developer Mode, which
+is one more reason the script runs elevated. The clone in `bootstrap.ps1` sets
+`core.symlinks=true` for the symlinks the repo itself tracks. A checkout cloned
+without it keeps text files in their place until
+`git config core.symlinks true` and a fresh checkout of those files.
 
 ## Power
 

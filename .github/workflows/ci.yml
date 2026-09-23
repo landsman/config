@@ -34,6 +34,8 @@ jobs:
           Install-Module Microsoft.WinGet.Client -Force -Repository PSGallery
           Repair-WinGetPackageManager -AllUsers -Force
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File os\windows\apply.ps1
+      - name: Skills are reachable where Claude Code looks
+        run: if (-not (Test-Path "$HOME\.claude\skills\commit-messages\SKILL.md")) { throw 'not linked' }
 
   # Its own job, not a matrix step: semgrep reads the files, not the machine, so
   # the macOS leg would spend a second runner to reach the same verdict — and
