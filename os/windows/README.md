@@ -33,6 +33,7 @@ swap `main` for the branch in the URL.
 | [`bootstrap.ps1`](bootstrap.ps1) | Git and the clone, for a machine that has neither, then `apply.ps1` |
 | [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
+| [`CAVEATS.md`](CAVEATS.md) | What bites on Windows that the scripts do not or cannot fix: Smart App Control, `sh`, GRUB, first-run git and `gh` |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
 | [`registry/no-fast-startup.reg`](registry/no-fast-startup.reg) | Shutting down really shuts down, so the Windows volume is closed cleanly for the Linux installs |
 
