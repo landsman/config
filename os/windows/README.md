@@ -34,6 +34,7 @@ swap `main` for the branch in the URL.
 | [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
+| [`registry/no-fast-startup.reg`](registry/no-fast-startup.reg) | Shutting down really shuts down, so the Windows volume is closed cleanly for the Linux installs |
 
 The values live at the top of `apply.ps1`, not in this README, so they cannot
 drift apart. A new registry policy is a new `.reg` file in `registry/`, and the
@@ -84,12 +85,14 @@ without it keeps text files in their place until
 |---------|-----------|------------|
 | Turn off the screen | never | 3 min |
 | Sleep | never | 10 min |
-| Hibernate | never | 3 h |
+| Hibernate | never | never |
+| Fast Startup | off | off |
 | Power mode | Balanced | Balanced |
 
 Plugged in, the laptop works as a workstation, and a remote session to it must
-not drop because it went to sleep. On battery the Windows defaults stay, so a
-laptop forgotten in a bag still sleeps.
+not drop because it went to sleep. On battery it still sleeps, so a laptop
+forgotten in a bag does not stay awake. It never hibernates on a timer, though.
+See *Sleep turned into a reboot through GRUB* below.
 
 Power mode was **Best Performance** while plugged in, which kept the CPU
 clocked up and the fan running constantly. Under Linux the same machine is
@@ -142,3 +145,45 @@ To undo it, delete the `NoAutoRebootWithLoggedOnUsers` value in `regedit`.
 If the notification policy above ever gets cleaned up, turn on **Notify me when
 a restart is required to finish updating** in Advanced options. Until then that
 toggle stays greyed out.
+
+## Sleep turned into a reboot through GRUB
+
+On battery, waking the laptop sometimes went through the firmware and the GRUB
+menu, where Windows had to be picked by hand, and then a slow "Resuming
+Windows". The System event log from 2026-09-23 shows why:
+
+| Time | Event |
+|------|-------|
+| 16:20 | Kernel-Power 42: entering sleep, reason *System Idle* |
+| 19:20 | Kernel-Power 42: entering sleep, reason *Hibernate from Sleep - Fixed Timeout* |
+| 20:33 | Kernel-Boot 27: boot type `0x2`, a resume from hibernation |
+
+Sleep (S3) itself worked. Exactly three hours in, Windows woke up and
+hibernated, because `hibernate-timeout-dc` was 180. That was the Windows
+default, kept on purpose. To the firmware, a resume from hibernation is a cold
+boot, so it goes through GRUB, and GRUB's default entry is Linux.
+
+The timeout is now `0`, so sleep stays sleep for as long as the battery lasts.
+Hibernation itself stays enabled, because it is the *critical battery action*
+at 5%. Hibernating then is better than running flat with unsaved work, and it
+happens only when the battery is nearly empty. Hibernate is also still in the
+Start menu for anyone who wants it by hand.
+
+### Fast Startup, for the other two OSes
+
+[`no-fast-startup.reg`](registry/no-fast-startup.reg) sets
+`HiberbootEnabled = 0`. With Fast Startup on, *Shut down* hibernates the kernel
+instead of shutting down, and it leaves the Windows NTFS volume marked as in
+use. Data gets lost if Linux writes to the volume in that state, or if Windows
+resumes onto a volume Linux has changed. Linux's NTFS drivers refuse a
+read-write mount of such a volume, but it is safer not to leave it in that state
+at all. Now every shutdown closes the volume cleanly. The price is a boot that
+is a few seconds slower.
+
+The same care applies after a hibernation, whether by hand or at critical
+battery. Resume Windows before booting Kubuntu or Omarchy, or at least do not
+mount the Windows volume from Linux until it has.
+
+To check: `powercfg /a` still lists *Hibernate* but no longer *Fast Startup*,
+and `powercfg /q SCHEME_CURRENT SUB_SLEEP HIBERNATEIDLE` shows `0x00000000` for
+both AC and DC.

@@ -2,11 +2,13 @@
 # Find an id with `winget search <name>`. A comment after the id is fine.
 # Not installable this way: see "Apps" in README.md.
 Git.Git                # bootstrap.ps1 installs it first, it is here so apply.ps1 alone is complete
+GitHub.cli             # gh, for pull requests; also in the Brewfile
 Anthropic.ClaudeCode
 Google.Chrome
 LocalSend.LocalSend
 Microsoft.Teams
 Microsoft.WindowsTerminal  # usually preinstalled on Windows 11; this keeps it there on an LTSC or a debloated install
+Python.Python.3.14        # pinned to a minor on purpose: winget has one id per 3.x, bump it by hand
 Tailscale.Tailscale
 TeamViewer.TeamViewer
 ZedIndustries.Zed

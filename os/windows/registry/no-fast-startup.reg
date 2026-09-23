@@ -1,0 +1,9 @@
+Windows Registry Editor Version 5.00
+
+; Turn off Fast Startup, so shutting down really shuts down.
+; With it on, shutdown hibernates the kernel and leaves the Windows volume
+; marked in use, which the Linux installs on the same disk must not write to.
+; See os/windows/README.md for why.
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Power]
+"HiberbootEnabled"=dword:00000000
