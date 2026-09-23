@@ -102,6 +102,8 @@ brew "vite-plus"
 
 # Apple Silicon Monitor Top written in Go Lang
 brew "mactop" if OS.mac?
+# App Store CLI — what the `mas` lines at the end install through
+brew "mas" if OS.mac?
 # Stripe CLI. Guarded because the tap's formula is `depends_on :macos` — the
 # Linux boxes take it from packages.stripe.dev, see os/ubuntu/install-apps.sh.
 # It also installs its own shell completions into share/{zsh,bash}, both already
@@ -176,4 +178,16 @@ if OS.mac?
 	cask "whatsapp"
 	# Multiplayer code editor
 	cask "zed"
+
+	# App Store apps, by the id in their store URL. `mas` cannot sign in for you:
+	# open the App Store and sign in first, or `make apps` stops here. Why none of
+	# them installs on Linux is in os/ubuntu/README.md.
+	mas "Azure VPN Client", id: 1553936137
+	mas "iMovie", id: 408981434
+	mas "Infuse", id: 1136220934
+	mas "Keynote", id: 361285480
+	mas "Numbers", id: 361304891
+	mas "Pages", id: 361309726
+	mas "Tasks.txt", id: 6783916102
+	mas "Toggl Track", id: 1291898086
 end
