@@ -38,6 +38,8 @@ brew "git"
 brew "git-lfs"
 # Bash and zsh history suggest box
 brew "hstr"
+# Interactive process viewer — the one every host already knows, beside btop
+brew "htop"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
 # Kubernetes package manager
@@ -122,6 +124,8 @@ cask "rustdesk"
 if OS.mac?
 	# Password manager
 	cask "1password"
+	# Keeps the Mac awake from the menu bar
+	cask "caffeine"
 	# Desktop client for ChatGPT
 	cask "chatgpt"
 	# Desktop client for Claude

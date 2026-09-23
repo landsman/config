@@ -83,7 +83,7 @@ installs the `telegram` cask, Telegram's native macOS app, rather than the Qt
 | Figma | Browser only on Linux, no desktop build |
 | WhatsApp | No official Linux desktop app |
 | Microsoft Teams | Discontinued. `packages.microsoft.com/repos/ms-teams` still resolves, but its `Packages` index is 0 bytes and was last built in Feb 2023 |
-| iTerm2, PowerFlow | macOS-only by nature; Ghostty covers the terminal here |
+| iTerm2, PowerFlow, Caffeine | macOS-only by nature; Ghostty covers the terminal here, and the Plasma battery applet already has a toggle that blocks sleep |
 | ZoomIt | Sysinternals ships it for Windows and macOS only, no Linux build |
 | Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
 
