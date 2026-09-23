@@ -88,8 +88,13 @@ foreach ($id in $apps) {
     winget list --id $id -e --accept-source-agreements | Out-Null
     if ($LASTEXITCODE -eq 0) { Write-Host "   $id  (installed)"; continue }
     Write-Host "   $id"
-    winget install --id $id -e --silent --accept-source-agreements --accept-package-agreements
-    if ($LASTEXITCODE -ne 0) { $failed += "$id ($LASTEXITCODE)" }
+    # Captured rather than shown: winget draws spinners and progress bars that
+    # only make sense on a live console. Printed after all when it fails.
+    $out = winget install --id $id -e --silent --disable-interactivity --accept-source-agreements --accept-package-agreements
+    if ($LASTEXITCODE -ne 0) {
+        $out | Where-Object { $_ -match '[a-z]{3}' } | ForEach-Object { "      $_" }
+        $failed += "$id ($LASTEXITCODE)"
+    }
 }
 
 Write-Host ''

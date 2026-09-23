@@ -27,7 +27,7 @@ $repo = Join-Path $HOME 'projects\landsman\config'
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host '== git'
-    winget install --id Git.Git -e --accept-source-agreements --accept-package-agreements
+    winget install --id Git.Git -e --silent --disable-interactivity --accept-source-agreements --accept-package-agreements | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "winget install Git.Git exited $LASTEXITCODE" }
     # winget does not refresh PATH in the running shell.
     $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
