@@ -85,6 +85,9 @@ installs the `telegram` cask, Telegram's native macOS app, rather than the Qt
 | Microsoft Teams | Discontinued. `packages.microsoft.com/repos/ms-teams` still resolves, but its `Packages` index is 0 bytes and was last built in Feb 2023 |
 | iTerm2, PowerFlow, Caffeine | macOS-only by nature; Ghostty covers the terminal here, and the Plasma battery applet already has a toggle that blocks sleep |
 | ZoomIt | Sysinternals ships it for Windows and macOS only, no Linux build |
+| Azure VPN Client | `microsoft-azurevpnclient` is only in Microsoft's 22.04 (jammy) repo, not in the 24.04 (noble) one — pointing apt at another release's repo is a mismatch waiting for the next upgrade |
+| Toggl Track | Toggl deprecated its Linux app in April 2024; the web app is what is left |
+| Pages, Numbers, Keynote, iMovie, Infuse, Tasks.txt | App Store apps for Apple platforms only |
 | Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
 
 Flathub being wired up now does not empty that table by itself. It was added for
