@@ -536,7 +536,7 @@ chrome: ## apply the Chrome settings that do not sync (vertical tabs, side panel
 # The panes stow cannot reach, see bin/macos/defaults.sh
 #
 
-.PHONY: macos macos-hosts macos-touchid macos-spotlight-off macos-spotlight-on
+.PHONY: macos macos-hosts macos-touchid macos-xcode macos-spotlight-off macos-spotlight-on
 macos: ## apply the macOS settings this repo owns (menu bar, Dock, Finder, trackpad, file associations)
 	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; ./bin/macos/defaults.sh
 	@# Its own script and not a `defaults write` line: the associations live in one
@@ -569,6 +569,13 @@ macos-touchid: ## authenticate sudo with Touch ID (root-owned, so its own target
 	sudo install -m 444 -o root -g wheel "$$tmp" "$$f"; rm -f "$$tmp"; \
 	cat "$$f"; \
 	sudo -k; echo "now run any sudo command - it should ask for a fingerprint"
+
+macos-xcode: ## point xcode-select at Xcode.app instead of the Command Line Tools (root)
+	@# The CLT answer xcodebuild and simctl with an error, so anything building
+	@# for iOS needs the full app selected. Xcode itself comes from the Brewfile.
+	@[ "$$(uname -s)" = Darwin ] || { echo "macOS only - skipped"; exit 0; }; \
+	[ -d /Applications/Xcode.app ] || { echo "no /Applications/Xcode.app - run make apps first"; exit 1; }; \
+	[ "$$(xcode-select -p)" = /Applications/Xcode.app/Contents/Developer ] && echo "already selected: Xcode.app" || sudo xcode-select -s /Applications/Xcode.app
 
 macos-spotlight-off: ## stop indexing files on the data volume (root; see landsman/config#82)
 	@# There is no per-folder switch, which is the whole reason this is a volume
