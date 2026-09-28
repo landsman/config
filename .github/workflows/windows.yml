@@ -1,0 +1,31 @@
+name: windows
+
+# Its own workflow so it can be filtered by path: nothing else in the repo
+# reaches a Windows machine. apply.ps1 reads os/windows and links shared/, and a
+# Brewfile or bin/ change has no way to break it. A job-level filter does not
+# exist in Actions, which is why this is not a job in ci.yml.
+on:
+  pull_request:
+    paths:
+      - os/windows/**
+      - shared/**
+      - .github/workflows/windows.yml
+  workflow_dispatch:
+
+jobs:
+  # The Windows half runs for real rather than being parsed. x64, like the
+  # T480; the only hosted Windows 11 image is Arm, where x64 installers run
+  # emulated and prove little. Server ships without winget, so it is installed
+  # first. What Server cannot check is the Power & battery mode, which is a
+  # client setting; the T480 run covers that.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install winget
+        run: |
+          Install-Module Microsoft.WinGet.Client -Force -Repository PSGallery
+          Repair-WinGetPackageManager -AllUsers -Force
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File os\windows\apply.ps1
+      - name: Skills are reachable where Claude Code looks
+        run: if (-not (Test-Path "$HOME\.claude\skills\commit-messages\SKILL.md")) { throw 'not linked' }
