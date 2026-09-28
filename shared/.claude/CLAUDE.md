@@ -20,6 +20,7 @@ mistake, not after.
 | [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/`, or porting a workflow from GitHub — scoped, loads itself |
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
 | [Shell in a config file](rules/shell-in-config.md) | shell goes inside a YAML or a Makefile |
+| [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Browser automation](rules/browser-automation.md) | a web app gets opened to check or drive it |
 | [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 
