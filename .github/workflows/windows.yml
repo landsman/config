@@ -10,6 +10,8 @@ on:
       - os/windows/**
       - shared/**
       - .github/workflows/windows.yml
+      # Rules and skills under shared/ are prose; editing one cannot break apply.ps1.
+      - '!**.md'
   workflow_dispatch:
 
 jobs:
