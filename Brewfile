@@ -89,6 +89,9 @@ brew "rclone"
 brew "rsync"
 # Symlink farm manager — this repo's `make stow` needs it
 brew "stow"
+# Gitea command-line tool — also speaks to Forgejo, the forge gh and glab
+# cannot reach
+brew "tea"
 # General purpose fuzzy finder TUI
 brew "television"
 # Infrastructure as code — vendor tap, homebrew-core dropped it over the BSL
