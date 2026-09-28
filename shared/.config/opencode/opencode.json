@@ -34,6 +34,15 @@
       ],
       "enabled": true,
       "type": "local"
+    },
+    "forgejo": {
+      "command": [
+        "sh",
+        "-c",
+        "b=$(command -v forgejo-mcp || echo \"$HOME/go/bin/forgejo-mcp\"); [ -n \"$FORGEJO_ACCESS_TOKEN\" ] && [ -x \"$b\" ] || exit 0; exec \"$b\" --transport stdio --url https://git.insuit.cz"
+      ],
+      "enabled": true,
+      "type": "local"
     }
   },
   "permission": {
