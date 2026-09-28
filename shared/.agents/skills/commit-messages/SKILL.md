@@ -12,12 +12,12 @@ not a verb and not a ticket id.
 
 ## The subject says why, not what
 
-The prefix says which drawer; it does not excuse `devops: update workflow`. The diff
+The prefix says which drawer; it does not excuse `ci: update workflow`. The diff
 already says what changed. If the subject only survives because the prefix is
 carrying it, it is not written yet.
 
-    ❌ devops: update workflow
-    ✅ devops: run the PNG check on every PR, not just code ones
+    ❌ ci: update workflow
+    ✅ ci: run the PNG check on every PR, not just code ones
 
     ❌ be: fix bug
     ✅ be(pos): keep the slug when a till is renamed, QR codes are already printed
@@ -62,6 +62,42 @@ mistaken for the spec:
   `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`). Ours splits
   by *area* (`fe`/`be`) where theirs splits by *kind*. If a repo ever needs
   changelog tooling keyed to `feat`/`fix`, that is the trade to reopen — not before.
+
+## A config repo, and picking types for a new one
+
+The type table is shared by every repo, but no repo uses all of it. What a repo
+ships decides which rows it reaches for: a web app lives in `fe`/`be`, a service in
+`be`/`devops`, a dotfiles repo in `setup`. Before a first commit in an unfamiliar
+repo, read its `git log` for the drawers already in use, then check they match the
+table, not the other way round.
+
+`setup` exists because a dotfiles repo had filed 37 of its 150 commits under
+`devops`. Most of them were app installs, system settings and agent config;
+several were workflows that were really `ci`, and only a handful were the repo's
+own tooling that `devops` actually means. The drawer said nothing about most of
+them.
+
+What config repos elsewhere do, which is where `setup` plus a scope comes from:
+
+- **The component is the prefix.** Go (`net/http: handle foo when bar`,
+  <https://go.dev/wiki/CommitMessage>), nixpkgs and Home Manager
+  (`starship: allow running in Emacs if vterm is used`, `foo: add module`,
+  <https://home-manager.dev/manual/25.11/>), and mathiasbynens/dotfiles
+  (`.macos:`, `brew.sh:`). Readable, but there is no type at all, so it does not
+  mix with this convention.
+- **A kind as the type, the tool or machine as the scope.** folke/dot
+  (`feat(nvim)`, `fix(fish)`, `chore(ansible)`) and fredrikaverpil/dotfiles
+  (`feat(wily)`, a machine's hostname, beside `feat(nix)` and `feat(claude)`). In
+  both, the scope carries the information and the type carries little — it is
+  mostly `feat` and `fix`.
+- **Angular's `build`** is "the build system or external dependencies"
+  (<https://github.com/angular/angular/blob/main/contributing-docs/commit-message-guidelines.md>),
+  the same drawer as our `devops`. Neither fits installing an app on a laptop.
+
+So `setup` names the area, as `fe` and `be` do, and the scope does what the
+component prefix does in Go and nixpkgs. Keep the scopes a short, stable list —
+a platform or a tool — so `git log --grep '^setup(windows)'` finds everything
+that touched one machine.
 
 Dependabot writes its own messages and reads none of this; the
 `commit-message.prefix: deps` setting that aligns it lives in the
