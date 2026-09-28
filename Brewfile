@@ -188,6 +188,7 @@ if OS.mac?
 	# open the App Store and sign in first, or `make apps` stops here. Why none of
 	# them installs on Linux is in os/ubuntu/README.md.
 	mas "Azure VPN Client", id: 1553936137
+	mas "ColorSlurp", id: 1287239339
 	mas "iMovie", id: 408981434
 	mas "Infuse", id: 1136220934
 	mas "Keynote", id: 361285480
