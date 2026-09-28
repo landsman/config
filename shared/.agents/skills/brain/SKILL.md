@@ -50,6 +50,14 @@ findings, the decision if one was made, and **every URL a finding came from**.
 Numbers keep the method they were measured with. A wiki page is only as
 checkable as the raw file behind it.
 
+## What goes into wiki/
+
+Everything a reader needs **without opening `raw/`** — agents read the wiki,
+not the evidence behind it. The reasoning behind a decision, and a link next
+to every tool, project or claim, not just its name. If the finding was also
+given to me as an answer, the page holds at least what that answer said:
+compiling means organising, not shortening.
+
 ## Then tell me
 
 One line at the end of the answer: which pages were created or updated. Not
