@@ -1,7 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
-    "~/.agents/rules/*.md"
+    "~/.agents/rules/*.md",
+    "~/projects/landsman/brain/wiki/index.md"
   ],
   "mcp": {
     "pencil": {
