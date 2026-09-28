@@ -12,6 +12,36 @@ The servers themselves are agent-agnostic. This arrangement is Claude Code's,
 because that is the client in use here; another client reads the same URLs from
 its own config.
 
+## opencode, and why the list is written twice
+
+opencode is the second client, so the same list is also in
+[`shared/.config/opencode/opencode.json`](../shared/.config/opencode/opencode.json).
+Two files because the two schemas do not overlap:
+
+|                     | Claude `.mcp.json`         | opencode `opencode.json` |
+|---------------------|----------------------------|--------------------------|
+| root key            | `mcpServers`               | `mcp`                    |
+| stdio               | `type: "stdio"`, `command` + `args` | `type: "local"`, `command` as one argv array |
+| remote              | `type: "http"`, `url`      | `type: "remote"`, `url`   |
+
+opencode validates its config against a schema where every MCP entry is
+`additionalProperties: false` and `type` is an enum, so a Claude entry pasted in
+is an error, not a no-op. And a symlink does not help: one file, two readers,
+two formats. So the list is written twice and
+[`bin/mcp/servers.test.sh`](../bin/mcp/servers.test.sh) holds the two to each
+other — same server names, same command, the `pencil` exception named in the
+script. `make bin-test` runs it, so CI gates on it; a server added to one file
+and not the other fails there rather than turning up as a client that quietly
+does not have it, which is how forgejo came to be a Claude Code server and not
+an opencode one.
+
+**Adding a server means editing both files.** The check catches it either way
+you get it wrong; it does not make the second edit unnecessary.
+
+pencil is the one server only opencode has. Pen.app is macOS-only, so it cannot
+sit in a file every machine reads, and `opencode-config-test` is what guards
+its path.
+
 ## Why not the two places you would look first
 
 - **`settings.json` cannot define a server.** It has the policy keys
@@ -31,7 +61,15 @@ its own config.
 ```bash
 claude plugin list | grep -A4 mcp-servers@skills-dir   # Status: ✔ loaded
 claude mcp list | grep plugin:mcp-servers              # one line per server
+make bin-test                                          # the two lists agree — CI runs this
+opencode mcp list                                      # what opencode actually has
 ```
+
+A guarded server that finds no token or no binary exits 0 before it connects,
+which Claude Code shows as an absent server. opencode shows the same state as
+`✗ failed / MCP error -32000: Connection closed`, so on a session without the
+token both guarded servers read as broken rather than as absent — check the env
+before believing either.
 
 Servers are namespaced by the plugin, so the name to allow-list, remove or debug
 is `plugin:mcp-servers:<server>`, not `<server>`. A server still registered the
