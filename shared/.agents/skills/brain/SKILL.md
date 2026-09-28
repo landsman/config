@@ -28,20 +28,26 @@ in the same turn, without being asked — a finding that stays in the transcript
 is gone by the next session. Skip only what is tied to one repo's code and
 already lives there, or what I said not to keep.
 
-## From another repo
+## Writing: always in a worktree of your own
 
-The brain is its own git repo, so every command runs against it, not the
-current working directory:
+Other agents write to the brain at the same time. **Never edit or commit in
+`~/projects/landsman/brain` itself** — `git add -A` there sweeps another
+agent's half-written pages into your commit, and a pull refuses to run over
+its changes. Every write goes through a worktree of its own:
 
-    git -C ~/projects/landsman/brain pull --rebase
-    # … write raw/, wiki/, index, log per AGENTS.md …
-    git -C ~/projects/landsman/brain add -A
-    git -C ~/projects/landsman/brain commit -m "docs: <what was learned>"
-    git -C ~/projects/landsman/brain push
+    wt=$(~/projects/landsman/brain/bin/wt.sh start)
+    # read and write only inside "$wt", per AGENTS.md
+    ~/projects/landsman/brain/bin/wt.sh finish "$wt" "docs: <what was learned>"
 
-Straight to `main`: the brain's own AGENTS.md waives the branch-and-PR rule
-for that repo only. Pull before writing, not just before pushing — another
-machine or agent may have touched the same page.
+`start` makes a fresh worktree on `origin/main` and prints its path; read the
+pages there too, the main checkout may be behind. `finish` commits, rebases
+until the push goes through, removes the worktree and updates the main
+checkout. On a rebase conflict it stops and leaves the worktree — resolve it
+keeping both sides' facts, `git -C "$wt" rebase --continue`, `finish` again.
+
+Pushes go straight to `main`: the brain's AGENTS.md waives the branch-and-PR
+rule for that repo only. Reading for a query needs no worktree — the main
+checkout is fine for that.
 
 ## What goes into raw/
 
