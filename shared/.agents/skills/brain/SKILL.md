@@ -35,15 +35,18 @@ Other agents write to the brain at the same time. **Never edit or commit in
 agent's half-written pages into your commit, and a pull refuses to run over
 its changes. Every write goes through a worktree of its own:
 
-    wt=$(~/projects/landsman/brain/bin/wt.sh start)
-    # read and write only inside "$wt", per AGENTS.md
-    ~/projects/landsman/brain/bin/wt.sh finish "$wt" "docs: <what was learned>"
+    ~/projects/landsman/brain/bin/wt.sh start
+    # prints a path — read and write only inside it, per AGENTS.md
+    ~/projects/landsman/brain/bin/wt.sh finish <that path> "docs: <what was learned>"
 
-`start` makes a fresh worktree on `origin/main` and prints its path; read the
-pages there too, the main checkout may be behind. `finish` commits, rebases
-until the push goes through, removes the worktree and updates the main
-checkout. On a rebase conflict it stops and leaves the worktree — resolve it
-keeping both sides' facts, `git -C "$wt" rebase --continue`, `finish` again.
+**Use the printed path literally** in every later command and file write — a
+shell variable does not survive between tool calls. `start` makes a fresh
+worktree on `origin/main`; read the pages there too, the main checkout may be
+behind. `finish` commits, rebases until the push goes through, removes the
+worktree and updates the main checkout. On a conflict it stops and names the
+files: edit them keeping both sides' facts, remove the markers, and run
+`finish` again — it continues the rebase itself. On any other failure it
+leaves the worktree with the unpushed commit in it; do not delete it, tell me.
 
 Pushes go straight to `main`: the brain's AGENTS.md waives the branch-and-PR
 rule for that repo only. Reading for a query needs no worktree — the main

@@ -10,7 +10,9 @@ The how is in the `brain` skill; load it before touching the repo.
 - **After a research, file it there, unasked, in the same turn.** Web searches,
   tool comparisons, an investigation whose conclusion outlives the session — it
   goes in as a source and gets compiled into the wiki. A finding left in the
-  transcript is gone by the next session.
+  transcript is gone by the next session. **A subagent does not** — it
+  reports its findings to its caller, which files them, unless the caller
+  asked it to write there itself.
 - **"Remember this", "save it to the brain"** goes there, not into the
   per-project agent memory — that one is scoped to a single repo and invisible
   to every other agent.
