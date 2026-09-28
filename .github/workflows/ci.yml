@@ -2,6 +2,9 @@ name: validate
 
 on:
   pull_request:
+    # Prose changes nothing any job here checks: qa parses shell and runs the
+    # tests, security scans code. A PR touching only Markdown skips the run.
+    paths-ignore: ['**.md']
   workflow_dispatch:   # so a run can be retried without closing and reopening the PR
 
 jobs:
