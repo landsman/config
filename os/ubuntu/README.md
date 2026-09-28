@@ -87,7 +87,7 @@ installs the `telegram` cask, Telegram's native macOS app, rather than the Qt
 | ZoomIt | Sysinternals ships it for Windows and macOS only, no Linux build |
 | Azure VPN Client | `microsoft-azurevpnclient` is only in Microsoft's 22.04 (jammy) repo, not in the 24.04 (noble) one — pointing apt at another release's repo is a mismatch waiting for the next upgrade |
 | Toggl Track | Toggl deprecated its Linux app in April 2024; the web app is what is left |
-| Pages, Numbers, Keynote, iMovie, Infuse, Tasks.txt | App Store apps for Apple platforms only |
+| Pages, Numbers, Keynote, iMovie, Infuse, Tasks.txt, ColorSlurp | App Store apps for Apple platforms only |
 | Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
 
 Flathub being wired up now does not empty that table by itself. It was added for
