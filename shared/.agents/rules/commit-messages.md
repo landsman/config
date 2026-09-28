@@ -1,7 +1,8 @@
 # Commit messages
 
 `<type>: <subject>`, or `<type>(<scope>): <subject>` when the repo holds more
-than one project. Lowercase throughout, no full stop.
+than one project — or, in a config repo, when the change belongs to one platform
+or one tool. Lowercase throughout, no full stop.
 
 **The long form lives in the `commit-messages` skill** — worked examples of a
 subject that says why, enforcing PR titles in CI, breaking changes, and where
@@ -15,6 +16,7 @@ skills at all.
     ci(pollos): watch the terraform providers, nothing tracked them
     fe: stack the footer on narrow viewports
     docs: say why the mirror is not tagged latest
+    setup(windows): turn Smart App Control off, so a local build can run
 
 The types:
 
@@ -24,6 +26,7 @@ The types:
 | `deps` | bumping a dependency to a new version |
 | `ci` | the pipeline itself — workflows, runners, the checks a push triggers |
 | `devops` | build, release, infrastructure, tooling config |
+| `setup` | a machine in a config repo — an app installed, a system setting, an agent's config |
 | `fe` | frontend work |
 | `be` | backend work |
 | `docs` | documentation only |
@@ -38,6 +41,17 @@ that has to go green before a merge. `devops` is everything else in that
 territory: a Makefile target, a Dockerfile, a compose file, the pinned toolchain.
 The test is where it executes. Teaching the pipeline to build the image is `ci`;
 changing how the image is built is `devops`.
+
+`devops` and `setup` are the other pair. `devops` is about how a project is
+built and shipped; `setup` is about a computer, and it only occurs in a repo whose
+product *is* a machine's configuration — dotfiles, a Brewfile, an installer
+script, the settings every agent reads. Installing Telegram is not infrastructure,
+and filing it under `devops` turns the busiest drawer into "everything that is not
+docs". In such a repo the scope says where: a platform (`macos`, `windows`,
+`ubuntu`) or a tool (`agents`, `git`, `brew`), and none when it lands everywhere.
+
+    setup: install glab, the GitLab CLI, on every platform
+    setup(agents): show the brain index at every session start
 
 Add a type when something genuinely does not fit, rather than forcing it — but
 reach for the list first, because a per-repo vocabulary is how a convention
@@ -56,7 +70,7 @@ half a local hook cannot see.
 Two things this does not change:
 
 - **The subject still says why, not what.** The prefix says which drawer the
-  change belongs in; it does not excuse `devops: update workflow`. If the
+  change belongs in; it does not excuse `ci: update workflow`. If the
   subject only survives because the prefix is carrying it, it is not written yet.
 - **Lowercase the sentence, not the names.** `deps: bump GHCR mirror to 1.173.0`,
   not `ghcr`. Proper nouns, tool names and identifiers keep their own casing.
