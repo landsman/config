@@ -1,8 +1,7 @@
 # Commit messages
 
 `<type>: <subject>`, or `<type>(<scope>): <subject>` when the repo holds more
-than one project — or, in a config repo, when the change belongs to one platform
-or one tool. Lowercase throughout, no full stop.
+than one project. Lowercase throughout, no full stop.
 
 **The long form lives in the `commit-messages` skill** — worked examples of a
 subject that says why, enforcing PR titles in CI, breaking changes, and where
@@ -25,7 +24,7 @@ The types:
 | `security` | vulnerabilities, scanners, secrets, hardening |
 | `deps` | bumping a dependency to a new version |
 | `ci` | the pipeline itself — workflows, runners, the checks a push triggers |
-| `devops` | build, release, infrastructure, tooling config |
+| `devops` | build, release, infrastructure, a project's tooling config |
 | `setup` | a machine in a config repo — an app installed, a system setting, an agent's config |
 | `fe` | frontend work |
 | `be` | backend work |
@@ -45,10 +44,15 @@ changing how the image is built is `devops`.
 `devops` and `setup` are the other pair. `devops` is about how a project is
 built and shipped; `setup` is about a computer, and it only occurs in a repo whose
 product *is* a machine's configuration — dotfiles, a Brewfile, an installer
-script, the settings every agent reads. Installing Telegram is not infrastructure,
-and filing it under `devops` turns the busiest drawer into "everything that is not
-docs". In such a repo the scope says where: a platform (`macos`, `windows`,
-`ubuntu`) or a tool (`agents`, `git`, `brew`), and none when it lands everywhere.
+script. Installing Telegram is not infrastructure, and filing it under `devops`
+turns the busiest drawer into "everything that is not docs". The test is what
+changes: a Makefile target that changes the machine is `setup`, one that checks
+or builds the repo is `devops`. An agent's settings, hooks or MCP config are
+`setup(agents)`; the prose an agent reads, a rule or a skill, is `docs`.
+
+In such a repo the scope says where: a tool (`agents`, `git`, `brew`) or a
+platform (`macos`, `windows`, `ubuntu`), the tool when both fit, and none when it
+lands everywhere.
 
     setup: install glab, the GitLab CLI, on every platform
     setup(agents): show the brain index at every session start

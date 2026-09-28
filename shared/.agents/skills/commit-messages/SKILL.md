@@ -71,9 +71,11 @@ ships decides which rows it reaches for: a web app lives in `fe`/`be`, a service
 repo, read its `git log` for the drawers already in use, then check they match the
 table, not the other way round.
 
-`setup` exists because a dotfiles repo had filed 37 of its 153 commits under
-`devops`, and they sorted into app installs, system settings, agent config, and
-workflows that were really `ci`. The drawer said nothing about any of them.
+`setup` exists because a dotfiles repo had filed 37 of its 150 commits under
+`devops`. Most of them were app installs, system settings and agent config;
+several were workflows that were really `ci`, and only a handful were the repo's
+own tooling that `devops` actually means. The drawer said nothing about most of
+them.
 
 What config repos elsewhere do, which is where `setup` plus a scope comes from:
 
@@ -85,8 +87,9 @@ What config repos elsewhere do, which is where `setup` plus a scope comes from:
   mix with this convention.
 - **A kind as the type, the tool or machine as the scope.** folke/dot
   (`feat(nvim)`, `fix(fish)`, `chore(ansible)`) and fredrikaverpil/dotfiles
-  (`feat(kaizen)`, a machine's hostname). In both, the scope carries the
-  information and the type is close to noise — nearly everything is `feat`.
+  (`feat(wily)`, a machine's hostname, beside `feat(nix)` and `feat(claude)`). In
+  both, the scope carries the information and the type carries little — it is
+  mostly `feat` and `fix`.
 - **Angular's `build`** is "the build system or external dependencies"
   (<https://github.com/angular/angular/blob/main/contributing-docs/commit-message-guidelines.md>),
   the same drawer as our `devops`. Neither fits installing an app on a laptop.
