@@ -9,8 +9,9 @@ description: Load before writing to or reading from my long-term knowledge base 
 Wiki: `raw/` sources that are never edited, `wiki/` pages compiled from them,
 `wiki/index.md` as the catalogue, `log.md` as the append-only history.
 
-**Read `~/projects/landsman/brain/AGENTS.md` before writing anything there.** It
-is the schema — file names, frontmatter, and the exact steps of each operation.
+**Before writing, run `bin/wt.sh start` and read `AGENTS.md` from the
+worktree it prints** — not from the main checkout, which may be behind. It is
+the schema — file names, frontmatter, and the exact steps of each operation.
 This skill says when to run one and how to do it from inside another repo; it
 does not repeat the schema.
 
