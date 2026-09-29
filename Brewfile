@@ -44,6 +44,9 @@ brew "hstr"
 brew "htop"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
+# JSON processor — the checkout guard hook reads Claude Code's input with it,
+# and macOS ships it while Kubuntu does not
+brew "jq"
 # Kubernetes package manager
 brew "helm"
 # Kubernetes CLI To Manage Your Clusters In Style!

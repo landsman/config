@@ -160,6 +160,17 @@
     "defaultMode": "auto"
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/checkout-guard.sh\""
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
