@@ -23,6 +23,16 @@ the title. The rule is that the link is present, not that nothing else is.
 in the repo refers to a sibling PR as `#177`, because the forge resolves it there
 and a full URL is noise that breaks when a repo moves.
 
+That exception is for **the same repository on the same forge**, and nothing
+wider. Anything written in one repo about work in another — above all on another
+forge, such as a Forgejo issue about a GitHub PR — takes the full URL. Short forms
+resolve against the forge they are written on: `owner/repo#33` in a Forgejo issue
+points at a Forgejo repository of that name, which may not exist or may be a
+mirror, so the link silently leads somewhere else.
+
+    ✅ in a Forgejo issue: https://github.com/landsman/homelab/pull/33
+    ❌ in a Forgejo issue: landsman/homelab#33
+
 That is also the line the confidentiality rule draws — see
 [where the repos live](where-repos-live.md). A URL carries the owner and the repo
 name, which is fine in a terminal I am reading and not fine in anything that
