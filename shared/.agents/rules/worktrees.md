@@ -19,6 +19,10 @@ disappearing, not as an error.
 - **Leave it when the work is pushed**; removing it is `git worktree remove`,
   and only once nothing in it is unpushed.
 
+In Claude Code this is enforced, not just written: a hook
+(`bin/agents/checkout-guard.sh` in the config repo) refuses an edit in a main
+checkout, and its refusal names the one way through when I did say "here".
+
 Reading, searching and answering a question need no worktree — the rule is about
 writing. "Do it here", "on this branch" or "in my checkout" is the exception,
 and it holds for that task only.
