@@ -509,7 +509,10 @@ claude: ## set the machine-local values the MCP servers read (Azure DevOps org, 
 	echo "$$f: FORGEJO_ACCESS_TOKEN set"
 	@echo "open a new shell, then: claude mcp list | grep -E 'azure-devops|forgejo'"
 
-##@ Leftover processes
+##@ Development
+#
+# What day-to-day work on any repo needs from this machine, as opposed to
+# setting the machine up.
 #
 # Dev servers an agent started in a worktree and never stopped. They outlive
 # the session, reparent to init and keep holding their port and their memory.
