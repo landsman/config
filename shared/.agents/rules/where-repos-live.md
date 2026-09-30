@@ -59,18 +59,29 @@ So, in any repo that is not that client's own:
   describes the pattern and points at the box (`forgejo admin user list`) rather
   than listing the real names.
 
-### Check before it leaves, not after
+### The list of names is in the brain
+
+Which names those are cannot live in this repo, because this repo is public.
+They are in **[Names that stay private](../../../brain/wiki/names-that-stay-private.md)** —
+`wiki/names-that-stay-private.md` in the brain, listed in its index, which every
+session already loads. It says which owner each name belongs to, what else
+counts as the name (the organisation on the forge, the product, its domains and
+subdomains, accounts made for them on shared infrastructure), and which names
+are mine and therefore fine anywhere.
+
+**Read it before writing into a repo that is not that owner's** — the same
+moment the [brain](brain.md) rule already says to look there. Then grep what is
+about to leave:
+
+    git diff --staged | grep -i -E '<the names from that page>'
 
 The commit message, the PR title and the PR body count as much as the diff, and
-the PR body is the one nothing else checks. Before committing or opening a pull
-request in a repo that is not the client's:
+the PR body is the one nothing else checks.
 
-    git diff --staged | grep -i -E '<name>|<other name>'
-
-Keep that list of names out of the repo too — it lives in the shell history of
-whoever runs it, or in a local file nothing tracks. If something did get out:
-fix the file, **fix the pull request body**, and check `git log --grep` before
-deciding whether history has to be rewritten.
+If something did get out: fix the file, **fix the pull request body**, and check
+`git log --grep` before deciding whether history has to be rewritten. There is
+no hook for this on purpose — the check is cheap, and a list of clients sitting
+in a public repo to feed a linter would be the leak it is meant to prevent.
 
 ## Do not sweep `$HOME` with `find`
 
