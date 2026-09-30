@@ -31,6 +31,58 @@ is. If only the real path would make the point, drop the point.
 This is not the same rule as pasting a secret. A repo name leaks who I work for
 and what they are building, which is theirs to disclose and not mine.
 
+### It hides in defaults and examples, not in prose
+
+Nobody writes "our client X" in a paragraph by accident. The name gets in
+through the places that feel like configuration:
+
+    org=${ORG:-acme}                 # a default in a script
+    bot=${BOT_USER:-acme-bot}        # …and the account it names
+    | `acme-bot` | pushes images |   # a table of "what exists on this box"
+    FORGEJO_INTERNAL_URL=https://…   # an example with a real value in it
+
+All four are code, so they read as neutral, and all four ship the name. This
+has already happened once: a helper in a public homelab repo defaulted to a
+client's organisation and its bot account, and the pull request body repeated
+it.
+
+So, in any repo that is not that client's own:
+
+- **A default, an example or a sample value is a placeholder** — `<org>`,
+  `<org>-bot`, `<host>.<tailnet>.ts.net`. Prefer `${ORG:?set ORG}` over a
+  default: a missing value that stops the script is better than a real one that
+  ships.
+- **The real values live where the work does** — `.env` on the box, the
+  project's own private runbook, 1Password. A public repo says the *shape*, the
+  private one says the name.
+- **An inventory of what exists on a machine** — accounts, stacks, tokens —
+  describes the pattern and points at the box (`forgejo admin user list`) rather
+  than listing the real names.
+
+### The list of names is in the brain
+
+Which names those are cannot live in this repo, because this repo is public.
+They are in **[Names that stay private](../../../brain/wiki/names-that-stay-private.md)** —
+`wiki/names-that-stay-private.md` in the brain, listed in its index, which every
+session already loads. It says which owner each name belongs to, what else
+counts as the name (the organisation on the forge, the product, its domains and
+subdomains, accounts made for them on shared infrastructure), and which names
+are mine and therefore fine anywhere.
+
+**Read it before writing into a repo that is not that owner's** — the same
+moment the [brain](brain.md) rule already says to look there. Then grep what is
+about to leave:
+
+    git diff --staged | grep -i -E '<the names from that page>'
+
+The commit message, the PR title and the PR body count as much as the diff, and
+the PR body is the one nothing else checks.
+
+If something did get out: fix the file, **fix the pull request body**, and check
+`git log --grep` before deciding whether history has to be rewritten. There is
+no hook for this on purpose — the check is cheap, and a list of clients sitting
+in a public repo to feed a linter would be the leak it is meant to prevent.
+
 ## Do not sweep `$HOME` with `find`
 
 It is slow, it walks `Library/`, caches and every `node_modules`, and it answers
