@@ -17,10 +17,11 @@ g -C "$t/repo" worktree add -q "$w" -b w
 g -C "$t/repo" worktree add -q "$w-other" -b other
 mkdir "$w/site"
 
-# fake <dir> [deaf] — leaves the pid in $pid. Not $(fake …): the sleep would
-# hold the substitution's pipe open. A deaf one ignores SIGTERM, as wrangler does.
+# fake <dir> [deaf] [name] — leaves the pid in $pid. Not $(fake …): the sleep
+# would hold the substitution's pipe open. A deaf one ignores SIGTERM, as
+# wrangler does. The default name is the title npm gives its own process.
 fake() {
-	(cd "$1" && { [ -z "${2-}" ] || trap '' TERM; } && exec -a 'wrangler pages dev' sleep 300) &
+	(cd "$1" && { [ -z "${2-}" ] || trap '' TERM; } && exec -a "${3:-npm exec wrangler pages dev}" sleep 300) &
 	pid=$!
 	disown "$pid" # or bash announces every death on stderr
 	fakes+=("$pid")
@@ -40,10 +41,18 @@ hook() { jq -n "$@" | bash "$script" --hook >/dev/null; }
 fake "$w/site" deaf; in_w=$pid
 fake "$w-other";     sibling=$pid
 fake "$t/repo";      checkout=$pid
+fake "$w/site" "" "/opt/bin/node /x/node_modules/.bin/wrangler dev --port 1"; by_node=$pid
+fake "$w/site" "" "/x/node_modules/@cloudflare/workerd-linux-64/bin/workerd serve"; workerd=$pid
+fake "$w/site" "" "vim notes on wrangler pages dev"; editor=$pid
+fake "$w/site" "" "npm exec wrangler pages deploy"; deploy=$pid
 sleep 1 # until each has exec'd into its new name
 
 bash "$script" "$w" >/dev/null
 check dead  "$in_w"     "a server below the dir, one that ignores SIGTERM"
+check dead  "$by_node"  "node running wrangler's bin"
+check dead  "$workerd"  "the workerd under it"
+check alive "$editor"   "a process that only mentions a dev server"
+check alive "$deploy"   "a deploy in flight"
 check alive "$sibling"  "a worktree whose name only starts the same"
 check alive "$checkout" "the main checkout the worktree lives in"
 

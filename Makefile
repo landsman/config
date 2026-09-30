@@ -517,8 +517,8 @@ claude: ## set the machine-local values the MCP servers read (Azure DevOps org, 
 # session ending in a worktree takes its own servers with it.
 #
 
-.PHONY: wrangler-kill
-wrangler-kill: ## kill the wrangler dev servers left running — all of them, or only DIR=<worktree>
+.PHONY: dev-server-kill
+dev-server-kill: ## kill the dev servers left running — all of them, or only DIR=<worktree>
 	./bin/agents/kill-dev-servers.sh "$(DIR)"
 
 ##@ JetBrains IDEs

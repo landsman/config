@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Kill the wrangler dev servers an agent left running.
+# Kill the dev servers an agent left running.
 #
 #   kill-dev-servers.sh          every one on this machine
 #   kill-dev-servers.sh <dir>    only those started from <dir> or below it
@@ -13,15 +13,23 @@
 # A process belongs to a dir by its working directory, not its command line:
 # `npm exec wrangler pages dev` names no path at all.
 #
-# ponytail: wrangler only. Add a pattern the day another dev server is found
-# orphaned; "anything whose cwd is in the worktree" would also take the shell
-# and the editor sitting in it.
+# ponytail: wrangler is the only kind so far. "Anything whose cwd is in the
+# worktree" would need no list, and would also take the shell and the editor
+# sitting in it.
 set -euo pipefail
 
-# `dev` only, so a `wrangler deploy` in flight is left alone. The [w] keeps the
-# pattern from matching a shell that carries it on its own command line: Linux
-# pgrep does not skip its ancestors the way the macOS one does.
-pattern='[w]rangler[^ ]* (pages )?dev|[w]orkerd serve'
+# One line per kind of dev server, matched against the whole command line and
+# anchored at its start: the first word has to be what runs the server. Without
+# the anchor a line matches wherever the words occur, and an editor open on
+# "notes on wrangler dev" or an agent whose prompt mentions it dies as well.
+patterns=(
+	# `dev` only, so a `wrangler deploy` in flight is left alone.
+	'^[^ ]*(node|npm|npx|pnpm|yarn|bunx?)( [^ ]+)* [^ ]*wrangler[^ ]* (pages )?dev'
+	# Every workerd, so without a dir this also takes one a test run or a vite
+	# dev server owns. Asking for all of them means all of them.
+	'^[^ ]*workerd serve'
+)
+pattern=$(IFS='|'; echo "${patterns[*]}")
 
 dir=${1-}
 if [ "$dir" = --hook ]; then
@@ -57,7 +65,7 @@ for pid in $(pgrep -f "$pattern" || true); do
 	fi
 	pids+=("$pid")
 done
-[ ${#pids[@]} -gt 0 ] || { echo "no wrangler dev server running${dir:+ under $dir}"; exit 0; }
+[ ${#pids[@]} -gt 0 ] || { echo "no dev server running${dir:+ under $dir}"; exit 0; }
 
 # SIGTERM first, so workerd can close its sockets. wrangler itself was seen to
 # sit through it, which is why the second pass exists and is not optional.
@@ -70,4 +78,4 @@ for pid in "${pids[@]}"; do
 		forced=$((forced + 1))
 	fi
 done
-echo "killed ${#pids[@]} wrangler dev processes${dir:+ under $dir} ($forced needed SIGKILL)"
+echo "killed ${#pids[@]} dev server processes${dir:+ under $dir} ($forced needed SIGKILL)"
