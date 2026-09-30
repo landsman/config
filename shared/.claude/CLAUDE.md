@@ -17,6 +17,7 @@ mistake, not after.
 | [Linking to work](rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
 | [Worktrees](rules/worktrees.md) | an agent is about to change a repo |
+| [Everything as code](rules/everything-as-code.md) | a machine or a service is about to be changed |
 | [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
 | [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/`, or porting a workflow from GitHub — scoped, loads itself |
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
