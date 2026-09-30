@@ -3,7 +3,7 @@ Every rule lives in [`rules/`](rules/), one file each. This file is the index.
 A rule there loads unconditionally unless it declares `paths:` frontmatter,
 which scopes it to the files it is about. A rule earns that scoping only when
 its trigger is a file path *and* breaking it shows up in a diff — GitHub Actions,
-Forgejo Actions and Makefiles are the three so far. The rest override a default
+Forgejo Actions, Makefiles and writing for agents are the four so far. The rest override a default
 I would otherwise fall back to, so they have to be in context before the
 mistake, not after.
 
@@ -21,6 +21,7 @@ mistake, not after.
 | [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
 | [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/`, or porting a workflow from GitHub — scoped, loads itself |
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
+| [Writing for agents](rules/writing-for-agents.md) | writing a rule, a skill or a reference an agent loads: a short list, details opened one at a time — scoped, loads itself |
 | [Shell in a config file](rules/shell-in-config.md) | shell goes inside a YAML or a Makefile |
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Browser automation](rules/browser-automation.md) | a web app gets opened to check or drive it |
