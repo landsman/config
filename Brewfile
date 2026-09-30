@@ -90,6 +90,9 @@ brew "poppler"
 brew "rclone"
 # Utility that provides fast incremental file transfer
 brew "rsync"
+# Proxy server that works as a poor man's VPN — tunnels over plain ssh, so it
+# reaches a network where nothing but sshd is exposed
+brew "sshuttle"
 # Symlink farm manager — this repo's `make stow` needs it
 brew "stow"
 # Gitea command-line tool — also speaks to Forgejo, the forge gh and glab
