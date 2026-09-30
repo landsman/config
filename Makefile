@@ -518,8 +518,10 @@ claude: ## set the machine-local values the MCP servers read (Azure DevOps org, 
 #
 
 .PHONY: dev-server-kill
-dev-server-kill: ## kill the dev servers left running — all of them, or only DIR=<worktree>
-	./bin/agents/kill-dev-servers.sh "$(DIR)"
+dev-server-kill: ## list the dev servers agents left in worktrees; kill with DIR=<worktree> or ALL=1
+	@# Bare, it only lists: a mistyped DIR= must not turn into "all of them",
+	@# and some of what is listening belongs to a session still at work.
+	@./bin/agents/kill-dev-servers.sh $(if $(DIR),"$(DIR)",$(if $(ALL),--all,--list --all))
 
 ##@ JetBrains IDEs
 #

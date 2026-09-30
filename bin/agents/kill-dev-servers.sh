@@ -1,81 +1,110 @@
 #!/usr/bin/env bash
-# Kill the dev servers an agent left running.
+# Kill the dev servers an agent left running in a git worktree.
 #
-#   kill-dev-servers.sh          every one on this machine
-#   kill-dev-servers.sh <dir>    only those started from <dir> or below it
-#   kill-dev-servers.sh --hook   as Claude Code's SessionEnd hook: the dir is the
-#                                session's cwd, and only a git worktree counts
+#   kill-dev-servers.sh <dir>    those started from <dir> or below it
+#   kill-dev-servers.sh --all    those started from any agent worktree
+#   kill-dev-servers.sh --hook   as Claude Code's SessionEnd hook: <dir> is the
+#                                session's cwd, and only if that is a worktree
 #
-# An agent starts `wrangler pages dev` in a worktree to look at its change and
-# the session ends without stopping it. The server reparents to init and keeps
-# its port and its memory; ten of them were found four days old.
+# --list in front of any of them shows what would be killed and kills nothing.
 #
-# A process belongs to a dir by its working directory, not its command line:
-# `npm exec wrangler pages dev` names no path at all.
+# A dev server here is a process of mine that listens on TCP and whose working
+# directory is in scope. That takes no list of kinds: wrangler, a Spring Boot
+# app and vite all listen, while the shell and the editor sitting in the same
+# directory do not. It also takes a database or a language server started from
+# there, which is what the end of a session wants anyway.
 #
-# ponytail: wrangler is the only kind so far. "Anything whose cwd is in the
-# worktree" would need no list, and would also take the shell and the editor
-# sitting in it.
+# Only the listeners are signalled. The wrappers above them, `npm exec` or a
+# Gradle client, exit once their child is gone; checked on a real wrangler tree.
+#
+# ponytail: two sessions in one worktree — the first to end takes the other's
+# server. Track which session started what the day that actually happens.
 set -euo pipefail
 
-# One line per kind of dev server, matched against the whole command line and
-# anchored at its start: the first word has to be what runs the server. Without
-# the anchor a line matches wherever the words occur, and an editor open on
-# "notes on wrangler dev" or an agent whose prompt mentions it dies as well.
-patterns=(
-	# `dev` only, so a `wrangler deploy` in flight is left alone.
-	'^[^ ]*(node|npm|npx|pnpm|yarn|bunx?)( [^ ]+)* [^ ]*wrangler[^ ]* (pages )?dev'
-	# Every workerd, so without a dir this also takes one a test run or a vite
-	# dev server owns. Asking for all of them means all of them.
-	'^[^ ]*workerd serve'
-)
-pattern=$(IFS='|'; echo "${patterns[*]}")
+usage() {
+	echo "usage: kill-dev-servers.sh [--list] <dir> | --all | --hook" >&2
+	exit 2
+}
 
-dir=${1-}
-if [ "$dir" = --hook ]; then
-	# A hook must never be the reason a session fails to close.
-	trap 'exit 0' ERR
+# The worktree a session ended in, from the hook's JSON on stdin. Fails when
+# there is nothing to clean up.
+session_worktree() {
+	local input cwd git_dir common
 	input=$(cat)
 	# A /clear ends the session in name only; the work and its server go on.
-	[ "$(jq -r '.reason // ""' <<<"$input")" != clear ] || exit 0
-	dir=$(jq -r '.cwd // ""' <<<"$input")
-	[ -d "$dir" ] || exit 0
+	[ "$(jq -r '.reason // ""' <<<"$input")" != clear ] || return 1
+	cwd=$(jq -r '.cwd // ""' <<<"$input")
+	[ -d "$cwd" ] || return 1
 	# Inherited from a git hook that runs Claude Code, these would answer for
 	# the wrong repo.
 	# shellcheck disable=SC2046 # git's own list of variable names, split on purpose
 	unset $(git rev-parse --local-env-vars)
-	# Only a linked worktree: a server running out of the main checkout is one
-	# I started myself. Its git dir is the common one; a worktree's is not.
-	[ "$(git -C "$dir" rev-parse --path-format=absolute --git-dir)" != \
-		"$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir)" ] || exit 0
-	dir=$(git -C "$dir" rev-parse --show-toplevel)
-fi
-# The kernel reports a resolved path, and macOS's /tmp and /var are symlinks.
-[ -z "$dir" ] || dir=$(cd -P "$dir" && pwd)
+	[ "$(git -C "$cwd" rev-parse --is-inside-work-tree 2>/dev/null)" = true ] || return 1
+	# A linked worktree has a git dir of its own; the main checkout's is the
+	# common one, and a server running out of that is one I started myself.
+	git_dir=$(git -C "$cwd" rev-parse --path-format=absolute --git-dir)
+	common=$(git -C "$cwd" rev-parse --path-format=absolute --git-common-dir)
+	[ "$git_dir" != "$common" ] || return 1
+	git -C "$cwd" rev-parse --show-toplevel
+}
 
-cwd_of() {
+# Pids of my processes that listen on TCP. lsof where there is one, which is
+# every Mac; ss on a Linux without it, where it names the pid of own processes.
+listeners() {
+	if command -v lsof >/dev/null; then
+		lsof -nP -a -u "$(id -u)" -iTCP -sTCP:LISTEN -Fp | sed -n 's/^p//p'
+	else
+		ss -Hltnp | grep -o 'pid=[0-9]*' | cut -d= -f2
+	fi | sort -u
+}
+
+cwd_of() { # <pid>
 	readlink "/proc/$1/cwd" 2>/dev/null ||
 		lsof -a -d cwd -p "$1" -Fn 2>/dev/null | sed -n 's/^n//p'
 }
 
-pids=()
-for pid in $(pgrep -f "$pattern" || true); do
+in_scope() { # <cwd of a process>
 	if [ -n "$dir" ]; then
-		case "$(cwd_of "$pid")/" in "$dir"/*) ;; *) continue ;; esac
+		case "$1/" in "$dir"/*) return 0 ;; esac
+	else
+		case "$1" in */.claude/worktrees/*) return 0 ;; esac
 	fi
+	return 1
+}
+
+list=
+[ "${1-}" != --list ] || { list=1; shift; }
+dir=
+case ${1-} in
+--all) ;;
+--hook)
+	# A hook must never be the reason a session fails to close.
+	trap 'exit 0' EXIT
+	dir=$(session_worktree) || exit 0
+	;;
+'' | -*) usage ;;
+*) dir=$1 ;;
+esac
+# Resolved, because that is how the kernel reports a process's cwd, and
+# macOS's /tmp and /var are symlinks.
+[ -z "$dir" ] || dir=$(cd -P "$dir" && pwd)
+
+pids=()
+for pid in $(listeners); do
+	cwd=$(cwd_of "$pid")
+	in_scope "$cwd" || continue
 	pids+=("$pid")
+	echo "$pid  $(ps -o comm= -p "$pid" | sed 's#.*/##')  $cwd"
 done
 [ ${#pids[@]} -gt 0 ] || { echo "no dev server running${dir:+ under $dir}"; exit 0; }
+[ -z "$list" ] || exit 0
 
-# SIGTERM first, so workerd can close its sockets. wrangler itself was seen to
-# sit through it, which is why the second pass exists and is not optional.
+# SIGTERM first, so a server can close what it has open. Then SIGKILL for what
+# is left: wrangler was found sitting through SIGTERM for days.
 kill "${pids[@]}" 2>/dev/null || true
 sleep 2
 forced=0
 for pid in "${pids[@]}"; do
-	if kill -0 "$pid" 2>/dev/null; then
-		kill -9 "$pid" 2>/dev/null || true
-		forced=$((forced + 1))
-	fi
+	if kill -9 "$pid" 2>/dev/null; then forced=$((forced + 1)); fi
 done
-echo "killed ${#pids[@]} dev server processes${dir:+ under $dir} ($forced needed SIGKILL)"
+echo "killed ${#pids[@]}, $forced of them with SIGKILL"
