@@ -509,6 +509,23 @@ claude: ## set the machine-local values the MCP servers read (Azure DevOps org, 
 	echo "$$f: FORGEJO_ACCESS_TOKEN set"
 	@echo "open a new shell, then: claude mcp list | grep -E 'azure-devops|forgejo'"
 
+##@ Development
+#
+# What day-to-day work on any repo needs from this machine, as opposed to
+# setting the machine up.
+#
+# Dev servers an agent started in a worktree and never stopped. They outlive
+# the session, reparent to init and keep holding their port and their memory.
+# The script also runs as a Claude Code SessionEnd hook (--hook), so that a
+# session ending in a worktree takes its own servers with it.
+#
+
+.PHONY: dev-server-kill
+dev-server-kill: ## list the dev servers agents left in worktrees; kill with DIR=<worktree> or ALL=1
+	@# Bare, it only lists: a mistyped DIR= must not turn into "all of them",
+	@# and some of what is listening belongs to a session still at work.
+	@./bin/agents/kill-dev-servers.sh $(if $(DIR),"$(DIR)",$(if $(ALL),--all,--list --all))
+
 ##@ JetBrains IDEs
 #
 # See bin/jetbrains/README.md for why this is a script, not stow
