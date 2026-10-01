@@ -231,7 +231,7 @@ mirror: ## copy every scanner version into my GHCR (CI does this on a bump)
 #
 
 .PHONY: apps apps-test
-apps: ## install Homebrew if missing, then the Brewfile, then the distro's own apps
+apps: ## install Homebrew if missing, then the Brewfile, then the distro's own apps, then audit them
 	@command -v brew >/dev/null \
 		|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 	@# A just-installed brew is not on PATH in *this* shell yet — the installer
@@ -270,6 +270,16 @@ apps: ## install Homebrew if missing, then the Brewfile, then the distro's own a
 	@# is how macOS skips this without a guard.
 	@if [ -f 'os/$(OS)/install-apps.sh' ]; then bash 'os/$(OS)/install-apps.sh'; \
 		else echo "no distro apps for os '$(OS)' - skipped"; fi
+	@# Last, what the machine now has installed, checked for known
+	@# vulnerabilities — so the audit happens every time a machine is set up
+	@# or brought back in line, not only when someone remembers it. Reported,
+	@# not a reason to stop: this target installs, and `make apps stow` on a new
+	@# machine should not halt at a CVE. `make audit` on its own is strict. The
+	@# PATH line is the fresh-machine problem again: brew may not be on it yet.
+	@b=$$(command -v brew \
+		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
+		PATH="$$(dirname "$${b:-/nonexistent/brew}")":"$$PATH" $(MAKE) --no-print-directory audit \
+		|| echo "make apps: the audit above found something or could not look — 'brew upgrade', then 'make audit'"
 
 apps-test: ## parse the Brewfile without installing anything
 	@# The Brewfile is Ruby, and `make apps` is the first thing a new machine
