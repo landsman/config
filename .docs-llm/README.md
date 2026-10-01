@@ -10,5 +10,6 @@ vendor, and so the real `.claude/` at the root stays untracked for whatever the
 tool writes there.
 
 - [MCP Servers](mcp-servers.md)
+- [What of the agent config is tracked](agent-config.md) — `~/.claude`, the global rules, and keeping `settings.json` machine-independent
 - [Local models with ollama](ollama.md) — `make ollama`, and pointing Claude Code or opencode at them
 - [Global rules and skills across harnesses](global-rules-and-skills.md) — one source, read by Claude Code and opencode
