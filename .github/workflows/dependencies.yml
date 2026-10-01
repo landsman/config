@@ -1,0 +1,75 @@
+name: dependencies
+
+# Known vulnerabilities in what a repo depends on, read off its lockfiles —
+# package-lock.json, bun.lock, composer.lock, go.mod and the rest trivy knows.
+# Written once and called by every repo of mine that has one, like semgrep.yml
+# and dockerfile.yml beside it. Named for what it checks rather than for trivy.
+#
+# The gap it closes: semgrep reads the code we wrote, dockerfile.yml reads the
+# base image's OS packages and leaves "the language dependencies inside an
+# image" to the lockfile — and nothing read the lockfile. A CVE in a direct or
+# transitive dependency went unnoticed until someone happened to bump it.
+#
+# A caller runs it on its pull requests and on a schedule of its own. The
+# schedule is the half that matters most: a lockfile nobody touches still
+# collects new advisories, and only a run on an unchanged commit sees them.
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Directory to scan, relative to the repo root. Lockfiles are found anywhere under it.
+        type: string
+        default: .
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    # The caller's code, and nothing else. A scanner reads, it does not write.
+    permissions:
+      contents: read
+    steps:
+      # Checks out the *calling* repository, which is what makes one copy of
+      # this file work for all of them.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # This workflow's own repository, at the commit the caller resolved it
+      # to: the trivy script, the shared image puller, and the Dockerfile that
+      # pins trivy. See semgrep.yml for why it sits beside the caller's code.
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .scan-config
+          persist-credentials: false
+          sparse-checkout: |
+            bin/trivy
+            bin/mirror
+
+      # The vulnerability database, fetched by trivy on every run otherwise.
+      # One key a day: the database is rebuilt every few hours, and a day old
+      # is fresh enough for a check that also runs weekly.
+      - id: day
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ steps.day.outputs.day }}
+          restore-keys: trivy-db-
+
+      # trivy from the mirror, not aquasecurity/trivy-action: its tags were
+      # hijacked in March 2026 (bin/trivy/Dockerfile says more).
+      - name: Scan the lockfiles for known vulnerabilities
+        env:
+          SCAN_PATH: ${{ inputs.path }}
+          TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
+        # The same bar as the image scan: HIGH and up, because below that a red
+        # check is one people learn to merge past. --ignore-unfixed: only what a
+        # bump can fix — no commit turns an unfixable one green, and Dependabot's
+        # alerts still list it. Production dependencies only, trivy's default: a
+        # devDependency never ships, and the alerts cover those too.
+        run: >-
+          .scan-config/bin/trivy/scan.sh .scan-config/bin/trivy/Dockerfile
+          fs --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed
+          --skip-dirs .scan-config --exit-code 1 "$SCAN_PATH"

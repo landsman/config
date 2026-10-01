@@ -1,6 +1,9 @@
-name: semgrep mirror
+name: mirror
 
-# Runs when the mirror's Dockerfile changes on main — which in practice means a
+# Publishes the scanner images, ghcr.io/landsman/<tool>-mirror, one per
+# bin/<tool>/Dockerfile (Makefile, `mirror`).
+#
+# Runs when one of those Dockerfiles changes on main — which in practice means a
 # Dependabot bump was merged. Still deliberate: merging is the decision, and the
 # path filter means no other push here can publish. It used to be dispatch-only
 # with the version typed into a box, and that put the mirror one forgotten step
@@ -11,7 +14,7 @@ name: semgrep mirror
 on:
   push:
     branches: [main]
-    paths: ['bin/semgrep/Dockerfile']
+    paths: ['bin/*/Dockerfile']
   workflow_dispatch:
 
 jobs:
@@ -39,7 +42,7 @@ jobs:
       # of the Dockerfile, which also means there is no `${{ }}` expanded into a
       # run block — the script injection p/ci exists to catch.
       - name: Mirror the image
-        run: make semgrep-mirror
+        run: make mirror
 
       # First push of a new package creates it private, and a private package is
       # useless to the repos that pull it anonymously. GITHUB_TOKEN cannot change
@@ -48,7 +51,9 @@ jobs:
       # The tag itself is not repeated here: `docker push` above already printed
       # it, and a second copy is a second thing to keep true.
       - name: Say what is still manual
+        env:
+          OWNER: ${{ github.repository_owner }}
         run: |
-          echo "if this is the first version ever pushed, set the package to public:"
-          echo "  https://github.com/users/${{ github.repository_owner }}/packages/container/semgrep-mirror/settings"
-          echo "until then other repos fall back to docker hub."
+          echo "a package pushed for the first time is private; set it to public once:"
+          printf '  https://github.com/users/%s/packages/container/%s-mirror/settings\n' "$OWNER" semgrep "$OWNER" trivy
+          echo "until then every scan falls back to the upstream image, by digest."

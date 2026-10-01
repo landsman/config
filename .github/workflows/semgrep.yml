@@ -61,7 +61,8 @@ jobs:
 
       # This workflow's own repository, at the commit the caller resolved it to,
       # beside the caller's checkout: bin/semgrep (the scan script and the
-      # Dockerfile that pins semgrep's version) and, as a cone sparse checkout
+      # Dockerfile that pins semgrep's version), bin/mirror (which pulls the
+      # pinned image) and, as a cone sparse checkout
       # always does, the repo's root files, which EXCLUDES keeps out of the scan.
       # Same commit as this file, so the three never disagree.
       - uses: actions/checkout@v7
@@ -70,7 +71,9 @@ jobs:
           ref: ${{ job.workflow_sha }}
           persist-credentials: false
           path: .semgrep-config
-          sparse-checkout: bin/semgrep
+          sparse-checkout: |
+            bin/semgrep
+            bin/mirror
 
       # Every input arrives as an env var rather than being expanded into the
       # script. A `${{ }}` written straight into a run block is the script

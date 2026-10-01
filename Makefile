@@ -164,13 +164,13 @@ opencode-config-test: ## check the stowed opencode config parses and stays machi
 # deliberately does not.
 #
 
-# Pinned: an unpinned scanner turns someone else's rule release into a red build
-# on an unrelated PR. Read out of the mirror's Dockerfile rather than written
-# here, because that FROM line is the one syntax Dependabot can bump on its own —
-# so the version has exactly one home and this file follows it. Bumping by hand
-# still works, it is just a different file to edit.
-SEMGREP_VERSION = $(shell sed -n 's|^FROM semgrep/semgrep:||p' bin/semgrep/Dockerfile)
-
+# The scanners run from images mirrored into my GHCR, ghcr.io/landsman/<tool>-mirror,
+# one per bin/<tool>/Dockerfile. Pinned: an unpinned scanner turns someone else's
+# release into a red build on an unrelated PR, or worse — trivy's own GitHub
+# Action had its tags hijacked in March 2026. Each version lives on one FROM line,
+# by tag and digest, the one syntax Dependabot bumps on its own; bin/mirror/image.sh
+# reads it back rather than keeping a second copy.
+#
 # One mirror for every repo of mine that scans, rather than one per repo. Docker
 # Hub rate-limits anonymous pulls and CI runners share IPs, so the upstream pull
 # is the part of this that breaks on someone else's bad afternoon.
@@ -179,57 +179,20 @@ SEMGREP_VERSION = $(shell sed -n 's|^FROM semgrep/semgrep:||p' bin/semgrep/Docke
 # shared: any repo pulls it with no login, and no repo needs write access to it.
 # Pushing is the half that does not generalise — a repo's GITHUB_TOKEN can only
 # write to packages under its own owner — so one repo publishes and the rest
-# consume. This is that repo: .github/workflows/semgrep-mirror.yml, which runs
-# when the Dockerfile's version changes on main.
-SEMGREP_MIRROR   = ghcr.io/landsman/semgrep-mirror:$(SEMGREP_VERSION)
-SEMGREP_UPSTREAM = semgrep/semgrep:$(SEMGREP_VERSION)
+# consume. This is that repo: .github/workflows/mirror.yml, which runs when a
+# FROM line changes on main.
+MIRRORED = semgrep trivy
+SEMGREP_SKIP = yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
 
-# Pushed alongside the version tag, for a repo whose own Makefile pulls the
-# mirror by name rather than through the shared workflow. `latest` there does
-# not mean "whatever semgrep released" — it means "whatever this repo last
-# merged", which is a version Dependabot proposed, a cooldown aged, and I
-# approved. The shared workflow (bin/semgrep/scan.sh) and this repo's own
-# `make security` pull the version tag instead: it is what makes a scan
-# reproducible from its log, and a tag a cache can key on.
-SEMGREP_LATEST   = ghcr.io/landsman/semgrep-mirror:latest
-
-.PHONY: security semgrep-mirror
+.PHONY: security mirror
 security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
 	@# Docker rather than an install, because semgrep is a python toolchain and
-	@# this repo installs nothing on a laptop it is not asked to.
+	@# this repo installs nothing on a laptop it is not asked to. The same script
+	@# the shared semgrep workflow runs, so a laptop and CI agree; it falls back
+	@# to the upstream image, by digest, until a bump is mirrored.
 	@docker info >/dev/null 2>&1 || { echo "semgrep skipped (docker not running)"; exit 0; }; \
-	img='$(SEMGREP_MIRROR)'; \
-	docker image inspect "$$img" >/dev/null 2>&1 || docker pull -q "$$img" >/dev/null 2>&1 || { \
-		echo "no $(SEMGREP_VERSION) in the mirror yet - using docker hub (run: make semgrep-mirror)"; \
-		img='$(SEMGREP_UPSTREAM)'; }; \
-	docker run --rm -v "$$PWD:/src" -w /src "$$img" semgrep \
-		--config=p/secrets --config=p/ci --metrics=off --error \
-		--exclude-rule=yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
-	@# Falling back to Hub rather than failing: a version bump that lands before
-	@# its mirror should cost a slow run, not a red one.
-
-semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
-	@# Normally reached by the semgrep-mirror workflow, which runs itself when the
-	@# Dockerfile's FROM changes on main and logs in with the repo's own CI token.
-	@# Runnable here too, after a `docker login ghcr.io` with a PAT that has
-	@# write:packages. To mirror a different version, edit the FROM line — there
-	@# is no override, because a version passed on the command line is a version
-	@# no file records, which is what put this repo one forgotten step away from
-	@# a stale mirror in the first place.
-	@# The first push creates the package as *private*; make it public once, in
-	@# the package settings, or the other repos cannot pull it anonymously.
-	@# Built rather than tagged, because a tag cannot rewrite labels and the
-	@# labels are the point — upstream's image.source names semgrep's own repo,
-	@# which is what GitHub reads to decide where a package belongs. Nothing is
-	@# added to the image; see the Dockerfile. bin/semgrep is the build context
-	@# because there is nothing to copy in and a context still gets uploaded.
-	docker build --pull -t $(SEMGREP_MIRROR) -t $(SEMGREP_LATEST) \
-		-f bin/semgrep/Dockerfile bin/semgrep
-	@# Both, explicitly, rather than `docker push --all-tags`: that pushes every
-	@# tag of this image the local daemon happens to hold, which on a laptop that
-	@# has mirrored before is older versions nobody asked to republish.
-	docker push $(SEMGREP_MIRROR)
-	docker push $(SEMGREP_LATEST)
+	BASE_PACKS="p/secrets p/ci" BASE_EXCLUDE_RULES=$(SEMGREP_SKIP) SCAN_PATH=. \
+		bin/semgrep/scan.sh scan bin/semgrep/Dockerfile
 	@# That one rule wants every action pinned to a 40-character SHA. Actions are
 	@# referenced by major tag here instead — see AGENTS.md — so the rule would
 	@# fail every run for a deliberate decision, and a check that is red on
@@ -240,6 +203,18 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 	@# file is public the moment it is pushed. p/ci reads .github/workflows.
 	@# There is no bash or shell pack in the registry (p/bash and p/shell both
 	@# 404), so `make lint` remains what checks the scripts themselves.
+
+mirror: ## copy every scanner version into my GHCR (CI does this on a bump)
+	@# Normally reached by the mirror workflow, which runs itself when a FROM
+	@# line changes on main and logs in with the repo's own CI token. Runnable
+	@# here too, after a `docker login ghcr.io` with a PAT that has
+	@# write:packages. To mirror a different version, edit the FROM line — there
+	@# is no override, because a version passed on the command line is a version
+	@# no file records. Every tool, every time: republishing an unchanged one
+	@# is harmless, and deciding which one changed is logic with nothing to gain.
+	@# A first push creates the package *private*; make it public once, in the
+	@# package settings, or the other repos cannot pull it anonymously.
+	@for t in $(MIRRORED); do bin/mirror/image.sh publish "$$t" || exit 1; done
 
 ##@ Apps and packages
 #
