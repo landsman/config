@@ -55,6 +55,19 @@ jobs:
       # this file work for all of them.
       - uses: actions/checkout@v7
 
+      # This workflow's own repository, at the commit the caller resolved it to,
+      # beside the caller's checkout: the scan script and the Dockerfile that pins
+      # semgrep's version. Same commit as this file, so the three never disagree.
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .semgrep-config
+          sparse-checkout: |
+            bin/semgrep/scan.sh
+            .github/semgrep-mirror.Dockerfile
+          sparse-checkout-cone-mode: false
+
       # Every input arrives as an env var rather than being expanded into the
       # script. A `${{ }}` written straight into a run block is the script
       # injection p/ci exists to catch, and these are strings someone else's
@@ -81,34 +94,7 @@ jobs:
           BASE_EXCLUDE_RULES: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
           PACKS: ${{ inputs.packs }}
           SCAN_PATH: ${{ inputs.path }}
-          EXCLUDES: ${{ inputs.exclude }}
+          # .semgrep-config is this repo's code, not the caller's.
+          EXCLUDES: .semgrep-config ${{ inputs.exclude }}
           EXCLUDE_RULES: ${{ inputs.exclude-rules }}
-        run: |
-          set -euo pipefail
-          args=()
-          # Baseline first, caller second. A pack named twice costs nothing —
-          # semgrep loads it once and reports each finding once.
-          for p in $BASE_PACKS $PACKS; do args+=(--config="$p"); done
-          for e in $EXCLUDES; do args+=(--exclude="$e"); done
-          for r in $BASE_EXCLUDE_RULES $EXCLUDE_RULES; do args+=(--exclude-rule="$r"); done
-          test -d "$SCAN_PATH" || { echo "path not in this repo: $SCAN_PATH"; exit 1; }
-          # .github/ sits at the repo root, so a caller scanning one directory of a
-          # monorepo would never reach the files p/ci is here for. Scan it too, and
-          # accept that four callers in one monorepo each report the same root-level
-          # finding — four red checks with one cause reads fine, a silent gap does not.
-          targets=("$SCAN_PATH")
-          [ "$SCAN_PATH" = . ] || [ ! -d .github ] || targets+=(.github)
-          # --error turns findings into a failed job; without it semgrep reports
-          # and exits 0, which is a check that cannot fail.
-          # A version, not `latest`: a scan's log then says which semgrep ran, and a
-          # tag that only moves with a bump is one a cache can key on. Read from
-          # the mirror's Dockerfile on main — the one place the version lives and
-          # the line Dependabot bumps — so this file never needs a second edit.
-          # Right after a bump the mirror can lack the new tag for a minute;
-          # Docker Hub stands in, as it does for `make security`.
-          version=$(curl -fsSL https://raw.githubusercontent.com/landsman/config/main/.github/semgrep-mirror.Dockerfile | sed -n 's|^FROM semgrep/semgrep:||p')
-          test -n "$version" || { echo "no FROM semgrep/semgrep:<version> in the mirror's Dockerfile"; exit 1; }
-          image=ghcr.io/landsman/semgrep-mirror:$version
-          docker pull -q "$image" || { echo "$image not mirrored yet - using docker hub"; image=semgrep/semgrep:$version; }
-          docker run --rm -v "$PWD:/src" -w /src "$image" \
-            semgrep "${args[@]}" --metrics=off --error "${targets[@]}"
+        run: .semgrep-config/bin/semgrep/scan.sh scan .semgrep-config/.github/semgrep-mirror.Dockerfile
