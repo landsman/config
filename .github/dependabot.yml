@@ -25,6 +25,10 @@ updates:
     # for a bad release to be yanked before it is my problem.
     cooldown:
       default-days: 7
+    # `deps: bump ...`, this account's convention, instead of Dependabot's own
+    # `build(deps):`. The PR title becomes the commit subject on a squash-merge.
+    commit-message:
+      prefix: deps
 
   # The workflows themselves. Actions are referenced by major tag here on purpose
   # (see AGENTS.md), and Dependabot respects that — it moves v7 to v8, it does not
@@ -35,3 +39,5 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    commit-message:
+      prefix: deps
