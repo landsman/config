@@ -63,9 +63,9 @@ jobs:
       # Docker is already on the runner and the image is public, so there is
       # nothing to install and no login. It is the mirror rather than Docker
       # Hub because Hub rate-limits anonymous pulls on the shared IPs runners
-      # come from, and `latest` there means the version landsman/config last
-      # merged — Dependabot proposed it, a week of cooldown aged it, and it was
-      # approved — not whatever semgrep shipped this morning.
+      # come from. Its version is the one landsman/config last merged —
+      # Dependabot proposed it, a week of cooldown aged it, and it was approved —
+      # not whatever semgrep shipped this morning.
       - name: Scan
         env:
           # Every caller gets these on top of its own, so no repo configures them
@@ -100,6 +100,15 @@ jobs:
           [ "$SCAN_PATH" = . ] || [ ! -d .github ] || targets+=(.github)
           # --error turns findings into a failed job; without it semgrep reports
           # and exits 0, which is a check that cannot fail.
-          docker run --rm -v "$PWD:/src" -w /src \
-            ghcr.io/landsman/semgrep-mirror:latest \
+          # A version, not `latest`: a scan's log then says which semgrep ran, and a
+          # tag that only moves with a bump is one a cache can key on. Read from
+          # the mirror's Dockerfile on main — the one place the version lives and
+          # the line Dependabot bumps — so this file never needs a second edit.
+          # Right after a bump the mirror can lack the new tag for a minute;
+          # Docker Hub stands in, as it does for `make security`.
+          version=$(curl -fsSL https://raw.githubusercontent.com/landsman/config/main/.github/semgrep-mirror.Dockerfile | sed -n 's|^FROM semgrep/semgrep:||p')
+          test -n "$version" || { echo "no FROM semgrep/semgrep:<version> in the mirror's Dockerfile"; exit 1; }
+          image=ghcr.io/landsman/semgrep-mirror:$version
+          docker pull -q "$image" || { echo "$image not mirrored yet - using docker hub"; image=semgrep/semgrep:$version; }
+          docker run --rm -v "$PWD:/src" -w /src "$image" \
             semgrep "${args[@]}" --metrics=off --error "${targets[@]}"
