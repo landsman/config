@@ -3,8 +3,8 @@
 #
 #   check.sh                  every source, at or above SEVERITY (default high)
 #   check.sh brew-findings [outdated.json]
-#                             read `brew vulns --json` on stdin, one line per formula;
-#                             with `brew outdated --json=v2`, say whether brew can fix it
+#                             read `brew vulns --json` on stdin, print its findings;
+#                             with `brew outdated --json=v2`, say whether brew can fix them
 #
 # Exit 0: every source was checked and found nothing. Exit 1: a finding, a
 # source whose answer could not be read or that said it was incomplete, or no
@@ -17,6 +17,9 @@
 # this machine is skipped and says so. Adding one is a function and a line in
 # main. A repo's lockfiles are not here — the shared dependencies workflow
 # reads those in CI. This is what a laptop actually runs.
+#
+# Colour only on a terminal, and never with NO_COLOR set (no-color.org);
+# FORCE_COLOR turns it on anywhere. Piped or logged, the output is plain text.
 set -euo pipefail
 
 severity=${SEVERITY:-high}
@@ -27,13 +30,20 @@ cleanup() { [ -z "$work" ] || rm -rf "$work"; }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
+if [ -n "${FORCE_COLOR:-}" ] || { [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-dumb}" != dumb ]; }; then
+  bold=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' green=$'\e[32m' yellow=$'\e[33m' magenta=$'\e[35m' off=$'\e[0m'
+else
+  bold='' dim='' red='' green='' yellow='' magenta='' off=''
+fi
+
 # Printed text that came from somewhere else — advisory ids from OSV, formula
 # names from taps, brew's own error messages quoting both — has every control
 # character and every invisible or direction-changing one replaced with '?':
 # C0, DEL, C1 (an 8-bit CSI is an escape too), zero-width characters, the bidi
 # embeddings and isolates, and the byte-order mark. A terminal escape in one
 # could rewrite the lines around it; a direction override could make a finding
-# read as something else.
+# read as something else. That also keeps tabs out, which the records below
+# are separated by.
 clean_def='def clean: tostring | explode | map(
   if . < 32 or (. >= 127 and . <= 159) or (. >= 8203 and . <= 8207)
      or (. >= 8234 and . <= 8238) or (. >= 8294 and . <= 8297) or . == 65279
@@ -56,6 +66,10 @@ clean_def='def clean: tostring | explode | map(
 # fix in Homebrew yet, so it waits for one or gets patched outside brew. An
 # entry it cannot use is ignored, a missing or unreadable file means no hint,
 # and neither ever changes the verdict.
+#
+# Output is records, one per line, tab-separated, for render_brew to lay out:
+#   F <formula> <version> <upgrade|pinned|none|unknown> <newer version>
+#   V <id> <severity>         one per open vulnerability of the F above it
 brew_findings() {
   local outdated=${1:-/dev/null}
   jq -e . "$outdated" >/dev/null 2>&1 || outdated=/dev/null
@@ -68,17 +82,18 @@ brew_findings() {
               | {key: (.name | split("/") | last), value: .})
         | from_entries) as $newer
     | def fix: $newer[.formula | tostring] as $n
-        | if $n == null then (if $known then " — newest in Homebrew, no fix there yet" else "" end)
-          elif $n.pinned == true then " — pinned, brew holds back \($n.current_version | clean)"
-          else " → brew upgrade to \($n.current_version | clean)"
+        | if $n == null then (if $known then ["none", ""] else ["unknown", ""] end)
+          elif $n.pinned == true then ["pinned", ($n.current_version | clean)]
+          else ["upgrade", ($n.current_version | clean)]
           end;
     if length == 1 and (.[0] | type) == "object" and (.[0].findings | type) == "array"
        and all(.[0].findings[]; type == "object" and (.vulnerabilities | type) == "array")
     then .[0].findings[]
       | [.vulnerabilities[] | (.severity | rank) as $r | select($r == 0 or $r >= $floor)
-          | "\(.id | clean) \(if $r == 0 then "UNSCORED" else (.severity | clean) end)"] as $open
+          | ["V", (.id | clean), (if $r == 0 then "UNSCORED" else (.severity | clean | ascii_upcase) end)]] as $open
       | select($open | length > 0)
-      | "\(.formula | clean) \(.version | clean)\(fix): \($open | join(", "))"
+      | (["F", (.formula | clean), (.version | clean)] + fix), $open[]
+      | join("\t")
     else error("not the shape of brew vulns --json")
     end' 2>/dev/null
 }
@@ -89,6 +104,48 @@ brew_findings() {
 brew_open_count() { jq -r '[.findings[] | select(.vulnerabilities | length > 0)] | length'; }
 brew_skipped() {
   jq -r "$clean_def"'.skipped_formulae // [] | if type == "array" then .[] | clean else empty end'
+}
+
+sev_colour() {
+  case $1 in
+    CRITICAL) printf '%s' "$bold$red" ;;
+    HIGH) printf '%s' "$red" ;;
+    MEDIUM) printf '%s' "$yellow" ;;
+    UNSCORED) printf '%s' "$magenta" ;;
+    *) printf '%s' "$dim" ;;
+  esac
+}
+
+# The records from brew_findings, laid out: each formula on a line of its own
+# with what fixes it, its vulnerabilities under it with the severity aligned.
+render_brew() {
+  local records=$1 kind name ver fix newer id sev width=0 head n=0
+  while IFS=$'\t' read -r kind name ver _; do
+    [ "$kind" = F ] || continue
+    n=$((n + 1)); head="$name $ver"; [ ${#head} -le "$width" ] || width=${#head}
+  done <<<"$records"
+  echo "  ${bold}vulnerable ($n)${off}"
+  while IFS=$'\t' read -r kind name ver fix newer; do
+    if [ "$kind" = F ]; then
+      case $fix in
+        upgrade) fix="${green}brew upgrade → $newer${off}" ;;
+        pinned) fix="${yellow}pinned — brew holds back $newer${off}" ;;
+        none) fix="${yellow}no fix in Homebrew yet${off}" ;;
+        *) fix="" ;;
+      esac
+      printf "    ${bold}%-${width}s${off}  %s\n" "$name $ver" "$fix"
+    else
+      id=$name sev=$ver
+      printf '      %-20s %s%s%s\n' "$id" "$(sev_colour "$sev")" "$sev" "$off"
+    fi
+  done <<<"$records"
+}
+
+# The formulae brew skipped, last and dimmed: worth knowing, not the news.
+show_skipped() {
+  [ -n "$1" ] || return 0
+  echo "  ${dim}not checked ($(wc -w <<<"$1" | tr -d ' ')) — brew cannot trace their source:${off}"
+  fold -s -w 72 <<<"$1" | sed "s/^/    $dim/;s/ *\$/$off/"
 }
 
 # Homebrew 7's own scanner over every installed formula it can trace to a
@@ -103,33 +160,37 @@ brew_skipped() {
 # in a condition, where set -e does not reach inside, so every step that can
 # fail is checked by hand.
 check_brew() {
-  command -v brew >/dev/null || { echo "homebrew: not installed, skipped"; return 3; }
-  brew vulns --help >/dev/null 2>&1 || { echo "homebrew: no 'brew vulns' (needs Homebrew 7), skipped"; return 3; }
-  command -v jq >/dev/null || { echo "homebrew: needs jq to read 'brew vulns', not checked"; return 1; }
-  local json lines line rc=0 skipped
+  echo "${bold}homebrew${off}"
+  command -v brew >/dev/null || { echo "  ${dim}not installed — skipped${off}"; return 3; }
+  brew vulns --help >/dev/null 2>&1 || { echo "  ${dim}no 'brew vulns' (needs Homebrew 7) — skipped${off}"; return 3; }
+  command -v jq >/dev/null || { echo "  ${red}✗ needs jq to read 'brew vulns' — not checked${off}"; return 1; }
+  local json records rc=0 skipped
   json=$(brew vulns --json 2>"$work/err") || rc=$?
-  jq -R -r "$clean_def"'clean | "homebrew: brew says: \(.)"' <"$work/err" || true
+  jq -R -r "$clean_def"'clean | "  brew says: \(.)"' <"$work/err" | sed "s/^/$dim/;s/\$/$off/" || true
   brew outdated --json=v2 --formula >"$work/outdated" 2>/dev/null || true
 
-  if ! lines=$(brew_findings "$work/outdated" <<<"$json"); then
-    echo "homebrew: could not read what 'brew vulns' answered — not checked"
+  if ! records=$(brew_findings "$work/outdated" <<<"$json"); then
+    echo "  ${red}✗ could not read what 'brew vulns' answered — not checked${off}"
     return 1
   fi
   skipped=$(brew_skipped <<<"$json" | paste -sd ' ' - || true)
-  [ -z "$skipped" ] || echo "homebrew: not checked, no source brew can trace ($(wc -w <<<"$skipped" | tr -d ' ')): $skipped"
 
-  if [ -n "$lines" ]; then
-    echo "homebrew: vulnerable formulae:"
-    while IFS= read -r line; do echo "  $line"; done <<<"$lines"
-    echo "homebrew: 'brew upgrade' the ones it can, then run this again. A formula that is"
-    echo "  newest in Homebrew has no fix there yet: wait for one, or patch or replace it outside brew."
+  if [ -n "$records" ]; then
+    render_brew "$records"
+    show_skipped "$skipped"
+    echo "  ${bold}next${off}"
+    grep -q $'\tupgrade\t' <<<"$records" && echo "    'brew upgrade', then run this again"
+    grep -q $'\tpinned\t' <<<"$records" && echo "    'brew unpin' what is pinned, or accept the risk"
+    grep -q $'\tnone\t' <<<"$records" && echo "    no fix in Homebrew yet: wait for one, or patch or replace it outside brew"
+    echo "  ${red}✗ vulnerable formulae at $severity or above${off}"
     return 1
   fi
+  show_skipped "$skipped"
   if [ "$rc" != 0 ] && [ "$(brew_open_count <<<"$json")" = 0 ]; then
-    echo "homebrew: 'brew vulns' found nothing but exited $rc — it says its answer is incomplete (see above), not checked"
+    echo "  ${red}✗ 'brew vulns' found nothing but exited $rc — it says its answer is incomplete (see above), not checked${off}"
     return 1
   fi
-  echo "homebrew: nothing at $severity or above"
+  echo "  ${green}✓ nothing at $severity or above${off}"
   return 0
 }
 
@@ -144,7 +205,7 @@ main() {
   rc=0; check_brew || rc=$?
   case $rc in 0) checked=$((checked + 1)) ;; 3) ;; *) checked=$((checked + 1)); failed=1 ;; esac
   if [ "$checked" -eq 0 ]; then
-    echo "no source of installed software could be checked on this machine"
+    echo "${red}✗ no source of installed software could be checked on this machine${off}"
     return 1
   fi
   return "$failed"
