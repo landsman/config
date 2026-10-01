@@ -18,9 +18,13 @@ Two halves, because one finds and the other fixes.
 ## On this machine
 
 The two halves above read a repository. What a laptop actually runs is
-checked by `make vulns` — `bin/vulns/check.sh`, one function per source of
+checked by `make audit` — `bin/audit/check.sh`, one function per source of
 installed software, a source whose tool is missing skipped with a note. It
-exits 1 when anything at `SEVERITY` (default `high`) or above turns up.
+fails when anything at `SEVERITY` (default `high`) or above turns up, and
+**fails closed**: an answer it cannot read — no network, a rate limit, a
+changed output format — or a machine where no source could be checked is a
+failure, never a pass. The script itself exits 1 for those and 2 for a usage
+error; through `make` both are make's own 2.
 
 Today the one source is Homebrew: `brew vulns` (Homebrew 7 and later) over
 every installed formula, dependencies included — trivy has no Homebrew support.
