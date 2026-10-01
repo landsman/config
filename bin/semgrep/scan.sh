@@ -22,6 +22,9 @@ version() {
 
 args() {
   local p e r
+  # Split the lists on spaces, but never glob them: an exclude of '*.lock'
+  # has to reach semgrep as written, not as the lock files in this directory.
+  set -f
   # Baseline first, caller second. A pack named twice costs nothing — semgrep
   # loads it once and reports each finding once.
   for p in ${BASE_PACKS:-} ${PACKS:-}; do echo "--config=$p"; done

@@ -184,13 +184,13 @@ SEMGREP_VERSION = $(shell sed -n 's|^FROM semgrep/semgrep:||p' .github/semgrep-m
 SEMGREP_MIRROR   = ghcr.io/landsman/semgrep-mirror:$(SEMGREP_VERSION)
 SEMGREP_UPSTREAM = semgrep/semgrep:$(SEMGREP_VERSION)
 
-# Pushed alongside the version tag, and it is what the consuming repos actually
-# pull. `latest` there does not mean "whatever semgrep released" — it means
-# "whatever this repo last merged", which is a version Dependabot proposed, a
-# cooldown aged, and I approved. That keeps the deliberate bump in one place
-# instead of one per repo, each drifting behind it at its own pace.
-# The version tag stays too: it is what makes an old scan reproducible, and what
-# this repo's own `make security` pins itself to.
+# Pushed alongside the version tag, for a repo whose own Makefile pulls the
+# mirror by name rather than through the shared workflow. `latest` there does
+# not mean "whatever semgrep released" — it means "whatever this repo last
+# merged", which is a version Dependabot proposed, a cooldown aged, and I
+# approved. The shared workflow (bin/semgrep/scan.sh) and this repo's own
+# `make security` pull the version tag instead: it is what makes a scan
+# reproducible from its log, and a tag a cache can key on.
 SEMGREP_LATEST   = ghcr.io/landsman/semgrep-mirror:latest
 
 .PHONY: security semgrep-mirror

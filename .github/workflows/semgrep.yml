@@ -53,7 +53,11 @@ jobs:
     steps:
       # Checks out the *calling* repository, which is what makes one copy of
       # this file work for all of them.
+      # No token left in .git/config: the whole workspace is mounted into the
+      # scanner's container, and nothing here pushes.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # This workflow's own repository, at the commit the caller resolved it to,
       # beside the caller's checkout: the scan script and the Dockerfile that pins
@@ -62,6 +66,7 @@ jobs:
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
+          persist-credentials: false
           path: .semgrep-config
           sparse-checkout: |
             bin/semgrep/scan.sh
