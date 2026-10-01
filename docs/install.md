@@ -21,6 +21,10 @@ make chrome      # Chrome's non-syncing toggles — quit Chrome first
   there is one package list instead of a Brewfile here and an apt list there;
   anything a distro does better stays with the distro behind `if OS.mac?`, and
   `os/<os-id>/install-apps.sh` picks up the GUI half that has no cask.
+- **`make apps` ends with `make audit`** — what it just installed, checked for
+  known vulnerabilities. It reports and carries on, so a CVE does not stop a
+  new machine halfway; `make audit` on its own fails on one. `make apps` does
+  not upgrade (`--no-upgrade`), so the fix it points to is `brew upgrade`.
 - **New shell before `make stow`** — a just-installed brew is not on `PATH` yet:
   open a terminal, or `eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"`
   (macOS: `/opt/homebrew/bin/brew`).
