@@ -60,8 +60,10 @@ jobs:
           persist-credentials: false
 
       # This workflow's own repository, at the commit the caller resolved it to,
-      # beside the caller's checkout: the scan script and the Dockerfile that pins
-      # semgrep's version. Same commit as this file, so the three never disagree.
+      # beside the caller's checkout: bin/semgrep (the scan script and the
+      # Dockerfile that pins semgrep's version) and, as a cone sparse checkout
+      # always does, the repo's root files, which EXCLUDES keeps out of the scan.
+      # Same commit as this file, so the three never disagree.
       - uses: actions/checkout@v7
         with:
           repository: ${{ job.workflow_repository }}

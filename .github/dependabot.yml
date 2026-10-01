@@ -3,11 +3,14 @@ version: 2
 updates:
   # Watches the FROM line in bin/semgrep/Dockerfile, which is the only place
   # this repo records which semgrep to mirror. `directory` is the folder the
-  # Dockerfile sits in, not the file. The file is named exactly `Dockerfile`:
-  # as .github/semgrep-mirror.Dockerfile it was found and its update computed,
-  # but GitHub refused to open the pull request — "The request contains invalid
-  # or unauthorized changes" (dependabot/dependabot-core#11320) — so no bump
-  # ever arrived, and the mirror sat at 1.172.0 while semgrep moved on.
+  # Dockerfile sits in, not the file.
+  #
+  # Not under .github/: only the github-actions ecosystem may write there. At
+  # .github/semgrep-mirror.Dockerfile the update was found and computed, then
+  # GitHub refused the pull request — "The request contains invalid or
+  # unauthorized changes" (dependabot/dependabot-core#15237) — so no bump ever
+  # arrived, and the mirror sat at 1.172.0 while semgrep moved on. The name is
+  # not the problem; a prefix.Dockerfile works anywhere else.
   #
   # Merging what it opens is the whole trigger: the mirror workflow watches that
   # same path on main and publishes the new tag by itself.
