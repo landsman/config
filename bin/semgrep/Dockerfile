@@ -13,7 +13,7 @@
 # so a `${` makes it skip the line without a word. A literal tag is the one form
 # it does read, so this line is what it opens pull requests against, and the
 # Makefile reads the version back out of it rather than keeping a second copy.
-FROM semgrep/semgrep:1.172.0
+FROM semgrep/semgrep:1.177.0
 
 LABEL org.opencontainers.image.source=https://github.com/landsman/config
 LABEL org.opencontainers.image.description="Unmodified mirror of semgrep/semgrep, relabelled so it links back to landsman/config. Every repo of mine that runs `make security` pulls the scanner from here instead of Docker Hub, which rate-limits anonymous pulls on the shared IPs CI runners use. Published by the semgrep-mirror workflow in landsman/config, one tag per version bump. Not a fork: to see what is in it, read semgrep's own docs for the version in the tag."
