@@ -1,0 +1,57 @@
+name: dependencies
+
+# Known vulnerabilities in what a repo depends on, read off its lockfiles —
+# package-lock.json, bun.lock, composer.lock, go.mod and the rest trivy knows.
+# Written once and called by every repo of mine that has one, like semgrep.yml
+# and dockerfile.yml beside it. Named for what it checks rather than for trivy.
+#
+# The gap it closes: semgrep reads the code we wrote, dockerfile.yml reads the
+# base image's OS packages and leaves "the language dependencies inside an
+# image" to the lockfile — and nothing read the lockfile. A CVE in a direct or
+# transitive dependency went unnoticed until someone happened to bump it.
+#
+# A caller runs it on its pull requests and on a schedule of its own. The
+# schedule is the half that matters most: a lockfile nobody touches still
+# collects new advisories, and only a run on an unchanged commit sees them.
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Directory to scan, relative to the repo root. Lockfiles are found anywhere under it.
+        type: string
+        default: .
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    # The caller's code, and nothing else. A scanner reads, it does not write.
+    permissions:
+      contents: read
+    steps:
+      # Checks out the *calling* repository, which is what makes one copy of
+      # this file work for all of them.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # trivy-action is 0.x, so v0.36.0 is the major tag; see dockerfile.yml.
+      - name: Scan the lockfiles for known vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
+        with:
+          version: v0.74.0   # see dockerfile.yml: the action's default lags
+          scan-type: fs
+          scan-ref: ${{ inputs.path }}
+          scanners: vuln
+          # The same bar as the image scan. Below HIGH a red check is one people
+          # learn to merge past.
+          severity: CRITICAL,HIGH
+          # Only what a bump can fix. A vulnerability with no fixed version has
+          # no commit that turns this green, so failing on it only teaches the
+          # check to be ignored; Dependabot's alerts still list it.
+          ignore-unfixed: true
+          # Production dependencies only, trivy's default: a devDependency runs
+          # on a laptop or a runner, never in what ships. Dependabot's alerts
+          # cover those.
+          exit-code: '1'
