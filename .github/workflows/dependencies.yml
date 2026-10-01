@@ -34,24 +34,42 @@ jobs:
         with:
           persist-credentials: false
 
-      # trivy-action is 0.x, so v0.36.0 is the major tag; see dockerfile.yml.
-      - name: Scan the lockfiles for known vulnerabilities
-        uses: aquasecurity/trivy-action@v0.36.0
-        env:
-          TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
+      # This workflow's own repository, at the commit the caller resolved it
+      # to: the trivy script, the shared image puller, and the Dockerfile that
+      # pins trivy. See semgrep.yml for why it sits beside the caller's code.
+      - uses: actions/checkout@v7
         with:
-          version: v0.74.0   # see dockerfile.yml: the action's default lags
-          scan-type: fs
-          scan-ref: ${{ inputs.path }}
-          scanners: vuln
-          # The same bar as the image scan. Below HIGH a red check is one people
-          # learn to merge past.
-          severity: CRITICAL,HIGH
-          # Only what a bump can fix. A vulnerability with no fixed version has
-          # no commit that turns this green, so failing on it only teaches the
-          # check to be ignored; Dependabot's alerts still list it.
-          ignore-unfixed: true
-          # Production dependencies only, trivy's default: a devDependency runs
-          # on a laptop or a runner, never in what ships. Dependabot's alerts
-          # cover those.
-          exit-code: '1'
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .scan-config
+          persist-credentials: false
+          sparse-checkout: |
+            bin/trivy
+            bin/mirror
+
+      # The vulnerability database, fetched by trivy on every run otherwise.
+      # One key a day: the database is rebuilt every few hours, and a day old
+      # is fresh enough for a check that also runs weekly.
+      - id: day
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ steps.day.outputs.day }}
+          restore-keys: trivy-db-
+
+      # trivy from the mirror, not aquasecurity/trivy-action: its tags were
+      # hijacked in March 2026 (bin/trivy/Dockerfile says more).
+      - name: Scan the lockfiles for known vulnerabilities
+        env:
+          SCAN_PATH: ${{ inputs.path }}
+          TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
+        # The same bar as the image scan: HIGH and up, because below that a red
+        # check is one people learn to merge past. --ignore-unfixed: only what a
+        # bump can fix — no commit turns an unfixable one green, and Dependabot's
+        # alerts still list it. Production dependencies only, trivy's default: a
+        # devDependency never ships, and the alerts cover those too.
+        run: >-
+          .scan-config/bin/trivy/scan.sh .scan-config/bin/trivy/Dockerfile
+          fs --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed
+          --skip-dirs .scan-config --exit-code 1 "$SCAN_PATH"

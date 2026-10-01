@@ -100,6 +100,30 @@ jobs:
       # Checks out the *calling* repository, which is what makes one copy of
       # this file work for all of them.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # This workflow's own repository, at the commit the caller resolved it
+      # to: the trivy script, the shared image puller, and the Dockerfile that
+      # pins trivy. See semgrep.yml for why it sits beside the caller's code.
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .scan-config
+          persist-credentials: false
+          sparse-checkout: |
+            bin/trivy
+            bin/mirror
+
+      # trivy's vulnerability database, one key a day; see dependencies.yml.
+      - id: day
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/trivy
+          key: trivy-db-${{ steps.day.outputs.day }}
+          restore-keys: trivy-db-
 
       # The inputs arrive as env vars rather than expanded into the script. A
       # `${{ }}` written straight into a run block is the script injection p/ci
@@ -134,29 +158,22 @@ jobs:
           if [ "$IMAGE" = scratch ]; then IMAGE=''; fi
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
-      # trivy-action is 0.x, so v0.36.0 *is* the major tag AGENTS.md asks for —
-      # there is no moving v0 to follow. Dependabot bumps it here, once, and
-      # every caller gets the new one on its next run.
+      # trivy from the mirror, not aquasecurity/trivy-action: its tags were
+      # hijacked in March 2026 (bin/trivy/Dockerfile says more). The version is
+      # that Dockerfile's FROM line, which Dependabot bumps.
       - name: Scan the Dockerfile for misconfiguration
-        uses: aquasecurity/trivy-action@v0.36.0
         env:
-          # An env var rather than an action input, because there is none for it,
-          # and unset is the same as empty here — a caller that passes nothing
-          # gets today's behaviour with no ignore file read at all.
+          DOCKERFILE: ${{ inputs.dockerfile }}
+          # Read by trivy itself; unset is the same as empty here — a caller
+          # that passes nothing gets no ignore file read at all.
           TRIVY_IGNOREFILE: ${{ inputs.ignorefile }}
-        with:
-          # The action defaults to trivy v0.70.0 and v0.74.0 is out. The binary
-          # version is an input, not the action tag, so the Dependabot bump above
-          # does not carry it. Drop this line when the default catches up.
-          version: v0.74.0
-          scan-type: config
-          scan-ref: ${{ inputs.dockerfile }}
-          # CRITICAL,HIGH on both scans, and the same list on purpose: below that
-          # trivy's Dockerfile checks are style — no HEALTHCHECK, no explicit tag
-          # on a COPY --from — and a check that goes red on style is a check
-          # people learn to merge past.
-          severity: CRITICAL,HIGH
-          exit-code: '1'
+        # CRITICAL,HIGH on both scans, and the same list on purpose: below that
+        # trivy's Dockerfile checks are style — no HEALTHCHECK, no explicit tag
+        # on a COPY --from — and a check that goes red on style is a check
+        # people learn to merge past.
+        run: >-
+          .scan-config/bin/trivy/scan.sh .scan-config/bin/trivy/Dockerfile
+          config --severity CRITICAL,HIGH --exit-code 1 "$DOCKERFILE"
 
       # The built image, when the caller opts in. docker build, not an action —
       # one fewer version to keep in step. BuildKit is the runner default, so
@@ -200,17 +217,17 @@ jobs:
       - name: Scan the image for known vulnerabilities
         # The built image when build is on, the FROM's registry copy otherwise.
         if: inputs.build || steps.base.outputs.image != ''
-        uses: aquasecurity/trivy-action@v0.36.0
         env:
+          IMAGE: ${{ inputs.build && steps.built.outputs.image || steps.base.outputs.image }}
           TRIVY_QUIET: 'true'   # the progress bar is noise in a log nobody watches live
-        with:
-          version: v0.74.0   # see the config scan above
-          scan-type: image
-          image-ref: ${{ inputs.build && steps.built.outputs.image || steps.base.outputs.image }}
-          severity: CRITICAL,HIGH
-          # OS packages only. The language dependencies inside an image are the
-          # lockfile's business, and the lockfile is in the repo where a fix can
-          # actually be committed — here they would report a vulnerability whose
-          # only remedy is "wait for upstream to rebuild".
-          vuln-type: os
-          exit-code: '1'
+          # The socket only for an image built on this runner; a registry image
+          # is read straight from the registry.
+          DOCKER_FLAG: ${{ inputs.build && '--docker' || '' }}
+        # OS packages only. The language dependencies inside an image are the
+        # lockfile's business, and the lockfile is in the repo where a fix can
+        # actually be committed — dependencies.yml reads it. Here they would
+        # report a vulnerability whose only remedy is "wait for upstream to
+        # rebuild".
+        run: >-
+          .scan-config/bin/trivy/scan.sh $DOCKER_FLAG .scan-config/bin/trivy/Dockerfile
+          image --severity CRITICAL,HIGH --pkg-types os --exit-code 1 "$IMAGE"

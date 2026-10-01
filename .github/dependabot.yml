@@ -1,9 +1,10 @@
 version: 2
 
 updates:
-  # Watches the FROM line in bin/semgrep/Dockerfile, which is the only place
-  # this repo records which semgrep to mirror. `directory` is the folder the
-  # Dockerfile sits in, not the file.
+  # Watches the FROM line of each mirrored scanner, bin/<tool>/Dockerfile — the
+  # only place this repo records which version of it to mirror, by tag and
+  # digest; Dependabot bumps the two together. `directories` are the folders the
+  # Dockerfiles sit in, not the files.
   #
   # Not under .github/: only the github-actions ecosystem may write there. At
   # .github/semgrep-mirror.Dockerfile the update was found and computed, then
@@ -15,7 +16,9 @@ updates:
   # Merging what it opens is the whole trigger: the mirror workflow watches that
   # same path on main and publishes the new tag by itself.
   - package-ecosystem: docker
-    directory: /bin/semgrep
+    directories:
+      - /bin/semgrep
+      - /bin/trivy
     schedule:
       interval: weekly
     # p/ci's dependabot-missing-cooldown asked for this, and it is worth more here
