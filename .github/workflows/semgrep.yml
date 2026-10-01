@@ -60,18 +60,17 @@ jobs:
           persist-credentials: false
 
       # This workflow's own repository, at the commit the caller resolved it to,
-      # beside the caller's checkout: the scan script and the Dockerfile that pins
-      # semgrep's version. Same commit as this file, so the three never disagree.
+      # beside the caller's checkout: bin/semgrep (the scan script and the
+      # Dockerfile that pins semgrep's version) and, as a cone sparse checkout
+      # always does, the repo's root files, which EXCLUDES keeps out of the scan.
+      # Same commit as this file, so the three never disagree.
       - uses: actions/checkout@v7
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
           persist-credentials: false
           path: .semgrep-config
-          sparse-checkout: |
-            bin/semgrep/scan.sh
-            .github/semgrep-mirror.Dockerfile
-          sparse-checkout-cone-mode: false
+          sparse-checkout: bin/semgrep
 
       # Every input arrives as an env var rather than being expanded into the
       # script. A `${{ }}` written straight into a run block is the script
@@ -102,4 +101,4 @@ jobs:
           # .semgrep-config is this repo's code, not the caller's.
           EXCLUDES: .semgrep-config ${{ inputs.exclude }}
           EXCLUDE_RULES: ${{ inputs.exclude-rules }}
-        run: .semgrep-config/bin/semgrep/scan.sh scan .semgrep-config/.github/semgrep-mirror.Dockerfile
+        run: .semgrep-config/bin/semgrep/scan.sh scan .semgrep-config/bin/semgrep/Dockerfile
