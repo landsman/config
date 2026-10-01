@@ -68,10 +68,7 @@ jobs:
           ref: ${{ job.workflow_sha }}
           persist-credentials: false
           path: .semgrep-config
-          sparse-checkout: |
-            bin/semgrep/scan.sh
-            .github/semgrep-mirror.Dockerfile
-          sparse-checkout-cone-mode: false
+          sparse-checkout: bin/semgrep
 
       # Every input arrives as an env var rather than being expanded into the
       # script. A `${{ }}` written straight into a run block is the script
@@ -102,4 +99,4 @@ jobs:
           # .semgrep-config is this repo's code, not the caller's.
           EXCLUDES: .semgrep-config ${{ inputs.exclude }}
           EXCLUDE_RULES: ${{ inputs.exclude-rules }}
-        run: .semgrep-config/bin/semgrep/scan.sh scan .semgrep-config/.github/semgrep-mirror.Dockerfile
+        run: .semgrep-config/bin/semgrep/scan.sh scan .semgrep-config/bin/semgrep/Dockerfile

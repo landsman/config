@@ -123,7 +123,7 @@ package is public; only this repo can push to it, because a `GITHUB_TOKEN` write
 only to packages under its own owner.
 
 The version to mirror lives in one place, the `FROM` line of
-`.github/semgrep-mirror.Dockerfile`, and everything else reads it from there —
+`bin/semgrep/Dockerfile`, and everything else reads it from there —
 `SEMGREP_VERSION` in the Makefile, and so the tag that gets pushed. It is written
 literally rather than passed as a build arg because that is the only form
 Dependabot can bump; it watches that file weekly and opens the pull request.

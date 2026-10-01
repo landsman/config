@@ -169,7 +169,7 @@ opencode-config-test: ## check the stowed opencode config parses and stays machi
 # here, because that FROM line is the one syntax Dependabot can bump on its own —
 # so the version has exactly one home and this file follows it. Bumping by hand
 # still works, it is just a different file to edit.
-SEMGREP_VERSION = $(shell sed -n 's|^FROM semgrep/semgrep:||p' .github/semgrep-mirror.Dockerfile)
+SEMGREP_VERSION = $(shell sed -n 's|^FROM semgrep/semgrep:||p' bin/semgrep/Dockerfile)
 
 # One mirror for every repo of mine that scans, rather than one per repo. Docker
 # Hub rate-limits anonymous pulls and CI runners share IPs, so the upstream pull
@@ -221,10 +221,10 @@ semgrep-mirror: ## copy a semgrep version into my GHCR (once per version bump)
 	@# Built rather than tagged, because a tag cannot rewrite labels and the
 	@# labels are the point — upstream's image.source names semgrep's own repo,
 	@# which is what GitHub reads to decide where a package belongs. Nothing is
-	@# added to the image; see the Dockerfile. .github is the build context
+	@# added to the image; see the Dockerfile. bin/semgrep is the build context
 	@# because there is nothing to copy in and a context still gets uploaded.
 	docker build --pull -t $(SEMGREP_MIRROR) -t $(SEMGREP_LATEST) \
-		-f .github/semgrep-mirror.Dockerfile .github
+		-f bin/semgrep/Dockerfile bin/semgrep
 	@# Both, explicitly, rather than `docker push --all-tags`: that pushes every
 	@# tag of this image the local daemon happens to hold, which on a laptop that
 	@# has mirrored before is older versions nobody asked to republish.
