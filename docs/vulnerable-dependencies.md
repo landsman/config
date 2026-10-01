@@ -28,6 +28,11 @@ error; through `make` both are make's own 2.
 
 Today the one source is Homebrew: `brew vulns` (Homebrew 7 and later) over
 every installed formula, dependencies included — trivy has no Homebrew support.
-Casks are not covered. The fix is nearly always `brew upgrade`; pinning
+Casks are not covered. Each vulnerable formula says what fixes it, from
+`brew outdated`: `→ brew upgrade to <version>` when Homebrew already has a
+newer one, `pinned` when a pin holds that back, or `newest in Homebrew, no fix
+there yet` — then it waits for Homebrew, or gets patched or replaced outside it.
+Without an answer from `brew outdated` the hint is left out; the verdict never
+depends on it. The fix is nearly always `brew upgrade`; pinning
 Homebrew versions is no alternative, since Homebrew keeps only the latest of a
 formula and a pin is what leaves the vulnerable one installed.

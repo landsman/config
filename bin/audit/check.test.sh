@@ -14,6 +14,7 @@ mkdir -p "$tmp/bin"
 cat >"$tmp/bin/brew" <<EOF
 #!/usr/bin/env bash
 if [ "\${2:-}" = --help ]; then [ -e "$tmp/old" ] && exit 1; exit 0; fi
+if [ "\$1" = outdated ]; then cat "$tmp/outdated"; exit 0; fi
 echo "\$*" >"$tmp/args"
 cat "$tmp/answer"; cat "$tmp/warning" >&2; exit "\$(cat "$tmp/rc")"
 EOF
@@ -28,6 +29,7 @@ run() {
 }
 expect() { [ "$code" = "$1" ] || fail "$2: exit $code, want $1 — $out"; }
 : >"$tmp/warning"
+: >"$tmp/outdated"
 
 finding='{"findings": [
   {"formula": "rclone", "version": "1.75.0", "vulnerabilities": [
@@ -99,6 +101,35 @@ $got"
 got=$("$check" brew-findings <<<'{"findings": []}') || fail "brew-findings on a clean answer exits 0"
 [ -z "$got" ] || fail "brew-findings on a clean answer prints nothing, got $got"
 ! "$check" brew-findings <<<'{"findings": null}' >/dev/null 2>&1 || fail "brew-findings refuses a wrong shape"
+
+# Whether brew can fix it, from `brew outdated`: newer, pinned, or nothing newer.
+printf '%s' '{"formulae": [
+  {"name": "rclone", "installed_versions": ["1.75.0"], "current_version": "1.75.1", "pinned": false},
+  {"name": "cairo", "installed_versions": ["1.18.4"], "current_version": "1.18.6", "pinned": true}],
+ "casks": []}' >"$tmp/outdated"
+three='{"findings": [
+  {"formula": "rclone", "version": "1.75.0", "vulnerabilities": [{"id": "CVE-1", "severity": "HIGH"}]},
+  {"formula": "cairo", "version": "1.18.4", "vulnerabilities": [{"id": "CVE-2", "severity": "HIGH"}]},
+  {"formula": "openjpeg", "version": "2.5.4", "vulnerabilities": [{"id": "OSV-3", "severity": "HIGH"}]}]}'
+run 0 "$three"; expect 1 "findings with fixes known"
+grep -qF '  rclone 1.75.0 → brew upgrade to 1.75.1: CVE-1 HIGH' <<<"$out" || fail "upgrade hint: $out"
+grep -qF '  cairo 1.18.4 — pinned, brew holds back 1.18.6: CVE-2 HIGH' <<<"$out" || fail "pinned hint: $out"
+grep -qF '  openjpeg 2.5.4 — newest in Homebrew, no fix there yet: OSV-3 HIGH' <<<"$out" || fail "no-fix hint: $out"
+grep -qF 'patch or replace it outside brew' <<<"$out" || fail "what to do with no fix: $out"
+
+# Without an answer from `brew outdated` there is no hint — and the same verdict.
+for broken in '' 'Error: offline' '{"formulae": null}' '[]' '{"casks": []}'; do
+  printf '%s' "$broken" >"$tmp/outdated"
+  run 0 "$three"; expect 1 "outdated answer '$broken'"
+  grep -qF '  openjpeg 2.5.4: OSV-3 HIGH' <<<"$out" || fail "no hint without outdated '$broken': $out"
+  grep -qF '  rclone 1.75.0: CVE-1 HIGH' <<<"$out" || fail "no hint invented from outdated '$broken': $out"
+done
+: >"$tmp/outdated"
+
+# The same through the subcommand, with the file given.
+printf '%s' '{"formulae": [{"name": "rclone", "current_version": "1.75.1", "pinned": false}]}' >"$tmp/o.json"
+got=$("$check" brew-findings "$tmp/o.json" <<<'{"findings": [{"formula": "rclone", "version": "1.75.0", "vulnerabilities": [{"id": "CVE-1", "severity": "HIGH"}]}]}')
+[ "$got" = 'rclone 1.75.0 → brew upgrade to 1.75.1: CVE-1 HIGH' ] || fail "brew-findings with outdated: $got"
 
 for arg in --help -h bogus; do
   code=0; "$check" "$arg" >/dev/null 2>&1 || code=$?
