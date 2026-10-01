@@ -184,7 +184,7 @@ opencode-config-test: ## check the stowed opencode config parses and stays machi
 MIRRORED = semgrep trivy
 SEMGREP_SKIP = yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
 
-.PHONY: security mirror
+.PHONY: security vulns mirror
 security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
 	@# Docker rather than an install, because semgrep is a python toolchain and
 	@# this repo installs nothing on a laptop it is not asked to. The same script
@@ -203,6 +203,12 @@ security: ## scan for leaked secrets and unsafe workflow config (needs Docker)
 	@# file is public the moment it is pushed. p/ci reads .github/workflows.
 	@# There is no bash or shell pack in the registry (p/bash and p/shell both
 	@# 404), so `make lint` remains what checks the scripts themselves.
+
+vulns: ## known vulnerabilities in what is installed on this machine (Homebrew today)
+	@# What a laptop runs, not what a repo pins — the lockfiles are CI's job
+	@# (.github/workflows/dependencies.yml). bin/vulns/check.sh says which
+	@# sources it checked and which it skipped; HIGH and up unless SEVERITY=.
+	@bin/vulns/check.sh
 
 mirror: ## copy every scanner version into my GHCR (CI does this on a bump)
 	@# Normally reached by the mirror workflow, which runs itself when a FROM

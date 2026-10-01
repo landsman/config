@@ -14,3 +14,16 @@ Two halves, because one finds and the other fixes.
   settings, not files, so `bin/github/dependabot-security.sh <owner/repo>...`
   sets them; `--all <owner>` does every non-archived source repo, `--dry-run`
   first says what it would do.
+
+## On this machine
+
+The two halves above read a repository. What a laptop actually runs is
+checked by `make vulns` — `bin/vulns/check.sh`, one function per source of
+installed software, a source whose tool is missing skipped with a note. It
+exits 1 when anything at `SEVERITY` (default `high`) or above turns up.
+
+Today the one source is Homebrew: `brew vulns` (Homebrew 7 and later) over
+every installed formula, dependencies included — trivy has no Homebrew support.
+Casks are not covered. The fix is nearly always `brew upgrade`; pinning
+Homebrew versions is no alternative, since Homebrew keeps only the latest of a
+formula and a pin is what leaves the vulnerable one installed.
