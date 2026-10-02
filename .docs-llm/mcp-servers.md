@@ -66,9 +66,13 @@ opencode mcp list                                      # what opencode actually 
 ```
 
 The guarded server, azure-devops, exits 0 before it connects when `AZDO_ORG`
-is unset, and says so on stderr first. Claude Code shows that as an absent
-server; opencode shows it as `✗ failed / MCP error -32000: Connection closed`.
-forgejo reads as failed on both whenever Tailscale is off.
+is unset, and says so on stderr first. Neither client treats that as absent:
+Claude Code lists it as `✘ Failed to connect — CONNECTION_CLOSED` (2.1.287,
+2026-10-02) and names it in every session's "failed to connect" notice, opencode
+as `✗ failed / MCP error -32000: Connection closed`. The guard still earns its
+place — no Azure login prompt at every launch — but "failed" on a machine
+without `AZDO_ORG` is expected, not broken. forgejo reads as failed on both
+whenever Tailscale is off.
 
 Servers are namespaced by the plugin, so the name to allow-list, remove or debug
 is `plugin:mcp-servers:<server>`, not `<server>`. A server still registered the
@@ -110,15 +114,15 @@ again nothing secret is tracked. Two things about the entry are deliberate:
   itself. `.bashrc` and `os/macos/.zshrc` glob it too, but that only reaches a
   shell: a client spawns the server as a bare `sh -c` that reads no rc file,
   which is how opencode never saw the variable
-  (#160). Unset, the server is
-  absent, with one line on stderr saying why.
+  (#160). Unset, the server fails to connect, with one line on stderr saying
+  why.
 
   The variable is read by `sh`, not by Claude Code's `${VAR}` interpolation, and
   that is the point: unset, the guard exits before `npx` ever runs. A stdio
   server is started at every launch, and this one reaches for an Azure login as
   soon as it is up — so on a machine with no `AZDO_ORG` the unguarded version
-  asks to authenticate every single time Claude Code opens. Exiting first is
-  what makes the server absent rather than merely useless.
+  asks to authenticate every single time Claude Code opens. Exiting first
+  trades that prompt for a quiet failed connection.
 
   Claude Code's own interpolation would not do: `${VAR}` with nothing set is
   passed through as the literal text — measured on 2.1.246, where the docs
@@ -129,10 +133,11 @@ again nothing secret is tracked. Two things about the entry are deliberate:
 - **`-d core repositories pipelines search`** keeps the tool surface to the four
   domains actually used; without it every domain loads.
 
-`settings.json` still allows `mcp__azure-devops__*` from when this was
-registered by hand. Plugin servers are namespaced, so those lines no longer
-match — left alone here rather than guessed at, because the exact prefix is
-worth reading off a live session before it is written down.
+A plugin server's tools are named `mcp__plugin_<plugin>_<server>__<tool>` —
+here `mcp__plugin_mcp-servers_azure-devops__…`, read off a live session's tool
+list on 2026-10-02 — so that is the prefix `settings.json` allows and denies. A
+rule written as `mcp__<server>__…`, the name from when a server was registered
+by hand, matches nothing and fails silently: a deny on it denies nothing.
 
 ## Forgejo
 
