@@ -34,7 +34,6 @@ swap `main` for the branch in the URL.
 | [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
 | [`CAVEATS.md`](CAVEATS.md) | What bites on Windows, and what it costs to fix: Smart App Control, `sh`, GRUB, first-run git and `gh` |
-| [`forgejo-mcp.ps1`](forgejo-mcp.ps1) | Builds the Forgejo MCP server, asks for its token and registers it with Claude Code. Run by hand, not elevated |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
 | [`registry/no-fast-startup.reg`](registry/no-fast-startup.reg) | Shutting down really shuts down, so the Windows volume is closed cleanly for the Linux installs |
 | [`registry/no-smart-app-control.reg`](registry/no-smart-app-control.reg) | Smart App Control off, so a binary built here can run. See [CAVEATS.md](CAVEATS.md) |
@@ -72,46 +71,16 @@ overwritten.
 
 `settings.json` is shared as is. Claude Code on Windows runs its shell commands,
 the status line included, through Git Bash, which `bootstrap.ps1` installs
-first. The two MCP servers in the `mcp-servers` skill that start through `sh`,
-Azure DevOps and Forgejo, are the known gap: `sh` is not on the Windows `PATH`,
-so they fail to connect there. The rest of the session is unaffected. Forgejo
-has a Windows path of its own, described below. Azure DevOps is still the gap.
+first. The one MCP server in the `mcp-servers` skill that starts through `sh`,
+Azure DevOps, is the known gap: `sh` is not on the Windows `PATH`, so it fails
+to connect there. The rest of the session is unaffected. Forgejo is a URL on the
+tailnet, so it works here as anywhere else once Tailscale is up.
 
 Creating a symlink on Windows needs an elevated shell or Developer Mode, which
 is one more reason the script runs elevated. The clone in `bootstrap.ps1` sets
 `core.symlinks=true` for the symlinks the repo itself tracks. A checkout cloned
 without it keeps text files in their place until
 `git config core.symlinks true` and a fresh checkout of those files.
-
-## Forgejo MCP
-
-[`forgejo-mcp.ps1`](forgejo-mcp.ps1) is the Windows half of `make forgejo-mcp`
-and `make claude`. The Forgejo section of
-[`mcp-servers.md`](../../.docs-llm/mcp-servers.md) explains the mirror, the
-token scopes and the upload flag that stays off. Run it as yourself, not
-elevated:
-
-```
-powershell -ExecutionPolicy Bypass -File os\windows\forgejo-mcp.ps1
-```
-
-It installs Git, Go and the Claude CLI through winget if any is missing. It
-builds the newest stable tag from the mirror into `~\go\bin`. It asks for the
-token and keeps it as the user environment variable `FORGEJO_ACCESS_TOKEN`, the
-counterpart of the shell drop-in on the other OSes. Last, it registers the
-server with `claude mcp add --scope user`, pointing straight at the `.exe`, so
-no `sh` is involved. That user-scope `forgejo` shadows the skill's failing
-entry of the same name. Restart Claude afterwards, so it picks up the new
-environment variable.
-
-### Smart App Control blocks the build
-
-Smart App Control, on and enforcing on the T480, blocks the local build. It has
-no per-app exception, so the script checks that the binary runs before it
-registers anything. `apply.ps1` turns Smart App Control off, and after the
-restart that follows it the build runs. Read the
-[Smart App Control caveat](CAVEATS.md#smart-app-control-blocks-anything-built-on-the-machine)
-for what that costs: it is off for every app, often for good.
 
 ## Power
 

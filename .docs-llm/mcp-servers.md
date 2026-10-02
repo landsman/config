@@ -65,11 +65,14 @@ make bin-test                                          # the two lists agree —
 opencode mcp list                                      # what opencode actually has
 ```
 
-A guarded server that finds no token or no binary exits 0 before it connects,
-which Claude Code shows as an absent server. opencode shows the same state as
-`✗ failed / MCP error -32000: Connection closed`, so on a session without the
-token both guarded servers read as broken rather than as absent — check the env
-before believing either.
+The guarded server, azure-devops, exits 0 before it connects when `AZDO_ORG`
+is unset, and says so on stderr first. Neither client treats that as absent:
+Claude Code lists it as `✘ Failed to connect — CONNECTION_CLOSED` (2.1.287,
+2026-10-02) and names it in every session's "failed to connect" notice, opencode
+as `✗ failed / MCP error -32000: Connection closed`. The guard still earns its
+place — no Azure login prompt at every launch — but "failed" on a machine
+without `AZDO_ORG` is expected, not broken. forgejo reads as failed on both
+whenever Tailscale is off.
 
 Servers are namespaced by the plugin, so the name to allow-list, remove or debug
 is `plugin:mcp-servers:<server>`, not `<server>`. A server still registered the
@@ -106,17 +109,20 @@ again nothing secret is tracked. Two things about the entry are deliberate:
 
 - **The organisation comes from `$AZDO_ORG`.** The slug names an employer and
   this repo is public, so it stays out of it. `make claude` asks for it once per
-  machine and writes it to `~/.config/bash_aliases.d/99-local.sh` — a drop-in
-  both `.bashrc` and `os/macos/.zshrc` already glob, untracked, and therefore
-  one `make restow` cannot overwrite. It takes a new shell to reach Claude Code.
-  Unset, the server is simply absent.
+  machine and writes it to `~/.config/bash_aliases.d/99-local.sh` — untracked,
+  and therefore one `make restow` cannot overwrite. The guard sources that file
+  itself. `.bashrc` and `os/macos/.zshrc` glob it too, but that only reaches a
+  shell: a client spawns the server as a bare `sh -c` that reads no rc file,
+  which is how opencode never saw the variable
+  (#160). Unset, the server fails to connect, with one line on stderr saying
+  why.
 
   The variable is read by `sh`, not by Claude Code's `${VAR}` interpolation, and
   that is the point: unset, the guard exits before `npx` ever runs. A stdio
   server is started at every launch, and this one reaches for an Azure login as
   soon as it is up — so on a machine with no `AZDO_ORG` the unguarded version
-  asks to authenticate every single time Claude Code opens. Exiting first is
-  what makes the server absent rather than merely useless.
+  asks to authenticate every single time Claude Code opens. Exiting first
+  trades that prompt for a quiet failed connection.
 
   Claude Code's own interpolation would not do: `${VAR}` with nothing set is
   passed through as the literal text — measured on 2.1.246, where the docs
@@ -127,74 +133,49 @@ again nothing secret is tracked. Two things about the entry are deliberate:
 - **`-d core repositories pipelines search`** keeps the tool surface to the four
   domains actually used; without it every domain loads.
 
-`settings.json` still allows `mcp__azure-devops__*` from when this was
-registered by hand. Plugin servers are namespaced, so those lines no longer
-match — left alone here rather than guessed at, because the exact prefix is
-worth reading off a live session before it is written down.
+A plugin server's tools are named `mcp__plugin_<plugin>_<server>__<tool>` —
+here `mcp__plugin_mcp-servers_azure-devops__…`, read off a live session's tool
+list on 2026-10-02 — so that is the prefix `settings.json` allows and denies. A
+rule written as `mcp__<server>__…`, the name from when a server was registered
+by hand, matches nothing and fails silently: a deny on it denies nothing.
 
 ## Forgejo
 
-Upstream: <https://git.b4mad.industries/agentic-forges/forgejo-mcp>. The GitHub
-and Codeberg repositories are read-only mirrors that no longer publish images —
-a link to `github.com/goern/forgejo-mcp` still resolves and is still the wrong
-place to install from.
+Upstream: <https://git.b4mad.industries/agentic-forges/forgejo-mcp>. Issues, pull
+requests, files, releases and Actions runs on `git.insuit.cz`, which is what makes
+the forge reachable from a session that has no browser.
 
-Issues, pull requests, files, releases and Actions runs on `git.insuit.cz`,
-which is what makes the forge reachable from a session that has no browser.
+**It is a URL, not a process on this machine:**
+`https://nas.dog-macaroni.ts.net/forgejo-mcp`, served from the Pi next to Forgejo
+by `forgejo-mcp/` in the homelab repo. That README covers the build, the token
+and the upgrade. With Tailscale off the server fails to connect, and that is the
+whole cost.
 
-```bash
-make forgejo-mcp   # build the binary into ~/go/bin
-make claude        # paste the token
-```
+It moved there so the token is not on any machine an agent runs on. As a local
+stdio server it needed `FORGEJO_ACCESS_TOKEN` in the environment, which meant
+exporting it into every shell, and any agent with a shell could print it. A
+Keychain entry or a 0600 file would not have helped either: a process running as
+the same user can read both. Now the client sends no credential, and the server
+uses its own token (`--allow-operator-token-fallback`). An agent can do what
+the token allows through the tools, but it can never read the token.
 
-The binary is built from `tools-mirror/forgejo-mcp` on our own forge rather than
-fetched from upstream, for the reason the mirror exists at all: a build should
-not stop because someone else's forge is down. That costs a checkout — `go
-install <mirror-path>@latest` cannot work, because `go.mod` still declares the
-upstream module path and go refuses a module whose declared path is not the one
-it fetched. `go install .` inside the checkout does not care.
+The trade is that reaching the endpoint is the credential. Two things keep that
+to my own devices: the Pi publishes the port on loopback only, and the tailnet
+ACL keeps the tagged pollos boxes off it. That matters because jesse runs
+arbitrary CI jobs. Keep both in mind before exposing it any other way, a
+Cloudflare tunnel included.
 
-The **token** is machine-local for the usual reason — this repo is public. The
-**instance URL is not**, and sits in `.mcp.json` in clear: `git.insuit.cz` is
-already all over the homelab repo, which is public too. It is the token that is
-secret, not the address.
+The name is in clear in both client files. The homelab repo, public too,
+already carries it, and it resolves only inside the tailnet.
 
-Create it at <https://git.insuit.cz/user/settings/applications>. Three scopes
-cover every tool worth having:
+`FORGEJO_MCP_ALLOW_FILE_PATH_UPLOAD` stays off on the server. It lets
+attachment tools upload files from the host, and an injected prompt publishing a
+key as a release asset is the documented failure mode.
 
-| Scope | Buys |
-|-------|------|
-| `read:user` | who am I, list my repositories |
-| `write:repository` | files, branches, pull requests, Actions runs |
-| `write:issue` | issues, comments, labels |
-
-Widen it when a tool actually fails, not in advance — the token is a bearer
-credential sitting in a file every shell sources.
-
-The entry is guarded like the Azure DevOps one, and on two conditions rather
-than one:
-
-```sh
-b=$(command -v forgejo-mcp || echo "$HOME/go/bin/forgejo-mcp")
-[ -n "$FORGEJO_ACCESS_TOKEN" ] && [ -x "$b" ] || exit 0
-exec "$b" --transport stdio --url https://git.insuit.cz
-```
-
-A machine with no token, or one where `make forgejo-mcp` has not run, gets no
-server instead of a failing one. `command -v` first so an Arch box that
-installed `forgejo-mcp` from the AUR uses that copy; `~/go/bin` is the fallback
-because it is not on `PATH` here.
-
-Windows has no `sh` on `PATH`, so this entry cannot start there.
-[`os/windows/forgejo-mcp.ps1`](../os/windows/forgejo-mcp.ps1) builds the same
-tag and registers a user-scope `forgejo` that runs the `.exe` directly. Smart
-App Control blocks a local build, and has no allowlist to add it to: the
-[Windows README](../os/windows/README.md#forgejo-mcp) has the options.
-
-One thing to know before allow-listing the server: `FORGEJO_MCP_ALLOW_FILE_PATH_UPLOAD`
-lets attachment tools read the host filesystem and upload it. It is off by
-default and should stay off — an injected prompt uploading `~/.ssh/id_ed25519`
-as a public release asset is the documented failure mode, not a hypothetical.
+A machine set up before this still has the old wiring. `make claude` removes a
+leftover `FORGEJO_ACCESS_TOKEN` from the drop-in, and `claude mcp remove forgejo
+-s user` drops the user-scope entry that carried the token inline and shadows
+this one.
 
 ## Common commands
 
