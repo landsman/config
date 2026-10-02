@@ -42,6 +42,9 @@ brew "glab"
 brew "hstr"
 # Interactive process viewer — the one every host already knows, beside btop
 brew "htop"
+# Unpack installers created by Inno Setup, without running them on Windows
+# https://github.com/dscharrer/innoextract
+brew "innoextract"
 # Open source programming language to build simple/reliable/efficient software
 brew "go"
 # JSON processor — the checkout guard hook reads Claude Code's input with it,
