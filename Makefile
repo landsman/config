@@ -319,6 +319,26 @@ ollama: ## pull the local models (tens of GB - deliberately not part of make app
 	@for m in $(OLLAMA_MODELS); do echo "== $$m"; ollama pull "$$m" || exit 1; done
 	@ollama list
 
+.PHONY: ollama-start
+ollama-start: ## start the ollama server, and again at every login
+	@brew services start ollama
+
+.PHONY: ollama-unload
+ollama-unload: ## drop the loaded models out of RAM, keep the server running
+	@# One line on purpose: an `exit 0` on a line of its own ends only that line.
+	@ps=$$(ollama ps 2>/dev/null) || { echo "ollama server not running - nothing loaded"; exit 0; }; \
+		for m in $$(echo "$$ps" | awk 'NR>1 {print $$1}'); do echo "== $$m"; ollama stop "$$m"; done
+
+.PHONY: ollama-kill
+ollama-kill: ## kill ollama hard - server, runners and the model in RAM; no autostart until ollama-start
+	@# `brew services stop` also unregisters the login item, so it stays down.
+	@# The runner that holds the model (llama-server, or `ollama runner`) can
+	@# outlive a server that hangs, hence SIGKILL by exact process name - `-f`
+	@# would match this recipe's own shell, whose command line says ollama.
+	@-brew services stop ollama 2>/dev/null
+	@-pkill -9 -x ollama; pkill -9 -x llama-server; true
+	@pgrep -lx 'ollama|llama-server' || echo "ollama is down, RAM is free"
+
 .PHONY: agent-docs
 agent-docs: ## clone (or fast-forward) the upstream docs an agent should grep instead of recall
 	@# Not part of `make apps`: other people's repositories, sparse-checked out
