@@ -201,6 +201,7 @@ if OS.mac?
 	mas "Numbers", id: 361304891
 	mas "Pages", id: 361309726
 	mas "Tasks.txt", id: 6783916102
+	mas "The Unarchiver", id: 425424353
 	mas "Toggl Track", id: 1291898086
 	# Selected as the active developer dir by `make macos-xcode`
 	mas "Xcode", id: 497799835
