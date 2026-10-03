@@ -34,6 +34,24 @@ introduce machinery the repo does not already have — a first flatpak, a first
 snap, a first curl-a-tarball installer — because that is a bigger decision than
 the app itself.
 
+## A one-machine setting stays off the shared config
+
+The mirror of the rule above: most things go everywhere, but the rare setting
+that should differ on one laptop — a smaller font on the smaller screen — must
+not fork the shared config, because that file is byte-identical on every boot
+and a per-machine edit there is a merge conflict waiting to happen.
+
+Instead the shared config loads an untracked local override, and the machine
+that wants the difference writes it there. Ghostty is the precedent:
+
+    config-file = ?~/.config/ghostty/local.conf
+
+The `?` makes it optional, so a machine without the file loads nothing and
+nothing changes; later values win, so the include sits last. The path is
+absolute (`~`), not repo-relative: the shared config is a symlink into the repo,
+so a relative include would resolve inside the repo, not under `$HOME`. The
+local file is never tracked — it lives only on the machine that needs it.
+
 ## GitHub Actions versions
 
 Reference actions by their stable major tag — `actions/checkout@v7`, not a
