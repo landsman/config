@@ -36,28 +36,13 @@ the app itself.
 
 ## A one-machine setting stays off the shared config
 
-The mirror of the rule above: most things go everywhere, but the rare setting
-that should differ on one laptop — a smaller font on the smaller screen — must
-not fork the shared config, because that file is byte-identical on every boot
-and a per-machine edit there is a merge conflict waiting to happen.
-
-Instead the shared config loads an optional local override, and the host that
-wants the difference provides it. Ghostty is the precedent — the shared config
-ends with:
-
-    config-file = ?~/.config/ghostty/local.conf
-
-The `?` makes it optional, so a host without the file loads nothing and nothing
-changes; later values win, so the include sits last. The path is absolute
-(`~`), not repo-relative: the shared config is a symlink into the repo, so a
-relative include would resolve inside the repo, not under `$HOME`.
-
-The override itself is versioned, not hand-written: it lives in the host's
-device package — `devices/t480/.config/ghostty/local.conf` — and `make stow`
-links it into `$HOME` on that host only, so it survives a reinstall and a diff
-shows what each machine changed. Keep an override untracked (a plain file stow
-never sees) only when it genuinely must not leave the machine — a secret, a
-token. A font-size is neither, so it is in the repo.
+Most things go everywhere; the rare setting that differs on one host — a smaller
+font on a smaller screen — is loaded by an optional include in the
+[shared config](shared/.config/ghostty/config) and versioned in that host's
+device package, never by forking the shared file. The T480's ghostty override,
+[devices/t480/.config/ghostty/local.conf](devices/t480/.config/ghostty/local.conf),
+is the worked example and both files carry the why in their comments; keep an
+override untracked only when it must not leave the machine.
 
 ## GitHub Actions versions
 
