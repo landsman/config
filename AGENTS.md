@@ -41,16 +41,23 @@ that should differ on one laptop — a smaller font on the smaller screen — mu
 not fork the shared config, because that file is byte-identical on every boot
 and a per-machine edit there is a merge conflict waiting to happen.
 
-Instead the shared config loads an untracked local override, and the machine
-that wants the difference writes it there. Ghostty is the precedent:
+Instead the shared config loads an optional local override, and the host that
+wants the difference provides it. Ghostty is the precedent — the shared config
+ends with:
 
     config-file = ?~/.config/ghostty/local.conf
 
-The `?` makes it optional, so a machine without the file loads nothing and
-nothing changes; later values win, so the include sits last. The path is
-absolute (`~`), not repo-relative: the shared config is a symlink into the repo,
-so a relative include would resolve inside the repo, not under `$HOME`. The
-local file is never tracked — it lives only on the machine that needs it.
+The `?` makes it optional, so a host without the file loads nothing and nothing
+changes; later values win, so the include sits last. The path is absolute
+(`~`), not repo-relative: the shared config is a symlink into the repo, so a
+relative include would resolve inside the repo, not under `$HOME`.
+
+The override itself is versioned, not hand-written: it lives in the host's
+device package — `devices/t480/.config/ghostty/local.conf` — and `make stow`
+links it into `$HOME` on that host only, so it survives a reinstall and a diff
+shows what each machine changed. Keep an override untracked (a plain file stow
+never sees) only when it genuinely must not leave the machine — a secret, a
+token. A font-size is neither, so it is in the repo.
 
 ## GitHub Actions versions
 
