@@ -34,6 +34,16 @@ introduce machinery the repo does not already have — a first flatpak, a first
 snap, a first curl-a-tarball installer — because that is a bigger decision than
 the app itself.
 
+## A one-machine setting stays off the shared config
+
+Most things go everywhere; the rare setting that differs on one host — a smaller
+font on a smaller screen — is loaded by an optional include in the
+[shared config](shared/.config/ghostty/config) and versioned in that host's
+device package, never by forking the shared file. The T480's ghostty override,
+[devices/t480/.config/ghostty/local.conf](devices/t480/.config/ghostty/local.conf),
+is the worked example and both files carry the why in their comments; keep an
+override untracked only when it must not leave the machine.
+
 ## GitHub Actions versions
 
 Reference actions by their stable major tag — `actions/checkout@v7`, not a
