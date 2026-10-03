@@ -35,3 +35,10 @@ theme = GitHub Dark High Contrast
 # lands close enough that the two windows do not look like different apps.
 background-opacity = 0.95
 background-blur = 20
+
+# Per-machine overrides. `?` makes it optional, so a machine without the file
+# loads nothing and nothing changes; `~` not a repo-relative path, because this
+# config is a symlink into the repo and a relative include would resolve there,
+# not under $HOME. Later values win, so this sits last. The T480 uses it for a
+# smaller font-size; the file is untracked and lives only on the machine.
+config-file = ?~/.config/ghostty/local.conf
