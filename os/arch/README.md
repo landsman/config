@@ -11,14 +11,25 @@ The Hyprland side of whichever machine boots Arch — currently only the
 
 ## Packages
 
-These stay with the distro rather than going in the root `Brewfile`: the monitor
-tool is Linux-only and an AUR build, and the GUI app is one Homebrew installs
-only as a macOS cask, so Linux takes it from the AUR instead.
+[`install-apps.sh`](install-apps.sh) installs these, because the `Brewfile`
+cannot: the monitor tool is Linux-only and the GUI app is one Homebrew ships
+only as a macOS cask, and both are AUR builds, which Homebrew has no equivalent
+of. `make apps` runs it right after `brew bundle`, the same `os/$ID` detection
+that picks the stow package.
 
-```
-yay -S hyprmon-bin      # monitor manager TUI — the profiles above are its config
-yay -S claude-desktop   # the app the Mac gets as `cask "claude"`
-```
+| App | Package | Source |
+|-----|---------|--------|
+| Claude Desktop | `claude-desktop` | AUR — repackages Anthropic's official `.deb`, see below |
+| hyprmon | `hyprmon-bin` | AUR — monitor-manager TUI; the stowed `.config/hyprmon/profiles` are its config |
+
+Unlike the [Kubuntu installer](../ubuntu/README.md) this adds no apt repo and
+pins no key: an AUR package is built from a PKGBUILD by `makepkg`, so the trust
+is in the recipe and its maintainer, not a signing fingerprint — there is
+nothing fetched to pin. `yay` also runs as your user and calls `sudo` itself for
+the pacman half, so the script never elevates, the opposite of the apt one. It
+needs an AUR helper on `PATH` — Omarchy ships `yay` — and stops with a clear
+message on a box without one. [`install-apps.test.sh`](install-apps.test.sh)
+stubs `yay` and `pacman`, so it runs on any machine and `make qa` includes it.
 
 `claude-desktop` is the AUR counterpart to the Kubuntu row — same app, a
 different route to it. The Kubuntu side takes
