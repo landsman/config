@@ -24,6 +24,7 @@ cannot — from the vendors' own apt repos, except where the table says otherwis
 | Google Chrome | `google-chrome-stable` | `dl.google.com/linux/chrome/deb` |
 | Stripe CLI | `stripe` | `packages.stripe.dev` — one `stable` suite, not a codename |
 | Discord | `discord` | **none** — the vendor `.deb`, see below |
+| Claude Desktop | `claude-desktop-unofficial` | `pkg.claude-desktop-debian.dev` — a third-party repackage, not Anthropic's own repo, see below |
 | VLC | `vlc` | **none needed** — in the Ubuntu archive |
 | LibreOffice | `libreoffice` | **none needed** — in the Ubuntu archive |
 | Telegram | `org.telegram.desktop` | **none** — Flathub, not apt at all, see below |
@@ -54,6 +55,22 @@ knowing: apt will never update it, so `sudo apt-get remove discord` and another
 usual prompt), and this exception is per app, not a new rule — the hand-download
 apps below stay out.
 
+Claude Desktop is the one row whose repo is not the vendor's own. Anthropic
+ships a first-party Linux beta `.deb` from its own apt repo; this row takes
+`pkg.claude-desktop-debian.dev` instead — a third party
+(`aaddrick/claude-desktop-debian`) that repackages those same official bytes
+(the app's `app.asar` is unchanged) and adds a launcher — opt-in Wayland,
+GPU-crash recovery, autostart healing — a `--doctor`, and a fix for a KDE focus
+bug in the global-hotkey popup. Those Linux-desktop extras are the whole reason
+to prefer it over the official beta here; the app itself is identical either
+way. Two costs come with it: it is a mirror, so it can lag the official release,
+and it is the one repo here that publishes no key fingerprint to verify against
+— so the pin is trust-on-first-use frozen (what the key server served, held
+constant), weaker than a vendor-documented fingerprint though stronger than
+Discord's bare TLS. The swap back to Anthropic's own repo, if the wrapper ever
+stops earning its keep, is their base URL and the package name without the
+`-unofficial` suffix.
+
 Telegram is the one app that comes from neither apt nor a `.deb`.
 `telegram-desktop` was in the Ubuntu archive up to jammy and is gone from noble
 onward, and upstream publishes a tarball, a Snap and a Flatpak but no apt repo —
@@ -79,7 +96,7 @@ installs the `telegram` cask, Telegram's native macOS app, rather than the Qt
 
 | App | Why |
 |-----|-----|
-| ChatGPT, Claude, Perplexity | No Linux desktop app — macOS and Windows only |
+| ChatGPT, Perplexity | No Linux desktop app — macOS and Windows only |
 | Figma | Browser only on Linux, no desktop build |
 | WhatsApp | No official Linux desktop app |
 | Microsoft Teams | Discontinued. `packages.microsoft.com/repos/ms-teams` still resolves, but its `Packages` index is 0 bytes and was last built in Feb 2023 |

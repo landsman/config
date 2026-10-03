@@ -45,6 +45,16 @@ STRIPE_KEY_FPR="6681D7C3D103DAC65D79C25EDEEBD57F917C83E3"
 # yearly and the primary is what apt verifies against, so the primary is pinned.
 GOOGLE_KEY_URL="https://dl.google.com/linux/linux_signing_key.pub"
 GOOGLE_KEY_FPR="EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796"
+# Claude Desktop's Linux build is Anthropic's official .deb repackaged by a third
+# party (aaddrick/claude-desktop-debian): same app bytes, plus a launcher and a
+# `--doctor` for Linux desktop quirks. That wrapper is the only difference from
+# Anthropic's own beta .deb, and the reason this row points here rather than at
+# their repo. It is also the one key no vendor documents a fingerprint for, so
+# unlike every pin above this one cannot be cross-checked — it is frozen at what
+# the key server served, which fails a later swap but vouches for nothing on day
+# one. Weaker than the rows above, stronger than Discord's bare TLS.
+CLAUDE_KEY_URL="https://pkg.claude-desktop-debian.dev/KEY.gpg"
+CLAUDE_KEY_FPR="87494CF73ACC0F23AA9557B86E29E413B912E0F1"
 # Flathub ships its key inside the .flatpakrepo rather than as a download of its
 # own, so this pin is checked against what that file carries. Same primary key
 # as the standalone https://dl.flathub.org/repo/flathub.gpg, which is how it was
@@ -57,7 +67,7 @@ FLATHUB_KEY_FPR="6E5C05D979C76DAF93C081354184DD4D907A7CAE"
 # repo at all — Ubuntu ships them — but they belong in the same list, because
 # what this script answers is "are the apps this repo names here yet".
 PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord
-	google-chrome-stable vlc libreoffice stripe)
+	google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial)
 
 # The apps that come from Flathub instead, by app id. Telegram is the only one
 # and the reason this half exists at all: it was dropped from the Ubuntu archive
@@ -237,6 +247,14 @@ for pkg in ${MISSING[@]+"${MISSING[@]}"}; do
 		curl -fsSL "https://discord.com/api/download?platform=linux&format=deb" \
 			-o "$TMP/discord.deb"
 		INSTALL+=("$TMP/discord.deb")
+		;;
+	claude-desktop-unofficial)
+		# Named -unofficial upstream so it sits beside Anthropic's own
+		# `claude-desktop` package; both share ~/.config/Claude, so only one
+		# runs at a time. A normal codename-less repo, one `stable main` suite.
+		add_repo claude-desktop "$CLAUDE_KEY_URL" "$CLAUDE_KEY_FPR" \
+			https://pkg.claude-desktop-debian.dev stable main
+		INSTALL+=(claude-desktop-unofficial)
 		;;
 	esac
 done

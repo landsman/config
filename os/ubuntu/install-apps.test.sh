@@ -109,7 +109,7 @@ FAKE_ROOT=1 exec "$@"' >"$BIN/sudo"
 run() { PATH="$BIN:$PATH" CODENAME=noble INSTALLED="$1" FPR="$2" \
 	FLATPAK_PRESENT="${3-org.telegram.desktop}" bash "$SCRIPT" 2>&1; }
 
-ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe"
+ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial"
 # The list minus one app, so a case can be "only this one is missing".
 without() { echo "$ALL" | tr ' ' '\n' | grep -vxF -e "${1:-}" -e "${2:-}" | tr '\n' ' '; }
 
@@ -117,7 +117,7 @@ echo "== every package already present"
 setup
 out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 11 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 12 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -232,6 +232,19 @@ case "$out" in *"flathub: key fingerprint mismatch"*) ok "says which key" ;;
 # What must not have happened is the remote being added or the app pulled from it.
 if [ -f "$ROOT/flatpak-remote" ]; then fail "adds no remote"; else ok "adds no remote"; fi
 if [ -f "$ROOT/flatpak-installed" ]; then fail "installs no app"; else ok "installs no app"; fi
+rm -rf "$ROOT"
+
+echo
+echo "== claude desktop, a third-party repackage of the official .deb"
+setup
+out="$(run "$(without claude-desktop-unofficial)" 87494CF73ACC0F23AA9557B86E29E413B912E0F1)"
+check "succeeds" "$?" "0"
+contains "claude repo added" "$ROOT/etc/apt/sources.list.d/claude-desktop.list" \
+	"https://pkg.claude-desktop-debian.dev stable main"
+contains "signed-by points at its own keyring" "$ROOT/etc/apt/sources.list.d/claude-desktop.list" \
+	"signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.gpg"
+check "installs the -unofficial package, so it sits beside Anthropic's own" \
+	"$(cat "$ROOT/apt-installed")" "claude-desktop-unofficial"
 rm -rf "$ROOT"
 
 echo
