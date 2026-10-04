@@ -22,13 +22,24 @@ carrying it, it is not written yet.
     ❌ be: fix bug
     ✅ be(pos): keep the slug when a till is renamed, QR codes are already printed
 
-## PR titles are commit messages
+## PR titles — and bodies — are commit messages
 
 A squash-merge writes the **PR title** as the subject on the main branch. So a PR
 title follows every rule in the rule file. This is the half that actually lands in
 history, and the half a local hook cannot check — enforce it in CI on
 `pull_request` with the same validator, or the main branch fills up with
 `Stripe payments: local setup (#143)`.
+
+The **body** is the PR description, not the branch's commits — this repo is set to
+`squash_merge_commit_title=PR_TITLE` and `squash_merge_commit_message=PR_BODY`
+(`gh api -X PATCH repos/<owner>/<repo> -f squash_merge_commit_message=PR_BODY`).
+So whatever is in the PR lands verbatim as the commit, which means the body is
+held to the rule below as much as the title is. GitHub's other squash default,
+`COMMIT_MESSAGES`, instead concatenates every commit on the branch — and that is
+where a `* bullet` per commit, a `---------` separator and an aggregated
+`Co-authored-by` come from, the last one scraped out of the individual commits'
+trailers, so it survives even a clean PR body. `PR_BODY` never does any of that.
+If a merged commit grows those lines, the fix is the setting, not the message.
 
 ## Breaking changes
 
@@ -107,4 +118,6 @@ Dependabot writes its own messages and reads none of this; the
 ## Never in a commit message
 
 No tool attribution, no `Co-Authored-By` for an assistant, no session URLs, no
-"generated with" footers. See the [attribution rule](../../rules/attribution.md).
+"generated with" footers — not in the message, not in the PR body (it becomes the
+commit), and not in a single branch commit's trailers (a `COMMIT_MESSAGES` squash
+aggregates them). See the [attribution rule](../../rules/attribution.md).
