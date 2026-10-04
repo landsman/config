@@ -28,6 +28,7 @@ cannot — from the vendors' own apt repos, except where the table says otherwis
 | VLC | `vlc` | **none needed** — in the Ubuntu archive |
 | LibreOffice | `libreoffice` | **none needed** — in the Ubuntu archive |
 | Telegram | `org.telegram.desktop` | **none** — Flathub, not apt at all, see below |
+| Photon Studio | (flatpak bundle) | **none** — Tenzen `.flatpak` direct download, `--user`, see below |
 
 Docker is the *engine*, not Docker Desktop: Desktop for Linux is a hand-download
 `.deb` with no repo behind it, and the engine is what
@@ -91,6 +92,19 @@ which would leave the pin decorative. The test asserts both halves.
 macOS deliberately runs the other client: the [`Brewfile`](../../Brewfile)
 installs the `telegram` cask, Telegram's native macOS app, rather than the Qt
 `telegram-desktop` that Linux gets. Same account, different build, on purpose.
+
+Photon Studio is the other flatpak, and the opposite kind: not a Flathub app but
+a `.flatpak` bundle [Tenzen](https://tenzen.studio/photon/) publishes for direct
+download, so there is no remote behind it. That makes it the flatpak twin of the
+Discord row — the download API redirects to the current build, so nothing is
+pinned and TLS is all that vouches for it, and `flatpak update` never touches a
+bundle, so re-running `make apps` after a release is the upgrade path. It is
+installed `--user`, as the vendor's own instructions do, which is the one place
+this script steps outside root: the apt half re-execs as root, so an `as_user`
+helper drops back to `$SUDO_USER` for the install, or it would land in root's
+flatpak scope instead of yours. Whether it is already there is `flatpak list`
+grepped for the id in your scope, because the bundle ships no stable application
+id to match on exactly.
 
 ### Not installable this way
 

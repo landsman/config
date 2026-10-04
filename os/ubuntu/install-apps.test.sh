@@ -69,6 +69,7 @@ echo amd64' >"$BIN/dpkg"
 		#!/usr/bin/env bash
 		case "\$1" in
 		info) for a in \$FLATPAK_PRESENT; do [ "\$a" = "\$2" ] && exit 0; done; exit 1 ;;
+		list) printf '%s\n' \$FLATPAK_APPS ;;
 		remote-add) shift; printf '%s\n' "\$@" >"$ROOT/flatpak-remote" ;;
 		install) shift; printf '%s\n' "\$@" | grep -v '^-y\$' >"$ROOT/flatpak-installed" ;;
 		esac
@@ -97,7 +98,12 @@ echo amd64' >"$BIN/dpkg"
 	# afterwards — `id` is stubbed too, since EUID is read-only in bash and a
 	# sudo that does not actually elevate is the loop this guards against.
 	echo '#!/usr/bin/env bash
-[ "$1" = "--" ] && shift
+while [ $# -gt 0 ]; do case "$1" in
+--) shift; break ;;
+-u) shift 2 ;;
+-H) shift ;;
+*) break ;;
+esac; done
 FAKE_ROOT=1 exec "$@"' >"$BIN/sudo"
 	echo '#!/usr/bin/env bash
 [ -n "${FAKE_ROOT:-}" ] && echo 0 || echo 1000' >"$BIN/id"
@@ -106,8 +112,9 @@ FAKE_ROOT=1 exec "$@"' >"$BIN/sudo"
 
 # The flatpak defaults to present, so every apt case below is unaffected by it
 # and only the flatpak cases have to say anything about it.
-run() { PATH="$BIN:$PATH" CODENAME=noble INSTALLED="$1" FPR="$2" \
-	FLATPAK_PRESENT="${3-org.telegram.desktop}" bash "$SCRIPT" 2>&1; }
+run() { PATH="$BIN:$PATH" CODENAME=noble SUDO_USER=tester INSTALLED="$1" FPR="$2" \
+	FLATPAK_PRESENT="${3-org.telegram.desktop}" \
+	FLATPAK_APPS="${4-studio.tenzen.Photon org.telegram.desktop}" bash "$SCRIPT" 2>&1; }
 
 ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial"
 # The list minus one app, so a case can be "only this one is missing".
@@ -117,7 +124,7 @@ echo "== every package already present"
 setup
 out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 12 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 13 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -245,6 +252,22 @@ contains "signed-by points at its own keyring" "$ROOT/etc/apt/sources.list.d/cla
 	"signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.gpg"
 check "installs the -unofficial package, so it sits beside Anthropic's own" \
 	"$(cat "$ROOT/apt-installed")" "claude-desktop-unofficial"
+rm -rf "$ROOT"
+
+echo
+echo "== photon studio, a --user flatpak bundle"
+setup
+# Everything apt-side present and telegram present, so the only work is photon,
+# which the --user flatpak list (4th arg, empty here) does not report. SUDO_USER
+# is set, so the root pass drops back to the human to install into their scope.
+out="$(run "$ALL" deadbeef org.telegram.desktop "")"
+check "succeeds" "$?" "0"
+# The download is the install: a bundle path, --user, not a flathub app id.
+contains "installed --user" "$ROOT/flatpak-installed" "--user"
+case "$(tr '\n' ' ' <"$ROOT/flatpak-installed")" in
+*.flatpak*) ok "from a .flatpak bundle, not an app id" ;;
+*) fail "from a .flatpak bundle, not an app id" ;;
+esac
 rm -rf "$ROOT"
 
 echo
