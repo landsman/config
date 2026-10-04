@@ -75,8 +75,37 @@ PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord
 # repo — so there is nothing for the machinery above to hang an app on.
 FLATPAKS=(org.telegram.desktop)
 
+# Photon Studio ships only a .flatpak bundle — not an apt package and not on
+# Flathub — so it is neither of the lists above. The URL redirects to the current
+# build, so like Discord there is nothing to pin and TLS is all that vouches for
+# it; and a bundle has no remote behind it, so `flatpak update` never touches it,
+# which makes re-running this the update path. Installed --user, per the vendor,
+# so it lands in the human's flatpak scope rather than root's.
+PHOTON_URL="https://tenzen.studio/api/v1/photon/download?platform=linux&arch=x64&kind=flatpak"
+
 installed() {
 	[ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" = "installed" ]
+}
+
+# Run a command as the human who invoked `make apps`, not the root this script
+# re-execs into: a `flatpak install --user` has to land in their ~/.local/share,
+# not root's. Before the re-exec we are already them; after it, $SUDO_USER names
+# them. A root login with no $SUDO_USER — nobody to drop to — just runs in place.
+as_user() {
+	if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+		sudo -u "$SUDO_USER" -H "$@"
+	else
+		"$@"
+	fi
+}
+
+# Photon is a --user flatpak, so "is it here" is a flatpak query in the human's
+# scope, not dpkg and not root's flatpak. grep on the id because the bundle
+# publishes no stable application id to match exactly, and nothing else here is
+# called photon; a machine with no flatpak yet prints nothing, which reads as
+# missing — correct.
+photon_installed() {
+	as_user flatpak list --columns=application 2>/dev/null | grep -qi photon
 }
 
 MISSING=()
@@ -91,8 +120,11 @@ for app in "${FLATPAKS[@]}"; do
 	flatpak info "$app" >/dev/null 2>&1 || MISSING_FLATPAK+=("$app")
 done
 
-if [ ${#MISSING[@]} -eq 0 ] && [ ${#MISSING_FLATPAK[@]} -eq 0 ]; then
-	echo "== distro apps: all $(( ${#PACKAGES[@]} + ${#FLATPAKS[@]} )) installed"
+PHOTON_MISSING=
+photon_installed || PHOTON_MISSING=1
+
+if [ ${#MISSING[@]} -eq 0 ] && [ ${#MISSING_FLATPAK[@]} -eq 0 ] && [ -z "$PHOTON_MISSING" ]; then
+	echo "== distro apps: all $(( ${#PACKAGES[@]} + ${#FLATPAKS[@]} + 1 )) installed"
 	exit 0
 fi
 
@@ -100,6 +132,7 @@ fi
 # empty one is not expandable under `set -u` on the bash the tests run under.
 [ ${#MISSING[@]} -eq 0 ] || echo "== distro apps: missing ${MISSING[*]}"
 [ ${#MISSING_FLATPAK[@]} -eq 0 ] || echo "== flatpaks: missing ${MISSING_FLATPAK[*]}"
+[ -z "$PHOTON_MISSING" ] || echo "== photon: not installed"
 
 # Root is needed from here on. Re-exec rather than sudo per line, so the
 # password is asked for once and the whole run shares one timestamp. The marker
@@ -262,7 +295,7 @@ done
 # Flatpak is not on a Kubuntu install by default, and neither is the Discover
 # backend — without that one a flatpak updates only from the command line, which
 # is the same trap the Discord .deb is already in. Both come from the archive.
-if [ ${#MISSING_FLATPAK[@]} -gt 0 ] && ! installed flatpak; then
+if { [ ${#MISSING_FLATPAK[@]} -gt 0 ] || [ -n "$PHOTON_MISSING" ]; } && ! installed flatpak; then
 	echo "==> Configuring flatpak"
 	INSTALL+=(flatpak plasma-discover-backend-flatpak)
 fi
@@ -291,8 +324,24 @@ if [ ${#MISSING_FLATPAK[@]} -gt 0 ]; then
 	flatpak install -y flathub "${MISSING_FLATPAK[@]}"
 fi
 
+# Photon last: it needs flatpak, which the block above has just installed if it
+# was missing. A bundle, so there is no remote and no `flatpak install <app>` by
+# id — the download is the install, run as the user so the --user scope and $HOME
+# resolve to theirs. mktemp -d, not `mktemp --suffix`, because the macOS leg of
+# the test harness runs this script under BSD mktemp, which has no --suffix.
+if [ -n "$PHOTON_MISSING" ]; then
+	echo "==> Installing Photon Studio (flatpak bundle, --user)"
+	as_user bash -c '
+		set -euo pipefail
+		d="$(mktemp -d)"
+		trap "rm -rf \"$d\"" EXIT
+		curl -fsSL "$1" -o "$d/photon.flatpak"
+		flatpak install --user --or-update --noninteractive "$d/photon.flatpak"
+	' _ "$PHOTON_URL"
+fi
+
 echo
-echo "Done. Four things this script deliberately leaves to you:"
+echo "Done. Five things this script deliberately leaves to you:"
 echo "  - docker: 'usermod -aG docker \$USER' is what lets lazydocker talk to"
 echo "    the socket without sudo, and it is root-equivalent - your call."
 echo "  - tailscale: installed but not joined, run 'sudo tailscale up'."
@@ -302,3 +351,5 @@ echo "    which is what an outdated client refusing to connect is telling you."
 echo "  - telegram: a flatpak, and one only reaches the app menu once the session"
 echo "    has read /etc/profile.d/flatpak.sh - log out and back in if it is not"
 echo "    there. 'flatpak run org.telegram.desktop' works right now either way."
+echo "  - photon studio: a --user .flatpak bundle with no remote, so neither apt"
+echo "    nor 'flatpak update' upgrades it - re-run 'make apps' after a release."
