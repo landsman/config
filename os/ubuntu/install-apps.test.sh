@@ -116,7 +116,7 @@ run() { PATH="$BIN:$PATH" CODENAME=noble SUDO_USER=tester INSTALLED="$1" FPR="$2
 	FLATPAK_PRESENT="${3-org.telegram.desktop}" \
 	FLATPAK_APPS="${4-studio.tenzen.Photon org.telegram.desktop}" bash "$SCRIPT" 2>&1; }
 
-ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial"
+ALL="1password 1password-cli sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial"
 # The list minus one app, so a case can be "only this one is missing".
 without() { echo "$ALL" | tr ' ' '\n' | grep -vxF -e "${1:-}" -e "${2:-}" | tr '\n' ' '; }
 
@@ -144,6 +144,18 @@ check "debsig keyring lands under the key id" \
 check "debsig policy lands beside it" \
 	"$(test -f "$ROOT/etc/debsig/policies/AC2D62742012EA22/1password.pol" && echo yes)" "yes"
 check "installs exactly what was missing" "$(cat "$ROOT/apt-installed")" "1password"
+rm -rf "$ROOT"
+
+echo
+echo "== 1password-cli, from the same repo as the desktop app"
+setup
+out="$(run "$(without 1password-cli)" 3FEF9748469ADBE15DA7CA80AC2D62742012EA22)"
+check "succeeds" "$?" "0"
+contains "reuses the 1password repo" "$ROOT/etc/apt/sources.list.d/1password.list" \
+	"https://downloads.1password.com/linux/debian/amd64 stable main"
+check "debsig policy is set up for it too" \
+	"$(test -f "$ROOT/etc/debsig/policies/AC2D62742012EA22/1password.pol" && echo yes)" "yes"
+check "installs the CLI package" "$(cat "$ROOT/apt-installed")" "1password-cli"
 rm -rf "$ROOT"
 
 echo
