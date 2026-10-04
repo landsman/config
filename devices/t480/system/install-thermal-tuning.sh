@@ -4,6 +4,8 @@
 #   - RAPL PL1 cap at 20 W + max CPU freq cap at 2.5 GHz (systemd unit)
 #   - intel-undervolt with Core/Cache -100 mV, GPU -50 mV (built from source,
 #     systemd unit handles boot + resume re-apply)
+#   - the monitoring tools the T480 aliases wrap (intel-gpu-tools, lm-sensors,
+#     s-tui) — how you check the tune actually holds under load
 #
 # Idempotent: safe to re-run. Path-independent: it locates its own directory.
 #
@@ -18,7 +20,7 @@ fi
 
 SYS="$(cd "$(dirname "$0")" && pwd)"
 
-echo "==> [1/6] Installing packages (thinkfan, build deps)"
+echo "==> [1/6] Installing packages (thinkfan, build deps, monitoring)"
 apt-get update -qq
 apt-get install -y --no-install-recommends \
   thinkfan \
@@ -28,7 +30,10 @@ apt-get install -y --no-install-recommends \
   libsystemd-dev \
   git \
   cpufrequtils \
-  linux-cpupower
+  linux-cpupower \
+  intel-gpu-tools \
+  lm-sensors \
+  s-tui
 
 echo "==> [2/6] Copying configs to /etc"
 install -Dm644 "$SYS/etc/modprobe.d/thinkpad_acpi.conf"             /etc/modprobe.d/thinkpad_acpi.conf
