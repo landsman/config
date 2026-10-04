@@ -1,0 +1,65 @@
+kb.system-pulse: a separator setting for the bar label, and GB for memory
+
+The label is joined with a hard-coded space and memory reads "10.4G" / "GiB".
+This adds `"separator"` to the widget's shell.json entry (default " ", so the
+plugin looks as upstream until it is set) and spells memory as GB throughout.
+
+Base: KabirBhattarai/omarchy-system-pulse@d12eb18
+Applied by ../install-plugins.sh (make plugins), which pins that commit.
+
+diff --git a/BarWidget.qml b/BarWidget.qml
+index b9dd9e6..a1d2770 100644
+--- a/BarWidget.qml
++++ b/BarWidget.qml
+@@ -23,6 +23,7 @@ BarWidget {
+   readonly property real hotAt: Number(setting("hotAt", 88)) || 88
+   readonly property string middleAction: String(setting("middleAction", "omarchy-launch-or-focus-tui btop"))
+   readonly property bool iconOnly: Model.truthy(setting("iconOnly", false))
++  readonly property string separator: String(setting("separator", " "))
+ 
+   // ---- Sampled state -------------------------------------------------------
+   property var lastProbe: null          // latest parsed sysprobe snapshot
+@@ -72,18 +73,18 @@ BarWidget {
+   readonly property var labelParts: {
+     var parts = []
+     if (root.cpuPctValue >= 0 && root.showCpu) parts.push(Math.round(root.cpuPctValue) + "%")
+-    if (root.totalKb > 0 && root.showRam) parts.push(Model.fmtGb(root.usedKb) + "G")
++    if (root.totalKb > 0 && root.showRam) parts.push(Model.fmtGb(root.usedKb) + "GB")
+     if (primaryTemp && root.showTemp) parts.push(tempText())
+     return parts
+   }
+ 
+-  readonly property string labelText: root.labelParts.join(" ")
++  readonly property string labelText: root.labelParts.join(root.separator)
+ 
+   readonly property string tooltipText: {
+     if (!lastProbe) return "System pulse \u00b7 waiting for first sample"
+     var t = primaryTemp ? " \u00b7 " + (primaryTemp.label || primaryTemp.chip).toUpperCase() + " " + tempText() : ""
+     return "CPU " + Math.round(Math.max(0, root.cpuPctValue)) + "%"
+-      + " \u00b7 MEM " + Model.fmtGb(root.usedKb) + " / " + Model.fmtGb(root.totalKb) + "G"
++      + " \u00b7 MEM " + Model.fmtGb(root.usedKb) + " / " + Model.fmtGb(root.totalKb) + " GB"
+       + t
+       + " \u00b7 LOAD " + lastProbe.load1.toFixed(2)
+   }
+diff --git a/Panel.qml b/Panel.qml
+index eb6dc30..45aed30 100644
+--- a/Panel.qml
++++ b/Panel.qml
+@@ -216,7 +216,7 @@ Panel {
+                     }
+                     Text {
+                       anchors.baseline: memValueText.baseline
+-                      text: "G"
++                      text: "GB"
+                       color: root.muted
+                       font.family: root.bar.fontFamily
+                       font.pixelSize: Style.font.body
+@@ -422,7 +422,7 @@ Panel {
+                 anchors.right: parent.right
+                 anchors.verticalCenter: memCaption.verticalCenter
+                 text: Model.fmtGb(Model.usedMemKb(root.probe)) + " / "
+-                    + Model.fmtGb(root.probe ? root.probe.memTotalKb : 0) + " GiB"
++                    + Model.fmtGb(root.probe ? root.probe.memTotalKb : 0) + " GB"
+                 color: root.muted
+                 font.family: root.bar.fontFamily
+                 font.pixelSize: Style.font.caption
