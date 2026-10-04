@@ -1,7 +1,8 @@
 # T480 hardware aliases — same on every OS installed on this laptop.
 # Tools: intel-gpu-tools, lm-sensors, s-tui
-#   Ubuntu: sudo apt install intel-gpu-tools lm-sensors s-tui
-#   Arch:   sudo pacman -S intel-gpu-tools lm_sensors s-tui
+#   Ubuntu: installed by ../../system/install-thermal-tuning.sh (the stack
+#           these diagnose)
+#   Arch:   sudo pacman -S intel-gpu-tools lm_sensors s-tui (not scripted yet)
 # Not in the Brewfile: all three read Linux-only interfaces (i915 debugfs,
 # hwmon, RAPL), so they stay with the distro.
 
