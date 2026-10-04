@@ -67,9 +67,10 @@ capitalise to be "correct" about an identifier; reword so the identifier is not
 first: `be(auth): let User extend SoftDeletableEntity`, never `be(auth): User
 extends SoftDeletableEntity`.
 
-**A squash-merge writes the PR title as the commit subject**, so a PR title
-follows every rule here. That is the half that lands on the main branch and the
-half a local hook cannot see.
+**A squash-merge writes the PR title as the commit subject and the PR body as the
+commit body**, so both follow every rule here. That is the half that lands on the
+main branch and the half a local hook cannot see. The skill names the repo setting
+that makes this true, and what the wrong one leaks into history.
 
 Two things this does not change:
 
