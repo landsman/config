@@ -164,7 +164,10 @@ trap 'rm -rf "$TMP"' EXIT
 # channels honest about the same thing.
 check_fpr() {
 	local name="$1" file="$2" want="$3" got
-	got="$(gpg --show-keys --with-colons "$file" | awk -F: '/^fpr:/ { print $10; exit }')"
+	# Every primary key's fingerprint, one per line: a file carrying a second key
+	# fails the comparison rather than riding into the keyring on the first one's
+	# pin. Subkeys are skipped, since the primary key checked here signs them.
+	got="$(gpg --show-keys --with-colons "$file" | awk -F: '/^pub:/ { p = 1; next } p && /^fpr:/ { print $10; p = 0 }')"
 	if [ "$got" != "$want" ]; then
 		echo "$name: key fingerprint mismatch" >&2
 		echo "  expected $want" >&2

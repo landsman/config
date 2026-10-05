@@ -37,7 +37,8 @@ fi; }
 
 # Build a stub PATH. INSTALLED lists packages dpkg-query should report, and
 # FPR is what gpg claims every key's fingerprint is — set it to something the
-# script does not expect and the pin should fire.
+# script does not expect and the pin should fire. Several, space-separated, make
+# a file that carries more than one key.
 setup() {
 	ROOT="$(mktemp -d)"
 	BIN="$ROOT/bin"
@@ -78,7 +79,7 @@ echo amd64' >"$BIN/dpkg"
 	cat >"$BIN/gpg" <<-STUB
 		#!/usr/bin/env bash
 		case "\$1" in
-		--show-keys) echo "fpr:::::::::\$FPR:" ;;
+		--show-keys) for f in \$FPR; do echo "pub:-:4096:1:x:::::::"; echo "fpr:::::::::\$f:"; done ;;
 		--dearmor) for a in "\$@"; do [ "\$prev" = "--output" ] && echo dearmoured >"\$a"; prev="\$a"; done ;;
 		esac
 	STUB
@@ -166,6 +167,15 @@ check "refuses to continue" "$?" "1"
 case "$out" in *"fingerprint mismatch"*) ok "says why" ;; *) fail "says why" ;; esac
 if [ -f "$ROOT/apt-installed" ]; then fail "installs nothing"; else ok "installs nothing"; fi
 check "and adds no repo" "$(test -d "$ROOT/etc/apt" && echo yes || echo no)" "no"
+rm -rf "$ROOT"
+
+echo
+echo "== the right key with a second one beside it"
+setup
+out="$(run "$(without 1password)" "3FEF9748469ADBE15DA7CA80AC2D62742012EA22 0000000000000000000000000000000000000000")"
+check "refuses to continue" "$?" "1"
+case "$out" in *"fingerprint mismatch"*) ok "says why" ;; *) fail "says why" ;; esac
+if [ -f "$ROOT/apt-installed" ]; then fail "installs nothing"; else ok "installs nothing"; fi
 rm -rf "$ROOT"
 
 echo
