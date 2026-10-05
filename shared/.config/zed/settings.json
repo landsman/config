@@ -32,7 +32,12 @@
       "type": "registry"
     }
   },
-  "icon_theme": "JetBrains New UI Icons (Dark)",
+  // Copilot reads its token from the login keychain and asks for the password
+  // on every start. No edit predictions at all also keeps client code local.
+  "features": {
+    "edit_prediction_provider": "none"
+  },
+  "icon_theme":"JetBrains New UI Icons (Dark)",
   "agent": {
     "threads_sidebar": {
       "position": "right"
