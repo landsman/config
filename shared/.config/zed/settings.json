@@ -18,6 +18,11 @@
     "toml": true,
     "html": true
   },
+  // The java extension claims *.gradle.kts as "Gradle KTS", whose highlights
+  // query fails to load (Invalid node type "null"), so the file renders plain.
+  "file_types": {
+    "Kotlin": ["*.gradle.kts"]
+  },
   "agent_servers": {
     "claude-acp": {
       "default_config_options": {
