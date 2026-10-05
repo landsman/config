@@ -107,6 +107,12 @@ brew "television"
 brew "hashicorp/tap/terraform"
 # Terminal multiplexer
 brew "tmux"
+# Tree-sitter CLI — parse a file and run a highlight or outline query against a
+# grammar, to tell an editor's broken query from a file that does not parse
+brew "tree-sitter-cli"
+# Formatter and linter for tree-sitter queries (.scm), what editor extensions
+# such as Zed's run in their own `fmt`
+brew "ts_query_ls"
 # Extremely fast Python package installer and resolver, written in Rust
 brew "uv"
 # Blazing fast terminal file manager written in Rust, based on async I/O

@@ -1,0 +1,9 @@
+# Global mise tools, for any directory without a mise.toml of its own; a
+# project's own pin still wins inside it.
+#
+# Rust is here rather than in the Brewfile because mise installs it through
+# rustup, which is what extra targets and components need (Zed extensions build
+# for wasm32). Without a global version the cargo shim mise already put on PATH
+# refuses to run at all ("No version is set for shim: cargo").
+[tools]
+rust = "stable"
