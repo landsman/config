@@ -125,7 +125,7 @@ echo "== every package already present"
 setup
 out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 13 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 14 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
