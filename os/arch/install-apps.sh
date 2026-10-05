@@ -23,8 +23,11 @@ set -euo pipefail
 
 # The AUR packages this repo installs on Arch. claude-desktop repackages
 # Anthropic's official .deb for pacman (see the README); hyprmon-bin is the
-# monitor TUI whose profiles are stowed under .config/hyprmon.
-PACKAGES=(claude-desktop hyprmon-bin)
+# monitor TUI whose profiles are stowed under .config/hyprmon; 1password and
+# 1password-cli are the app and `op`, whose Brewfile cask is macOS-only. Both
+# 1Password PKGBUILDs verify the vendor's signature against the same fingerprint
+# the Kubuntu installer pins, so that pin holds here too, just inside makepkg.
+PACKAGES=(claude-desktop hyprmon-bin 1password 1password-cli)
 
 if ! command -v yay >/dev/null; then
 	echo "yay not found - Arch here installs AUR apps with it, and Omarchy ships it." >&2

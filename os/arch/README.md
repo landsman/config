@@ -60,8 +60,8 @@ list pins.
 ## Packages
 
 [`install-apps.sh`](install-apps.sh) installs these, because the `Brewfile`
-cannot: the monitor tool is Linux-only and the GUI app is one Homebrew ships
-only as a macOS cask, and both are AUR builds, which Homebrew has no equivalent
+cannot: the monitor tool is Linux-only and the GUI apps and `op` are ones
+Homebrew ships only as macOS casks, and all of them are AUR builds, which Homebrew has no equivalent
 of. `make apps` runs it right after `brew bundle`, the same `os/$ID` detection
 that picks the stow package.
 
@@ -69,6 +69,8 @@ that picks the stow package.
 |-----|---------|--------|
 | Claude Desktop | `claude-desktop` | AUR — repackages Anthropic's official `.deb`, see below |
 | hyprmon | `hyprmon-bin` | AUR — monitor-manager TUI; the stowed `.config/hyprmon/profiles` are its config |
+| 1Password | `1password` | AUR — 1Password's own tarball, signature checked, see below |
+| 1Password CLI | `1password-cli` | AUR — `op`, 1Password's own zip, signature checked, see below |
 
 Unlike the [Kubuntu installer](../ubuntu/README.md) this adds no apt repo and
 pins no key: an AUR package is built from a PKGBUILD by `makepkg`, so the trust
@@ -78,6 +80,15 @@ the pacman half, so the script never elevates, the opposite of the apt one. It
 needs an AUR helper on `PATH` — Omarchy ships `yay` — and stops with a clear
 message on a box without one. [`install-apps.test.sh`](install-apps.test.sh)
 stubs `yay` and `pacman`, so it runs on any machine and `make qa` includes it.
+
+The two 1Password packages are the exception to "nothing to pin": both
+PKGBUILDs list `validpgpkeys=('3FEF9748469ADBE15DA7CA80AC2D62742012EA22')`, the
+same fingerprint the Kubuntu installer pins, and `makepkg` refuses a download
+whose signature does not verify against it. The pin lives in the recipe, not in
+this repo, so it is worth a glance when the AUR maintainer changes. Omarchy
+offers the same two packages from its menu (`omarchy-install-service-1password`,
+which also adds the Chromium extension); on a box where that already ran, the
+installed check above skips them.
 
 `claude-desktop` is the AUR counterpart to the Kubuntu row — same app, a
 different route to it. The Kubuntu side takes

@@ -54,16 +54,16 @@ run() { PATH="$BIN" INSTALLED="$1" YAY_LOG="$ROOT/yay-installed" "$BASH_BIN" "$S
 
 echo "== every package already present"
 setup
-out="$(run "claude-desktop hyprmon-bin")"
+out="$(run "claude-desktop hyprmon-bin 1password 1password-cli")"
 check "exits 0" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== AUR apps: all 2 installed"
+check "says so" "$(echo "$out" | tail -1)" "== AUR apps: all 4 installed"
 if [ -f "$ROOT/yay-installed" ]; then fail "yay never ran"; else ok "yay never ran"; fi
 rm -rf "$ROOT"
 
 echo
 echo "== one already there, one missing"
 setup
-out="$(run "hyprmon-bin")"
+out="$(run "hyprmon-bin 1password 1password-cli")"
 check "succeeds" "$?" "0"
 check "yay is asked for exactly the missing one" "$(tr '\n' ' ' <"$ROOT/yay-installed")" "claude-desktop "
 rm -rf "$ROOT"
@@ -73,7 +73,7 @@ echo "== nothing present"
 setup
 out="$(run "")"
 check "succeeds" "$?" "0"
-check "yay gets both, in PACKAGES order" "$(tr '\n' ' ' <"$ROOT/yay-installed")" "claude-desktop hyprmon-bin "
+check "yay gets all of them, in PACKAGES order" "$(tr '\n' ' ' <"$ROOT/yay-installed")" "claude-desktop hyprmon-bin 1password 1password-cli "
 rm -rf "$ROOT"
 
 echo
