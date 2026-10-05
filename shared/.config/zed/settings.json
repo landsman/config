@@ -29,8 +29,10 @@
   },
   "icon_theme": "JetBrains New UI Icons (Dark)",
   "agent": {
+    "threads_sidebar": {
+      "position": "right"
+    },
     "dock": "right",
-    "sidebar_side": "right",
     "favorite_models": [],
     "model_parameters": []
   },
