@@ -5,5 +5,12 @@
 # rustup, which is what extra targets and components need (Zed extensions build
 # for wasm32). Without a global version the cargo shim mise already put on PATH
 # refuses to run at all ("No version is set for shim: cargo").
+#
+# The global version reaches rustup as RUSTUP_TOOLCHAIN, which rustup ranks above
+# a project's rust-toolchain.toml, and mise does not read that file unless told
+# to. Without the setting, every repo pinned that way builds with stable instead.
+[settings]
+idiomatic_version_file_enable_tools = ["rust"]
+
 [tools]
 rust = "stable"
