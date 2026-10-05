@@ -37,7 +37,8 @@ fi; }
 
 # Build a stub PATH. INSTALLED lists packages dpkg-query should report, and
 # FPR is what gpg claims every key's fingerprint is — set it to something the
-# script does not expect and the pin should fire.
+# script does not expect and the pin should fire. Several, space-separated, make
+# a file that carries more than one key.
 setup() {
 	ROOT="$(mktemp -d)"
 	BIN="$ROOT/bin"
@@ -78,7 +79,7 @@ echo amd64' >"$BIN/dpkg"
 	cat >"$BIN/gpg" <<-STUB
 		#!/usr/bin/env bash
 		case "\$1" in
-		--show-keys) echo "fpr:::::::::\$FPR:" ;;
+		--show-keys) for f in \$FPR; do echo "pub:-:4096:1:x:::::::"; echo "fpr:::::::::\$f:"; done ;;
 		--dearmor) for a in "\$@"; do [ "\$prev" = "--output" ] && echo dearmoured >"\$a"; prev="\$a"; done ;;
 		esac
 	STUB
@@ -116,7 +117,7 @@ run() { PATH="$BIN:$PATH" CODENAME=noble SUDO_USER=tester INSTALLED="$1" FPR="$2
 	FLATPAK_PRESENT="${3-org.telegram.desktop}" \
 	FLATPAK_APPS="${4-studio.tenzen.Photon org.telegram.desktop}" bash "$SCRIPT" 2>&1; }
 
-ALL="1password sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial"
+ALL="1password 1password-cli sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial"
 # The list minus one app, so a case can be "only this one is missing".
 without() { echo "$ALL" | tr ' ' '\n' | grep -vxF -e "${1:-}" -e "${2:-}" | tr '\n' ' '; }
 
@@ -124,7 +125,7 @@ echo "== every package already present"
 setup
 out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 13 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 14 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -147,6 +148,18 @@ check "installs exactly what was missing" "$(cat "$ROOT/apt-installed")" "1passw
 rm -rf "$ROOT"
 
 echo
+echo "== 1password-cli, from the same repo as the desktop app"
+setup
+out="$(run "$(without 1password-cli)" 3FEF9748469ADBE15DA7CA80AC2D62742012EA22)"
+check "succeeds" "$?" "0"
+contains "reuses the 1password repo" "$ROOT/etc/apt/sources.list.d/1password.list" \
+	"https://downloads.1password.com/linux/debian/amd64 stable main"
+check "debsig policy is set up for it too" \
+	"$(test -f "$ROOT/etc/debsig/policies/AC2D62742012EA22/1password.pol" && echo yes)" "yes"
+check "installs the CLI package" "$(cat "$ROOT/apt-installed")" "1password-cli"
+rm -rf "$ROOT"
+
+echo
 echo "== a key whose fingerprint does not match"
 setup
 out="$(run "$(without 1password)" 0000000000000000000000000000000000000000)"
@@ -154,6 +167,15 @@ check "refuses to continue" "$?" "1"
 case "$out" in *"fingerprint mismatch"*) ok "says why" ;; *) fail "says why" ;; esac
 if [ -f "$ROOT/apt-installed" ]; then fail "installs nothing"; else ok "installs nothing"; fi
 check "and adds no repo" "$(test -d "$ROOT/etc/apt" && echo yes || echo no)" "no"
+rm -rf "$ROOT"
+
+echo
+echo "== the right key with a second one beside it"
+setup
+out="$(run "$(without 1password)" "3FEF9748469ADBE15DA7CA80AC2D62742012EA22 0000000000000000000000000000000000000000")"
+check "refuses to continue" "$?" "1"
+case "$out" in *"fingerprint mismatch"*) ok "says why" ;; *) fail "says why" ;; esac
+if [ -f "$ROOT/apt-installed" ]; then fail "installs nothing"; else ok "installs nothing"; fi
 rm -rf "$ROOT"
 
 echo

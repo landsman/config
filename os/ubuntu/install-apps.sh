@@ -66,7 +66,7 @@ FLATHUB_KEY_FPR="6E5C05D979C76DAF93C081354184DD4D907A7CAE"
 # docker-ce is what "is Docker here?" comes down to. Two of them need no vendor
 # repo at all — Ubuntu ships them — but they belong in the same list, because
 # what this script answers is "are the apps this repo names here yet".
-PACKAGES=(1password sublime-text dbeaver-ce docker-ce tailscale discord
+PACKAGES=(1password 1password-cli sublime-text dbeaver-ce docker-ce tailscale discord
 	google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial)
 
 # The apps that come from Flathub instead, by app id. Telegram is the only one
@@ -164,7 +164,10 @@ trap 'rm -rf "$TMP"' EXIT
 # channels honest about the same thing.
 check_fpr() {
 	local name="$1" file="$2" want="$3" got
-	got="$(gpg --show-keys --with-colons "$file" | awk -F: '/^fpr:/ { print $10; exit }')"
+	# Every primary key's fingerprint, one per line: a file carrying a second key
+	# fails the comparison rather than riding into the keyring on the first one's
+	# pin. Subkeys are skipped, since the primary key checked here signs them.
+	got="$(gpg --show-keys --with-colons "$file" | awk -F: '/^pub:/ { p = 1; next } p && /^fpr:/ { print $10; p = 0 }')"
 	if [ "$got" != "$want" ]; then
 		echo "$name: key fingerprint mismatch" >&2
 		echo "  expected $want" >&2
@@ -224,9 +227,13 @@ INSTALL=()
 for pkg in ${MISSING[@]+"${MISSING[@]}"}; do
 	echo "==> Configuring $pkg"
 	case "$pkg" in
-	1password)
-		setup_1password
-		INSTALL+=(1password)
+	1password | 1password-cli)
+		# The desktop app and the CLI come from the same repo and debsig policy.
+		# The Brewfile installs the CLI on the Mac; its cask is macOS-only, so
+		# Linux takes it from apt — the same split stripe already uses. Set the
+		# repo up once even when a fresh machine is missing both.
+		[ -n "${ONEPASSWORD_READY:-}" ] || { setup_1password; ONEPASSWORD_READY=1; }
+		INSTALL+=("$pkg")
 		;;
 	sublime-text)
 		add_repo sublime-text "$SUBLIME_KEY_URL" "$SUBLIME_KEY_FPR" \
