@@ -82,6 +82,7 @@
       "Bash(az resource list:*)",
       "WebSearch",
       "WebFetch(domain:raw.githubusercontent.com)",
+      "mcp__forgejo__dispatch_workflow",
       "mcp__atlassian__getJiraIssue",
       "mcp__atlassian__searchJiraIssuesUsingJql",
       "mcp__azure-devops__pipelines_get_build_changes",
