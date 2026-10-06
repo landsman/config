@@ -16,6 +16,7 @@ mistake, not after.
 | [Commit messages](rules/commit-messages.md) | writing a commit or a PR title |
 | [Linking to work](rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
+| [Pushing to a pull request](rules/pushing-to-a-pr.md) | pushing to a branch whose PR is older than fifteen minutes |
 | [Worktrees](rules/worktrees.md) | an agent is about to change a repo |
 | [Everything as code](rules/everything-as-code.md) | a machine or a service is about to be changed |
 | [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
