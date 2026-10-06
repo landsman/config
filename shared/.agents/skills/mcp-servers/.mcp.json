@@ -8,6 +8,10 @@
       "type": "http",
       "url": "https://mcp.vaadin.com/docs"
     },
+    "betterstack": {
+      "type": "http",
+      "url": "https://mcp.betterstack.com"
+    },
     "azure-devops": {
       "type": "stdio",
       "command": "sh",

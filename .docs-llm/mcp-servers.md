@@ -98,6 +98,24 @@ Docs: <https://vaadin.com/docs/latest/building-apps/mcp/supported-tools/claude-c
 The URL is `https://mcp.vaadin.com/docs`, **not** `/mcp` — that path fails to
 connect. No auth.
 
+## Better Stack
+
+Docs: <https://betterstack.com/docs/getting-started/integrations/mcp/>
+
+OAuth against the Better Stack account, in the browser through `/mcp`, so
+nothing secret is tracked. Until then the server reads `! Needs authentication`.
+Which team it sees is chosen at sign-in.
+
+It reads **and writes**: incidents can be acknowledged and resolved, monitors,
+heartbeats and dashboards created. Where those are managed in Terraform — the
+homelab's `pollos/infra` — something created through the server is drift the
+next apply knows nothing about, so it is for reading and triage. No read-only
+mode exists; a connection can be narrowed with the `X-MCP-Tools-Only` or
+`X-MCP-Tools-Except` header.
+
+A project that lists the same server in its own `.mcp.json` loads it a second
+time under its plain name; harmless, same URL.
+
 ## Azure DevOps
 
 Microsoft's own server, [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp).
