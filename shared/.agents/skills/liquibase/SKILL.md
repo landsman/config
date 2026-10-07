@@ -1,6 +1,6 @@
 ---
 name: liquibase
-description: Load before writing, editing, reviewing or resolving a merge conflict in a Liquibase changelog or changeset — YAML, XML or formatted SQL, including `sqlFile` changes, labels and contexts. Carries what makes a changeset immutable, the traps that pass review as a pure addition (stolen attributes, split dollar-quoted bodies, moved files), environment filtering, and how to prove a changelog applies before it ships.
+description: Load before writing, editing, reviewing or resolving a merge conflict in a Liquibase changelog or changeset — YAML, XML or formatted SQL, including `sqlFile` changes, labels and contexts. Carries what makes a changeset immutable and the one edit an applied changeset can take (a comment, through `validCheckSum`, without dropping any database), the traps that pass review as a pure addition (stolen attributes, split dollar-quoted bodies, moved files), environment filtering, and how to prove a changelog applies before it ships.
 ---
 
 # Liquibase
@@ -13,6 +13,7 @@ A changeset that has run anywhere is history. Every trap below either rewrites t
 
 - **Its identity is `id` + `author` + file path, and its content is checksummed.** Editing an applied changeset fails validation on every database that ran it. The fix goes into a new changeset.
 - **Never add `validCheckSum` to make an edit pass.** It hides from every environment that the changeset now does something else.
+- **The one exception is an edit that changes nothing the database runs** — a comment or whitespace in an `sqlFile`, whose checksum covers the whole file. Do not drop and recreate databases for it. Put the old checksum on the changeset as `validCheckSum`, with a comment saying only comments changed, and every database boots as it is, a teammate's local one included. **Read that value off a database that ran the old file** (`select id, md5sum from databasechangelog where id in (…)`), never compute it, because the algorithm is versioned (the `9:` prefix). Before trusting one reading for every database, check with `git log` that the file did not change between the versions they ran. A suite on an empty Testcontainers database cannot prove the old value is accepted, so the first deploy onto an existing database is that test. `update … set md5sum = null` does the same for one database only; keep it for a one-off rescue.
 - **Moving or renaming a changelog file changes the identity.** Liquibase then re-runs everything in it, and fails on "already exists". Set `logicalFilePath` before moving it.
 - **Views, functions and procedures** are the exception: one `create or replace` changeset with `runOnChange: true`, edited in place.
 - **The author is a person**, taken from the git identity, not a placeholder shared by the whole team.
@@ -60,7 +61,7 @@ A rolling deploy, or Liquibase running at application startup, applies the migra
 
 ## Review checklist
 
-- No applied changeset edited, no `validCheckSum` added, no changelog file moved without `logicalFilePath`?
+- No applied changeset edited, no changelog file moved without `logicalFilePath`? A `validCheckSum` only for a comment-only edit, with a value read off a database?
 - New changeset after the last line of the previous one, with the neighbours unchanged?
 - `splitStatements: false` wherever a dollar-quoted body appears?
 - One DDL statement per changeset on MySQL/MariaDB, concurrent indexes outside a transaction?
