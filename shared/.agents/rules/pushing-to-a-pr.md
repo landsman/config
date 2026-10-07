@@ -6,10 +6,21 @@ as a PR looks right, often while an agent is still working on the branch. A push
 after that lands on a branch nobody will merge again, and the work is silently not
 on the main branch.
 
-    gh pr view <n> --json state,mergedAt           # GitHub
-    glab mr view <n> -F json | jq .state           # GitLab
-    # Forgejo: the MCP's get_pull_request_by_index, or
-    curl -s "$FORGEJO/api/v1/repos/<owner>/<repo>/pulls/<n>" | jq .merged
+How to check depends on the forge the repo lives on, so read it from
+`git remote get-url origin` first rather than reaching for `gh` by habit — `gh`
+against a Forgejo or Azure DevOps remote fails, and a failed check reads too easily
+as "nothing to worry about".
+
+| Remote host | Check | Merged means |
+|-------------|-------|--------------|
+| `github.com` | `gh pr view <n> --json state,mergedAt` | `"state": "MERGED"` |
+| GitLab | `glab mr view <n> -F json \| jq .state` | `"merged"` |
+| Forgejo, Gitea | the MCP's `get_pull_request_by_index`, or `curl -s "$FORGEJO/api/v1/repos/<owner>/<repo>/pulls/<n>" \| jq .merged` | `true` |
+| `dev.azure.com`, `*.visualstudio.com` | `az repos pr show --id <n> --query status -o tsv` | `completed` |
+
+The words differ too: Azure DevOps calls a merged pull request *completed* and a
+closed one *abandoned*, and Forgejo's `state` is only `open` or `closed` — a merged
+one is `closed` with `merged: true`, so check `merged`, not `state`.
 
 Within the first fifteen minutes, push without checking.
 
