@@ -26,6 +26,11 @@
       "enabled": true,
       "type": "remote"
     },
+    "betterstack": {
+      "url": "https://mcp.betterstack.com",
+      "enabled": true,
+      "type": "remote"
+    },
     "azure-devops": {
       "command": [
         "sh",
