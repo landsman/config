@@ -19,6 +19,27 @@ What this covers, not only servers:
 - a cron job, a timer, a backup;
 - a DNS record, a firewall rule, a setting toggled in a web console.
 
+## My own machines: the config repo, nothing device-only
+
+The same goes for the laptops themselves. **A setting that lives only on one
+device is not allowed** — an agent hook, a terminal or editor setting, a shell
+alias, an app preference. It goes into `~/projects/landsman/config`: the shared
+config when it belongs everywhere, that host's device package when it really
+differs per machine.
+
+That includes the places that feel private and temporary: a
+`settings.local.json`, a `.claude/` in someone else's repo, a file under
+`~/Library`. Those are exactly where it goes missing. A Claude Code `Stop` hook
+in one client repo's untracked `.claude/settings.local.json` once raised a
+second notification on every turn. Nothing in the config repo explained it,
+so it took a process trace to find.
+
+So when I ask for something on a machine, the change is a commit in the config
+repo that installs it, never an edit in place. When you find one already
+sitting on a device, say so, and move it into the repo or delete it. The one
+exception is a secret, which goes to 1Password and is referenced from the
+repo.
+
 ## Doing it in the right order
 
 Write the code, then run it — that way what ran is what is in the repo. When
