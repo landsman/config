@@ -1,6 +1,6 @@
 ---
 name: terse-prose
-description: Load before writing a code comment, a config comment, a PR or MR description, an issue, or a reply that explains a change. Carries how to cut an explanation down to its core so it is shorter and explains more.
+description: Load before writing a code comment, a config comment, a PR or MR description, an issue, an error message, release notes, or a reply that explains a change. Carries how to cut an explanation down to its core so it is shorter and explains more.
 trigger-keywords: comment*, komentář*, PR description, PR body, popis PR, error message, hlášk*, release notes
 ---
 
@@ -30,6 +30,10 @@ the PR below had to answer, and it was the one it left out.)
 - **Sections with one line in them.** A PR is not a form. Headings only when there
   are three or more real parts.
 - **What was not done**, unless a reviewer would otherwise ask for it. Then one line.
+- **Mannered phrasing.** A metaphor where a plain statement exists: "a dial worth
+  turning" for "a parameter worth varying", "earns its keep" for "is still
+  needed", "the beating heart of", "hums along". It makes the reader decode what
+  the writer could have said, and drags in meanings nobody chose.
 
 ## Code comments
 
@@ -68,9 +72,29 @@ that is three short paragraphs and no headings.
     The test binds the prod config the way Boot does and runs the real valve; it
     fails on the old config.
 
+**When deploying it is not just a deploy**, add how to release: migrations and
+their order, a config value or secret to set first, a flag, the order across
+services, what to watch afterwards, how to roll back. That is the part a reviewer
+cannot see in the diff. A plain deploy gets no such line.
+
 The version that shipped first had five headings, a bullet list of the test's
 internals and a section on what was skipped — and still did not say where the
 host comes from.
+
+## Error messages
+
+What happened, and what the reader can do next — "The file is larger than 10 MB.
+Choose a smaller one", not "Upload failed". No blame words (invalid, illegal,
+wrong), no humour, no exclamation mark, and keep what the user typed so they can
+fix it rather than retype it. The text goes through a localisation key — see the
+localisation rule.
+
+## Release notes
+
+For the people upgrading, never a dump of commit subjects. Breaking changes
+first, each with what breaks and the steps to migrate; then the rest grouped as
+Added, Changed, Deprecated, Removed, Fixed, Security. Newest version on top, an
+ISO date beside it.
 
 ## Check before sending
 
