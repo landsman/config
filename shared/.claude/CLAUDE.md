@@ -25,6 +25,7 @@ mistake, not after.
 | [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
 | [Writing for agents](rules/writing-for-agents.md) | writing a rule, a skill or a reference an agent loads: a short list, details opened one at a time — scoped, loads itself |
 | [Shell in a config file](rules/shell-in-config.md) | shell goes inside a YAML or a Makefile |
+| [The database is the system of record](rules/system-of-record.md) | a cache, a concurrent write or an outgoing event gets designed |
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Browser automation](rules/browser-automation.md) | a web app gets opened to check or drive it |
 | [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
