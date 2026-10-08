@@ -32,8 +32,10 @@ def pattern(words: list[str]) -> re.Pattern:
 
 def loaded(transcript: str | None) -> set[str]:
     try:
-        lines = Path(transcript).read_text(encoding="utf-8").splitlines() if transcript else []
-    except OSError:
+        # A transcript runs to a hundred MB; parse only the lines that can hold a Skill call.
+        with open(transcript, encoding="utf-8") as f:
+            lines = [line for line in f if '"Skill"' in line]
+    except (OSError, TypeError):
         return set()
     names = set()
     for line in lines:
@@ -64,7 +66,8 @@ def main() -> None:
             continue
         if words and pattern(words).search(prompt):
             hits.append(name)
-    hits = [h for h in dict.fromkeys(hits) if h not in loaded(data.get("transcript_path"))]
+    done = loaded(data.get("transcript_path")) if hits else set()
+    hits = [h for h in dict.fromkeys(hits) if h not in done]
     if hits:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
