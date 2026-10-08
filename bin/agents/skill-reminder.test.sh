@@ -22,7 +22,7 @@ check() { # check <name> <expected substring, or "" for silence> <prompt> [trans
 
 mkdir -p "$tmp/.claude/skills/git" "$tmp/.claude/skills/pg" "$tmp/.claude/skills/quiet"
 printf -- '---\nname: commit-messages\ntrigger-keywords: commit*, pull request\n---\n' > "$tmp/.claude/skills/git/SKILL.md"
-printf -- '---\nname: postgres\ntrigger-keywords: postgres, index*\n---\n' > "$tmp/.claude/skills/pg/SKILL.md"
+printf -- '---\nname: postgres\ntrigger-keywords: postgres, index*, rešerš*\n---\n' > "$tmp/.claude/skills/pg/SKILL.md"
 printf -- '---\nname: quiet\ndescription: no keywords\n---\n' > "$tmp/.claude/skills/quiet/SKILL.md"
 
 check "whole word" "load the postgres skill" "why is Postgres slow"
@@ -30,6 +30,7 @@ check "a prefix keyword catches an inflected form" "commit-messages" "napiš zpr
 check "a multi-word keyword" "commit-messages" "open a pull request"
 check "no partial word without *" "" "postgresql is fine"
 check "no match inside a word" "" "the recommit flag"
+check "a keyword with diacritics matches a prompt without" "load the postgres skill" "udelej reserse"
 check "unrelated prompt is silent" "" "hello"
 
 printf '%s\n' '{"message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"postgres"}}]}}' > "$tmp/t.jsonl"

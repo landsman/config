@@ -4,9 +4,11 @@
 A skill opts in with `trigger-keywords:` in its SKILL.md frontmatter, comma
 separated, matched case-insensitively as whole words. A trailing `*` matches
 any ending, because Czech inflects: `commit*` catches "commitu" and "commity",
-where a plain `commit` would not. Only user skills (~/.claude/skills, which is
-~/.agents/skills) and the project's own .claude/skills are read; a skill already
-loaded this session is not reminded of again.
+where a plain `commit` would not. Diacritics are dropped on both sides, so
+`komentář*` also catches "komentar" typed without them. Only user skills
+(~/.claude/skills, which is ~/.agents/skills) and the project's own
+.claude/skills are read; a skill already loaded this session is not reminded of
+again.
 
 Adapted from skill-keyword-reminder in github.com/fprochazka/claude-code-plugins.
 """
@@ -14,18 +16,22 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from pathlib import Path
+
+
+def fold(text: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
 
 
 def keywords(skill_md: Path) -> tuple[str, list[str]]:
     m = re.match(r"---\n(.*?)\n---", skill_md.read_text(encoding="utf-8"), re.S)
     meta = dict(line.split(":", 1) for line in (m.group(1) if m else "").splitlines() if ":" in line and not line.startswith(" "))
     name = meta.get("name", skill_md.parent.name).strip()
-    return name, [k.strip() for k in meta.get("trigger-keywords", "").split(",") if k.strip()]
+    return name, [fold(k.strip()) for k in meta.get("trigger-keywords", "").split(",") if k.strip()]
 
 
 def pattern(words: list[str]) -> re.Pattern:
-    # \w is Unicode in Python 3, so "č" counts as a letter and not as a boundary.
     parts = [re.escape(w[:-1]) + r"\w*" if w.endswith("*") else re.escape(w) + r"(?!\w)" for w in words]
     return re.compile(r"(?<!\w)(?:" + "|".join(parts) + ")", re.I)
 
@@ -54,7 +60,7 @@ def main() -> None:
         data = json.load(sys.stdin)
     except json.JSONDecodeError:
         return
-    prompt = data.get("prompt", "")
+    prompt = fold(data.get("prompt", ""))
     dirs = [Path.home() / ".claude" / "skills"]
     if os.environ.get("CLAUDE_PROJECT_DIR"):
         dirs.append(Path(os.environ["CLAUDE_PROJECT_DIR"]) / ".claude" / "skills")
