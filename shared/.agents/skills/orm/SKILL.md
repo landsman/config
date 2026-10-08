@@ -1,6 +1,6 @@
 ---
 name: orm
-description: Load before writing or reviewing code that goes through Hibernate/JPA (Spring Data included) or Doctrine ORM (Symfony, Nette) — a repository method or query (native SQL included), an entity association or its fetch type, a list or paginated endpoint, a loop over entities, a serializer or template walking relations, an import or batch job. Carries the N+1, fetch-plan, pagination and batch-write traps, the bar for native SQL, the facts that changed between versions, and a review checklist.
+description: Load before writing or reviewing code that goes through Hibernate/JPA (Spring Data included) or Doctrine ORM (Symfony, Nette) — a repository method or query (native SQL included), an entity association or its fetch type, a list or paginated endpoint, a loop over entities, a serializer or template walking relations, an import or batch job, a `@Transactional` propagation or an after-commit event listener. Carries the N+1, fetch-plan, pagination and batch-write traps, how many pooled connections one thread holds, the bar for native SQL, the facts that changed between versions, and a review checklist.
 ---
 
 # Hibernate and Doctrine
@@ -94,6 +94,18 @@ Doctrine's EntityManager lives per-request. Long-running processes (daemons, wor
 - **The aspect that enables it runs inside the transaction.** Order it after the transaction advice, which in Spring means a higher `@Order` value than `@EnableTransactionManagement(order = …)`.
 - **`disableFilter` lasts for the rest of the transaction,** not just one query. A helper that switches it off leaves it off for every later query of its caller. Declare the exemption in the mapping (a read-only entity) instead. Doctrine's `$em->getFilters()->disable()` does the same for the rest of the request.
 
+## One pooled connection per thread
+
+A thread that holds a connection and asks the pool for another is the whole deadlock: ten such threads hold a pool of ten and each waits for an eleventh, until `connection-timeout` (Hikari: 30 s). No single annotation shows it, so count. Spring with Hibernate only; Doctrine's DBAL keeps one connection per request and nests transactions as savepoints.
+
+- **The connection goes back when the EntityManager closes, not at commit.** Spring's `HibernateJpaVendorAdapter` sets `hibernate.connection.handling_mode` to `DELAYED_ACQUISITION_AND_HOLD`.
+- **`AFTER_COMMIT` listeners run before that close.** `processCommit` runs the synchronizations, `@TransactionalEventListener` included, and only then `cleanupAfterCompletion`. A transaction a listener opens is therefore the thread's second connection, and a `REQUIRES_NEW` inside it the third.
+- **`REQUIRES_NEW` inside an open transaction is one connection more**, for as long as the inner one runs. Use it for a commit that must survive the caller (an inbox row, a claim), and say which in a comment.
+- **No network inside a transaction.** SMTP, HTTP, a provider SDK: claim in one short transaction, call with none open, record the outcome in another. A `@Transactional` method that sends mail pins a connection for the conversation, and before commit, so a rollback sends a link to nothing.
+- **A slow listener leaves the committing thread.** Hand the work to a bounded executor (Spring Boot's `applicationTaskExecutor`) with no transaction on the listener; there each short transaction is the only connection held. A short database-only listener may stay synchronous and pay the second connection for milliseconds.
+- **Make it fail a test.** Wrap the `DataSource` in integration tests (`DelegatingDataSource`, a `ThreadLocal` counter on `getConnection` and on the returned connection's `close`) and fail when a thread asks while holding one, outside an allow-list that says why per entry. Match the allow-list on the class name without the `$$SpringCGLIB$$` suffix: the transaction interceptor takes the connection in the proxy's frame, before the class's own method is on the stack.
+- **And watch it in production.** Alert on `hikaricp_connections_pending` above zero for a minute and on any rise of `hikaricp_connections_timeout_total`; `leak-detection-threshold` logs the stack of whoever holds one across slow work.
+
 ## Batches: bounded memory, batched writes
 
 Reading:
@@ -144,6 +156,7 @@ Production fails when fixtures omit NULLs:
 - Entities mapped to DTOs inside the service transaction? No `@Transactional` and no entity reads in controllers?
 - No `open-in-view`, `enable_lazy_load_no_trans`, or `EAGER` used as bandaids?
 - Filtered reads inside a transaction, failing loudly without one? No `disableFilter` in a helper?
+- One pooled connection per thread? No `REQUIRES_NEW` or after-commit transaction without a reason, no network call inside a transaction or on a listener's committing thread?
 - Loops stream, flush, clear, and commit per chunk? Writes batched (no `IDENTITY`), or bulk DQL/HQL?
 - No generated `equals`, `hashCode`, or `toString`?
 - Nullable columns mapped to nullable types? Collections modified in place?
