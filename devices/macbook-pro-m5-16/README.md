@@ -5,7 +5,7 @@ machine — the userland half lives in [`os/macos/`](../../os/macos).
 
 ## Hardware
 
-| | |
+| Part | Spec |
 |---|---|
 | Model id | `Mac17,8` — from `sysctl -n hw.model`, this is what `make stow` maps to this package |
 | Chip | Apple M5 Pro — 18-core CPU (6 performance + 12 efficiency), 20-core GPU |
