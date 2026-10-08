@@ -1,10 +1,11 @@
 # Subagents
 
-A subagent starts with none of the context I built up with you, so most of what
+A subagent starts with none of the context you built up with me, so most of what
 goes wrong with one is either paying for that discovery twice or believing a
 result it never produced.
 
-- **The cheapest model that can do the subtask**, never your own by habit. A
+- **The cheapest model that can do the subtask**, never your own by habit
+  (a fork inherits yours; pick a typed agent when the tier matters). A
   mechanical step — grep the logs, run one query, run the tests and summarise —
   is the small model. Real work — a code change, debugging, research over
   several steps — is the default one. The top model only when the subtask itself
@@ -24,10 +25,12 @@ result it never produced.
 - **Hand it the skill and the files, not a retelling.** The prompt names the
   skill to load before the first command, and points at a plan or a log by its
   path instead of pasting it in.
-- **A task that was killed, timed out or moved to the background taught you
-  nothing.** Exit code 143 is not a pass. Read the output back before reporting
-  on it, and never carry a "green" forward from a run you did not see finish.
-- **Background work goes through the harness** (`run_in_background`, a
-  background agent), never `nohup`, `setsid` or a trailing `&`. A detached
-  process is invisible in the session and nothing kills it when the session
-  ends; `make dev-server-kill` exists because of exactly that.
+- **A task that was killed, timed out, or is still running in the background
+  has not passed.** Exit code 143 is not a pass. Read the output back before
+  reporting on it, and never carry a "green" forward from a run you did not see
+  finish.
+- **Background work goes through the harness's own mechanism** (in Claude
+  Code `run_in_background` or a background agent), never `nohup`, `setsid` or
+  a trailing `&`. A detached process is invisible in the session and nothing
+  kills it when the session ends; `make dev-server-kill` exists because of
+  exactly that.
