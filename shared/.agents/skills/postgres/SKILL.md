@@ -1,6 +1,7 @@
 ---
 name: postgres
 description: Load before designing a PostgreSQL table, adding or changing an index, diagnosing a slow query or an EXPLAIN plan, writing an upsert, a job queue, a write two requests can race on, an idempotency key or an outbox, or writing a migration that alters a live table — whatever the stack or migration tool in front of it. Carries the column order and types of a new table, how to measure before indexing, why an index silently stops matching its query (expressions, IMMUTABLE, trigram, partial indexes, sort order), what each index costs, race-free upserts and queue claims, contended writes and the outbox (in contended-writes.md), how to change a schema without locking production, and a review checklist.
+trigger-keywords: postgres*, psql, index*, upsert, explain analyze, deadlock*, migrat*, migrac*
 ---
 
 # PostgreSQL

@@ -1,6 +1,7 @@
 ---
 name: orm
 description: Load before writing or reviewing code that goes through Hibernate/JPA (Spring Data included) or Doctrine ORM (Symfony, Nette) — a repository method or query (native SQL included), an entity association or its fetch type, a list or paginated endpoint, a loop over entities, a serializer or template walking relations, an import or batch job, a `@Transactional` propagation or an after-commit event listener. Carries the N+1, fetch-plan, pagination and batch-write traps, how many pooled connections one thread holds, the bar for native SQL, the facts that changed between versions, and a review checklist.
+trigger-keywords: hibernate, jpa, spring data, doctrine, orm, n+1, @Transactional, lazy load*, fetch join
 ---
 
 # Hibernate and Doctrine

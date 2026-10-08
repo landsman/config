@@ -1,6 +1,7 @@
 ---
 name: liquibase
 description: Load before writing, editing, reviewing or resolving a merge conflict in a Liquibase changelog or changeset — YAML, XML or formatted SQL, including `sqlFile` changes, labels and contexts. Carries what makes a changeset immutable and the one edit an applied changeset can take (a comment, through `validCheckSum`, without dropping any database), the traps that pass review as a pure addition (stolen attributes, split dollar-quoted bodies, moved files), environment filtering, and how to prove a changelog applies before it ships.
+trigger-keywords: liquibase, changelog*, changeset*
 ---
 
 # Liquibase
