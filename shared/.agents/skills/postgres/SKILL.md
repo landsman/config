@@ -15,8 +15,8 @@ An index that no longer matches its query fails no test. The query just gets slo
 - **`pg_stat_statements`** (it needs `shared_preload_libraries`): sort by `total_exec_time` for the heavy queries and by `calls` for the N+1 ones. The `orm` skill traces an N+1 back to the code that sends it.
 - **`track_io_timing = on`** is cheap and tells I/O apart from CPU. **`auto_explain`** with `log_min_duration` samples slow plans in production.
 - **Check where the time goes before indexing.** When the request is dominated by the application, the network or rendering, a perfect index changes nothing the user can see.
-- **Estimated rows far from actual rows** in a plan node means the statistics are stale or too coarse, and every join choice above that node is built on the guess. `ANALYZE` the table, or raise the column's `ALTER COLUMN … SET STATISTICS` above the default 100.
-- **`random_page_cost` defaults to 4.0, priced for spinning disks.** On SSD set it around 1.1, or the planner keeps picking a sequential scan over an index that would win.
+- **Estimated rows far from actual rows** in a plan node means the statistics are stale, too coarse, or blind to columns that move together, and every join choice above that node is built on the guess. `ANALYZE` the table; raise the column's `ALTER COLUMN … SET STATISTICS` above the default 100 and `ANALYZE` again, since the target alone changes nothing. When the filter combines correlated columns (`city` and `zip`), neither helps: `CREATE STATISTICS … (dependencies)` on them does.
+- **`random_page_cost` defaults to 4.0, priced for spinning disks.** `show random_page_cost` first, since a managed service may already set it; on SSD set it around 1.1, or the planner keeps picking a sequential scan over an index that would win.
 
 ## Designing a new table
 
@@ -41,7 +41,7 @@ Every table starts with the same columns in the same order, so any table reads t
 ## An index serves the exact expression it was built on
 
 - **Same expression, or no index.** `where lower(name) like …` does not use an index on `name`. Wrapping an already indexed column in a function silently turns an index scan into a full read.
-- **A cast on the column is a function too.** `where date(created_at) = :day` and a comparison that casts the column to the parameter's type skip the index; write a half-open range (`created_at >= :day and created_at < :day + 1`) and bind the column's own type.
+- **A cast on the column is a function too.** `where date(created_at) = :day` and a comparison that casts the column to the parameter's type skip the index, and on a `timestamptz` `date()` depends on the session time zone, so it is STABLE and cannot be indexed either. Write a half-open range (`created_at >= :day and created_at < :day + interval '1 day'`) and bind the column's own type.
 - **Only IMMUTABLE functions can be indexed.** `unaccent(text)` is STABLE, so accent-insensitive search needs an IMMUTABLE wrapper, and then the index on `wrapper(lower(col))`, the whole expression the predicate builds. The wrapper is a promise: if its dictionary changes, reindex.
 - **`like '%term%'` needs `pg_trgm`,** as `gin (lower(col) gin_trgm_ops)`. Under three characters there is no trigram to narrow by, so give the search a minimum length. A prefix `like 'term%'` can use a btree, but outside the C collation only with `text_pattern_ops`.
 - **A partial index needs its predicate spelled out in the query.** An index built `where active` is used by `and active = true`, but not by `and active = :active`: once PostgreSQL switches to a generic plan, a parameter proves nothing.
@@ -53,7 +53,7 @@ Every table starts with the same columns in the same order, so any table reads t
 
 - **Index the table that needs it, not every searchable column.** Each index is written on every insert and update, and a GIN trigram index is expensive to maintain through a bulk import. Measure the small tables first: a sequential scan over a few thousand rows is fast.
 - **Drop duplicates.** An index with the same columns as a primary key or a unique constraint is redundant; keep the constraint's own index. `pg_index` finds them by comparing `indkey`, `indclass`, `indexprs` and `indpred`.
-- **Drop what nobody reads.** `pg_stat_user_indexes.idx_scan = 0` marks a candidate, but it counts only since the last stats reset and only on the node it is read from, so check every replica before dropping, and keep an index that backs a constraint.
+- **Drop what nobody reads.** `pg_stat_user_indexes.idx_scan = 0` marks a candidate, but it counts only since the last stats reset and only on the node it is read from, so check every replica before dropping, and keep an index that backs a constraint. From PostgreSQL 16, `last_idx_scan` says when, so an index a monthly report reads does not pass for dead.
 - **Foreign keys are not indexed automatically.** Index the ones joined on a hot path, and the ones on a large child table whose parent rows get deleted: every such delete looks up the child table, whatever the `ON DELETE` action is. An audit column that is never joined stays unindexed.
 - **Leave a column that changes on every write unindexed.** An update that touches no indexed column and fits on the same page is a HOT update, and it writes no index at all. Index a counter, a status or `updated_at`, and every update writes a new entry into every index on the table. On a heavily updated table, `fillfactor` 80–90 leaves room on each page for the new row version. It only applies to pages written after the change.
 
@@ -90,6 +90,7 @@ A write two requests can race on — a bid, a refund, a balance — an idempoten
 ## Review checklist
 
 - Measured with `EXPLAIN (ANALYZE, BUFFERS)`, warm or cold stated, time confirmed to be in the database?
+- Estimated rows close to actual rows in every plan node?
 - New table: `id`, `created_at`, `created_by`, the label, `updated_at`, `updated_by` first, domain columns by alignment, and something named that sets `updated_at` on update?
 - `text`, `timestamptz` and `jsonb`, and a uuid key as v7?
 - Index built on the exact expression the query uses, with IMMUTABLE functions only, in the sort order the query asks for?
