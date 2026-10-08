@@ -41,6 +41,19 @@ Never read-then-write in the app, and never a lock in a cache, a `synchronized`
 block or a concurrent map as the only guard: a second instance has memory of its
 own. The deadline is checked against the server's clock inside that transaction.
 
+**The condition carries what the user saw.** The request sends the price or
+version the decision was made on, and the write checks it:
+
+    UPDATE auction SET price = :bid, leader = :me, version = version + 1
+     WHERE id = :id AND status = 'OPEN' AND ends_at > now()
+       AND version = :seenVersion AND :bid > price
+
+Zero rows means the world moved: the loser gets **a refusal with the current
+state** — the new price, who leads, whether it closed — and decides again. Never
+retry it silently with fresh values: that commits an amount, a price or a
+balance the user never agreed to. A retry repeats the same check; it never
+loosens it.
+
 ## A message that must go out: transactional outbox
 
 The domain change and the message it causes commit in **one local transaction**,
