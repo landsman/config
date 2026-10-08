@@ -7,16 +7,14 @@ squash-merge anyway, so a messy branch costs nothing.
 
 The rule is therefore about folding commits, not about force-pushing:
 
-- **Never `git commit --amend`**, never `git reset --soft` + recommit, never an
-  interactive squash or fixup of my commits. Follow-up work — review fixes,
+- **Never `git commit --amend`**, never an interactive squash or fixup of my commits. Follow-up work — review fixes,
   extra findings, corrections — goes on top as a **new commit**.
 - **Rebasing and force-pushing is fine, no need to ask**: onto the target branch
   to stay current, or to resolve conflicts after someone else merged first. Use
   `--force-with-lease`; a plain `--force` needs asking. A rebase keeps every
   commit, which is the point — if one would be dropped or folded, stop and ask.
-- **The exception is `landsman/config`**: there `git reset --soft` is allowed,
-  to fold or redo my own commits before they land. Amend and interactive squash
-  stay off there too.
+- **`git reset --soft` is allowed**, in every project, to fold or redo commits
+  before they land.
 - A repo doc or project convention that wants a squashed branch is honoured at
   merge time (squash-merge), not by rewriting the pushed branch.
 
