@@ -1,6 +1,6 @@
 # How stow picks the packages
 
-How `make stow` decides which `devices/` and `os/` packages a machine gets, and what a device package may hold. What each directory is: the [README](../README.md#layout).
+How `make stow` decides which `devices/` and `os/` packages a machine gets, and what a device package may hold. What each directory is: [layout.md](layout.md).
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
