@@ -105,7 +105,8 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	@# and this is what CI gates on.
 	@# os/ too, not just bin/: the distro installers stub apt and dpkg rather
 	@# than touching them, so they run anywhere, including the macOS runner.
-	@for t in bin/*/*.test.sh os/*/*.test.sh; do \
+	@# A skill's helper script is tested beside it, in shared/.agents/skills/.
+	@for t in bin/*/*.test.sh os/*/*.test.sh shared/.agents/skills/*/*.test.sh; do \
 		echo "== $$t"; bash "$$t" || exit 1; \
 	done
 
