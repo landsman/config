@@ -181,6 +181,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/skill-reminder.py\""
+          }
+        ]
+      }
     ]
   },
   "model": "opus[1m]",
