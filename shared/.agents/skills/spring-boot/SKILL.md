@@ -12,7 +12,12 @@ Boot 3 and Boot 4 are both in use, and code written for the wrong one either fai
 
     ~/.agents/skills/spring-boot/boot-version.sh <project-dir>
 
-It reads Maven (parent or BOM, `${property}` resolved) and Gradle (plugin, BOM, version catalog, `gradle.properties`) without running the build, and prints each declaration with its file. Nothing found means the version comes from outside the repo — a corporate parent or a convention plugin; then ask the build: `./mvnw help:effective-pom` or `./gradlew buildEnvironment`.
+It reads Maven (parent or BOM, `${property}` resolved) and Gradle (plugin, BOM, version catalog, `gradle.properties`) without running the build, and prints each declaration with its file. Exit 1 means no clean version is declared in the repo — a corporate parent, a convention plugin, or a build file it cannot read. Then ask the build, which resolves it (about a second on a small project, longer on a large one):
+
+    ./mvnw -q -o dependency:list -DincludeArtifactIds=spring-boot -DoutputFile=/dev/stdout | grep -m1 spring-boot:jar
+    ./gradlew -q dependencyInsight --dependency org.springframework.boot:spring-boot --configuration runtimeClasspath | grep -m1 spring-boot:
+
+Drop `-o` when the dependencies were never downloaded.
 
 - **Follow the project's version, never the newest.** A Boot 3 project gets Boot 3 code, even where Boot 4 has a nicer API. Upgrading is its own task, asked for, in its own diff.
 - **Match what the module already does.** If it still uses Spring Retry or `org.springframework.lang.Nullable`, a new file does too, unless the task is the migration.

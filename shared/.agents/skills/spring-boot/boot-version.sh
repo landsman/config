@@ -40,7 +40,8 @@ emit() { # emit <version or ${ref}> <file> <resolver>
 	\$\{*\}) v=$("$3" "${v:2:${#v}-3}") ;;
 	\$*) v=$("$3" "${v:1}") ;;
 	esac
-	[ -n "$v" ] || return 0
+	# Anything else is a parse gone wrong: print nothing, so the caller asks the build tool.
+	[[ $v =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?([.-][A-Za-z0-9.-]+)?$ ]] || return 0
 	printf '%s\t%s\n' "$v" "$2"
 	found=1
 }
@@ -55,7 +56,7 @@ done
 
 for f in $(files 'build.gradle' 'build.gradle.kts' 'settings.gradle' 'settings.gradle.kts'); do
 	# id("org.springframework.boot") version "3.5.6", or a version held in a variable
-	for v in $(grep -oE "org\.springframework\.boot['\"]\)?[[:space:]]+version[[:space:]]+[^[:space:])]+" "$f" |
+	for v in $(grep -oE "org\.springframework\.boot['\"]\)?[[:space:]]+version[[:space:]]+['\"]?[$]?[{]?[A-Za-z0-9._-]+" "$f" |
 		sed -E 's/.*version[[:space:]]+//' | tr -d "\"'\${}"); do
 		case $v in [0-9]*) emit "$v" "$f" gradle_prop ;; *) emit "\$$v" "$f" gradle_prop ;; esac
 	done

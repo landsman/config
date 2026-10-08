@@ -88,6 +88,11 @@ EOF
 check gradle-catalog "$(printf '3.5.0\tgradle/libs.versions.toml')"
 
 # Build output and dependencies are not the project's own declaration.
+project gradle-one-line build.gradle.kts <<'EOF'
+plugins { java; id("org.springframework.boot") version "4.0.0-M3"; id("io.spring.dependency-management") version "1.1.7" }
+EOF
+check gradle-one-line "$(printf '4.0.0-M3\tbuild.gradle.kts')"
+
 project ignored target/pom.xml <<'EOF'
 <project><parent><artifactId>spring-boot-starter-parent</artifactId><version>9.9.9</version></parent></project>
 EOF
