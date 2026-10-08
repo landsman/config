@@ -61,6 +61,15 @@ git commit -qm init && git worktree add -q "$tmp/wt" 2>/dev/null
 cd "$tmp/wt" && stage "org=acme"
 check "…also from a worktree outside ~/projects" 0 "$hook"
 
+printf 'holding,acme acme\n' > "$tmp/names"
+repo "$tmp/projects/holding/app"
+stage "org=acme"
+check "a name listed for several owners passes in each" 0 "$hook"
+repo "$tmp/projects/acmez/app"
+stage "org=acme"
+refuse "…and an owner whose folder only starts the same is not one of them" "$hook"
+printf '# owner regex\nacme acme|acme-bot\n' > "$tmp/names"
+
 repo "$tmp/projects/landsman/brain"
 mv "$tmp/names" names && git config --global forbiddenNames.file "$PWD/names"
 stage "acme is a client"
