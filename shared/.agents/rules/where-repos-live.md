@@ -76,8 +76,10 @@ moment the [brain](brain.md) rule already says to look there.
 **A git hook checks the diff and the commit message**:
 `bin/git/forbidden-names.sh`, wired in `.gitconfig` for every repo. It reads that
 same file, one `<owner> <regex>` per line, so the list never enters this repo,
-and lets each owner's names through inside that owner's own repos. A refused
-commit means reword with a placeholder, not `--no-verify`.
+and lets each owner's names through inside that owner's own repos. A name that
+belongs to more than one folder — a client whose product sits under another
+owner's folder — lists every one of them, comma-separated (`acme,acme-holding`).
+A refused commit means reword with a placeholder, not `--no-verify`.
 
 **The PR title and body it cannot see**, and the body is the one nothing else
 checks. Run it over them before posting:

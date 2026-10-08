@@ -14,7 +14,9 @@
 # the leak. They live in the file `git config forbiddenNames.file` points at,
 # one `<owner> <extended regex>` per line, # comments allowed. <owner> is the
 # directory under ~/projects the name belongs to: inside that owner's repos its
-# own names are fine, everywhere else they are not.
+# own names are fine, everywhere else they are not. A name shared by several
+# folders (a client whose product lives under another one) lists them all,
+# comma-separated: `acme,acme-holding acme`.
 set -euo pipefail
 
 file=$(git config --get forbiddenNames.file || true)
@@ -41,7 +43,7 @@ esac
 # Trailing whitespace or a CR first: `acme ` would otherwise leave an empty
 # pattern, and an empty pattern matches every line.
 patterns=$(awk -v o="$owner" '{ sub(/[[:space:]]+$/, "") }
-	!/^[[:space:]]*(#|$)/ && $1 != o { sub(/^[^[:space:]]+[[:space:]]+/, ""); print }' "$file")
+	!/^[[:space:]]*(#|$)/ && index("," $1 ",", "," o ",") == 0 { sub(/^[^[:space:]]+[[:space:]]+/, ""); print }' "$file")
 if ! grep -qvE '^[[:space:]]*(#|$)' "$file"; then
 	echo "forbidden-names: $file holds no patterns, refusing to commit unchecked." >&2
 	exit 1
