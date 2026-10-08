@@ -7,6 +7,8 @@ make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 make claude  # ask for the Azure DevOps org the MCP server needs (once per machine)
+make hostname  # Linux: name this install from bin/hostname/names.conf (asks for root)
+make plugins   # Omarchy: the shell plugins in os/arch/install-plugins.sh, pinned and patched
 
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-hosts     # macOS only: install /etc/hosts from os/macos/system (asks for root)
@@ -15,6 +17,7 @@ make macos-xcode     # macOS only: select Xcode.app for xcodebuild, after make a
 make macos-spotlight-off  # macOS only: stop indexing files (asks for root) - see the Makefile
 make jetbrains   # set the IDE heap; then open this repo in the IDE to get the plugins
 make chrome      # Chrome's non-syncing toggles — quit Chrome first
+make audit       # known vulnerabilities in what this machine has installed
 ```
 
 - **`make apps` first** — `stow` is in the Brewfile. Homebrew on Linux too, so
