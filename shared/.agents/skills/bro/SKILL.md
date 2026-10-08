@@ -1,5 +1,5 @@
 ---
-name: plain
+name: bro
 description: Restate the last answer in plain language, without jargon. Only when I invoke it.
 disable-model-invocation: true
 ---
