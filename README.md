@@ -4,8 +4,7 @@ Dotfiles and machine setup for macOS, Kubuntu, Arch and Windows, plus the rules
 and skills my coding agents load.
 
 - [Install](docs/install.md) — the `make` targets, their order, and adopting a machine's existing dotfiles
-- [Layout](docs/layout.md) — what each directory holds and what installs it
-- [How stow picks the packages](docs/packages.md) — device and OS detection, adding a machine
+- [How stow picks the packages](docs/packages.md) — the device and OS split, what is not stowed, adding a machine
 - [How the dotfiles are linked](docs/dotfiles.md) — `--no-folding`, why `.gitconfig` and `.bashrc` are not stowed, commit signing
 - [macOS settings](docs/macos.md) — System Settings as `defaults`, shortcuts, file associations, Touch ID for `sudo`
 - [The scanner mirrors](docs/scanner-mirrors.md) — semgrep and trivy from my GHCR, pinned by digest

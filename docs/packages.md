@@ -1,6 +1,20 @@
 # How stow picks the packages
 
-How `make stow` decides which `devices/` and `os/` packages a machine gets, and what a device package may hold. What each directory is: [layout.md](layout.md).
+How `make stow` decides which `devices/` and `os/` packages a machine gets, and what a device package may hold.
+
+The repo splits on two axes — **device** and **OS** — because the same laptop
+multi-boots Kubuntu and Arch (Omarchy), and the same OS runs on more than one
+machine. `shared/` is everything else. A file lives wherever it stays true.
+
+Not everything is stowed:
+
+| What | Installed by |
+|------|--------------|
+| `.gitconfig` | `make git` — *included* into `~/.gitconfig`, see [dotfiles.md](dotfiles.md) |
+| `.bashrc` | `make shell` — *sourced* from the distro's `~/.bashrc` |
+| `devices/<name>/system/` | `sudo cp` — root-owned files under `/` |
+| `os/windows/` | `bootstrap.ps1` — Windows never runs `make stow` |
+| `bin/` | its own `make` target — setup a symlink cannot express |
 
 Both packages are detected, so one `make stow` is correct everywhere:
 
