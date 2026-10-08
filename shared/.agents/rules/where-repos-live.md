@@ -70,18 +70,22 @@ subdomains, accounts made for them on shared infrastructure), and which names
 are mine and therefore fine anywhere.
 
 **Read it before writing into a repo that is not that owner's** — the same
-moment the [brain](brain.md) rule already says to look there. Then grep what is
-about to leave:
+moment the [brain](brain.md) rule already says to look there.
 
-    git diff --staged | grep -i -E '<the names from that page>'
+**A git hook checks the diff and the commit message**:
+`bin/git/forbidden-names.sh`, wired in `.gitconfig` for every repo. It reads the
+names from `private-names.txt` in the brain, one `<owner> <regex>` per line, so
+the list never enters this repo, and lets each owner's names through inside
+that owner's own repos. A refused commit means reword with a placeholder, not
+`--no-verify`.
 
-The commit message, the PR title and the PR body count as much as the diff, and
-the PR body is the one nothing else checks.
+**The PR title and body it cannot see**, and the body is the one nothing else
+checks. Run it over them before posting:
+
+    printf '%s\n' "$TITLE" "$BODY" | ~/projects/landsman/config/bin/git/forbidden-names.sh -
 
 If something did get out: fix the file, **fix the pull request body**, and check
-`git log --grep` before deciding whether history has to be rewritten. There is
-no hook for this on purpose — the check is cheap, and a list of clients sitting
-in a public repo to feed a linter would be the leak it is meant to prevent.
+`git log --grep` before deciding whether history has to be rewritten.
 
 ## Do not sweep `$HOME` with `find`
 

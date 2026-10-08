@@ -15,6 +15,16 @@
 	autocrlf = input
 	excludesfile = ~/.gitignore_global
 
+# A client's name outside the client's own repos stops the commit — see
+# bin/git/forbidden-names.sh. The list is in the private brain, not here.
+[hook "forbidden-names"]
+	command = "$HOME/projects/landsman/config/bin/git/forbidden-names.sh"
+	event = pre-commit
+	event = commit-msg
+
+[forbiddenNames]
+	file = ~/projects/landsman/brain/private-names.txt
+
 [branch]
 	autosetuprebase = always
 
