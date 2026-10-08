@@ -37,7 +37,9 @@ only calls `setOpen(true)` stays inline; a hook for it is ceremony.
 
 - **The pure function gets a unit test** (vitest, or whatever the repo runs) —
   the happy path, the boundary on each side of a threshold, and the case that
-  must *not* fire. Milliseconds, and it names the function that broke.
+  must *not* fire. Milliseconds, and it names the function that broke. It is
+  named after the file it tests — `use-swipe.ts` → `use-swipe.test.ts` — in
+  whatever folder the repo keeps its tests, so one is found from the other.
 - **The behaviour gets whatever the repo already asks for end to end** —
   Playwright, Cucumber. A gesture is driven by dispatching the events
   (`locator.dispatchEvent("touchstart", { touches: [...] })`), so say in the
