@@ -1,6 +1,6 @@
 ---
 name: postgres
-description: Load before designing a PostgreSQL table, adding or changing an index, diagnosing a slow query or an EXPLAIN plan, writing an upsert or a job queue, or writing a migration that alters a live table — whatever the stack or migration tool in front of it. Carries the column order and types of a new table, how to measure before indexing, why an index silently stops matching its query (expressions, IMMUTABLE, trigram, partial indexes, sort order), what each index costs, race-free upserts and queue claims, how to change a schema without locking production, and a review checklist.
+description: Load before designing a PostgreSQL table, adding or changing an index, diagnosing a slow query or an EXPLAIN plan, writing an upsert, a job queue, a write two requests can race on, an idempotency key or an outbox, or writing a migration that alters a live table — whatever the stack or migration tool in front of it. Carries the column order and types of a new table, how to measure before indexing, why an index silently stops matching its query (expressions, IMMUTABLE, trigram, partial indexes, sort order), what each index costs, race-free upserts and queue claims, contended writes and the outbox (in contended-writes.md), how to change a schema without locking production, and a review checklist.
 ---
 
 # PostgreSQL
@@ -53,6 +53,8 @@ Every table starts with the same columns in the same order, so any table reads t
 - **Leave a column that changes on every write unindexed.** An update that touches no indexed column and fits on the same page is a HOT update, and it writes no index at all. Index a counter, a status or `updated_at`, and every update writes a new entry into every index on the table. On a heavily updated table, `fillfactor` 80–90 leaves room on each page for the new row version. It only applies to pages written after the change.
 
 ## Queries that run concurrently
+
+A write two requests can race on — a bid, a refund, a balance — an idempotency key, or an outbox relay: read [contended-writes.md](contended-writes.md) first.
 
 - **Upsert with `insert … on conflict`, never select-then-insert.** Two sessions both find nothing and both insert, so one of them fails on the unique constraint, or without one the table gets a duplicate. `on conflict (key) do update` or `do nothing` is atomic, and needs a unique index or constraint on exactly `key`. A batch that carries the same key twice fails with "cannot affect row a second time", so deduplicate it first.
 - **A job queue claims its work with `for update skip locked`, in one statement.** Workers that `select` and then `update` either run the same job twice or queue behind each other's row lock.
