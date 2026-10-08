@@ -9,6 +9,7 @@ and skills my coding agents load.
 - [macOS settings](docs/macos.md) — System Settings as `defaults`, shortcuts, file associations, Touch ID for `sudo`
 - [The scanner mirrors](docs/scanner-mirrors.md) — semgrep and trivy from my GHCR, pinned by digest
 - [Vulnerable dependencies](docs/vulnerable-dependencies.md) — the lockfile scan and Dependabot's security settings
+- [Development tools](docs/dev-tools.md) — JetBrains, Zed, Ghostty, tmux, television, mise: where each config lives and why
 - [Coding agents](.docs-llm/README.md) — what of the agent config is tracked, MCP servers, how the rules reach each harness
 
 Machines and platforms:
@@ -17,4 +18,3 @@ Machines and platforms:
 - [MacBook Pro 16" M5 Pro](devices/macbook-pro-m5-16/README.md)
 - [HP ProDesk 600 G3](devices/hp-prodesk-600-g3/README.md) — provisioned from [landsman/homelab](https://github.com/landsman/homelab/tree/main/pollos)
 - [Omarchy/Arch](os/arch/README.md) · [Kubuntu](os/ubuntu/README.md) · [Windows 11](os/windows/README.md)
-- [JetBrains](bin/jetbrains/README.md)
