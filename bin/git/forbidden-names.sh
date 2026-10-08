@@ -38,7 +38,10 @@ case "$repo" in
 	"$HOME"/projects/*) owner=${repo#"$HOME"/projects/}; owner=${owner%%/*} ;;
 esac
 
-patterns=$(awk -v o="$owner" '!/^[[:space:]]*(#|$)/ && $1 != o { sub(/^[^[:space:]]+[[:space:]]+/, ""); print }' "$file")
+# Trailing whitespace or a CR first: `acme ` would otherwise leave an empty
+# pattern, and an empty pattern matches every line.
+patterns=$(awk -v o="$owner" '{ sub(/[[:space:]]+$/, "") }
+	!/^[[:space:]]*(#|$)/ && $1 != o { sub(/^[^[:space:]]+[[:space:]]+/, ""); print }' "$file")
 if ! grep -qvE '^[[:space:]]*(#|$)' "$file"; then
 	echo "forbidden-names: $file holds no patterns, refusing to commit unchecked." >&2
 	exit 1
@@ -48,16 +51,26 @@ fi
 [ -n "$patterns" ] || exit 0
 
 if [ $# -eq 0 ]; then
-	# Added lines as file:line:text, so a hit points at the place to edit.
-	text=$(git diff --cached -U0 --no-color | awk '
-		/^\+\+\+ / { f = substr($0, 7); next }
-		/^@@/ { split($3, a, ","); n = substr(a[1], 2); next }
-		/^\+/ { print f ":" n ": " substr($0, 2); n++ }')
+	# Added lines as file:line:text, so a hit points at the place to edit. The
+	# prefixes are pinned against diff.noprefix, and `+++ ` is a header only
+	# before a file's first hunk: inside one it is an added line starting `++ `.
+	text=$(git diff --cached -U0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ | awk '
+		/^diff --git / { h = 1; next }
+		h && /^\+\+\+ / { f = substr($0, 7); next }
+		/^@@/ { h = 0; split($3, a, ","); n = substr(a[1], 2); next }
+		/^\+/ && !h { print f ":" n ": " substr($0, 2); n++ }')
+	# The names too: an empty or binary file has no added line to carry its path.
+	text+=$'\n'$(git diff --cached --name-only --diff-filter=d | sed 's/$/: (file name)/')
 	where="staged"
+elif [ "$1" = - ]; then
+	# A PR body: a line starting with # is a Markdown heading, not a comment.
+	text=$(grep -n '' || true)
+	where="stdin"
 else
-	# Comment lines are git's template, not the message.
-	text=$(grep -nv '^#' -- "$1" || true)
-	where=$([ "$1" = - ] && echo "stdin" || echo "the commit message")
+	# git's template comments are not the message, and neither is the diff that
+	# `commit -v` appends below the scissors line — its removed lines included.
+	text=$(sed '/^# -\{24\} >8 -\{24\}$/,$d' "$1" | grep -nv '^#' || true)
+	where="the commit message"
 fi
 
 hits=$(printf '%s\n' "$text" | grep -iE -f <(printf '%s\n' "$patterns") || true)
