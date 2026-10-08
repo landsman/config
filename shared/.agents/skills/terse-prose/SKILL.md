@@ -75,8 +75,7 @@ that is three short paragraphs and no headings.
 **When deploying it is not just a deploy**, add how to release: migrations and
 their order, a config value or secret to set first, a flag, the order across
 services, what to watch afterwards, how to roll back. That is the part a reviewer
-cannot see in the diff and the one that goes wrong at 5 pm. A plain deploy gets
-no such line.
+cannot see in the diff. A plain deploy gets no such line.
 
 The version that shipped first had five headings, a bullet list of the test's
 internals and a section on what was skipped — and still did not say where the
