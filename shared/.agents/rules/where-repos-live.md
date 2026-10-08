@@ -64,20 +64,20 @@ So, in any repo that is not that client's own:
 Which names those are cannot live in this repo, because this repo is public.
 They are in **[Names that stay private](../../../brain/wiki/names-that-stay-private.md)** —
 `wiki/names-that-stay-private.md` in the brain, listed in its index, which every
-session already loads. It says which owner each name belongs to, what else
-counts as the name (the organisation on the forge, the product, its domains and
-subdomains, accounts made for them on shared infrastructure), and which names
-are mine and therefore fine anywhere.
+session already loads. It says what counts as the name (the organisation on
+the forge, the product, its domains and subdomains, accounts made for them on
+shared infrastructure) and which names are mine and therefore fine anywhere.
+The names themselves, each with its owner, are `private-names.txt` at the root
+of the brain — the one list, which the hook below reads too.
 
-**Read it before writing into a repo that is not that owner's** — the same
+**Read both before writing into a repo that is not that owner's** — the same
 moment the [brain](brain.md) rule already says to look there.
 
 **A git hook checks the diff and the commit message**:
-`bin/git/forbidden-names.sh`, wired in `.gitconfig` for every repo. It reads the
-names from `private-names.txt` in the brain, one `<owner> <regex>` per line, so
-the list never enters this repo, and lets each owner's names through inside
-that owner's own repos. A refused commit means reword with a placeholder, not
-`--no-verify`.
+`bin/git/forbidden-names.sh`, wired in `.gitconfig` for every repo. It reads that
+same file, one `<owner> <regex>` per line, so the list never enters this repo,
+and lets each owner's names through inside that owner's own repos. A refused
+commit means reword with a placeholder, not `--no-verify`.
 
 **The PR title and body it cannot see**, and the body is the one nothing else
 checks. Run it over them before posting:
