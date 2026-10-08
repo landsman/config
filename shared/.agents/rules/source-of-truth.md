@@ -29,30 +29,49 @@ database was the record.
 ## Two writers, one winner
 
 Two people bid on an auction in its last second, and exactly one wins. The
-database decides, in **one atomic write**:
+database decides, in **one atomic write** — never read-then-write in the app, and
+never a lock in a cache, a `synchronized` block or a concurrent map as the only
+guard: a second instance has memory of its own.
 
-- a conditional update — `UPDATE … WHERE id = ? AND version = ?` (or a state, or
-  `balance >= ?`), the affected row count says who won;
-- a row lock, `SELECT … FOR UPDATE`, in a short transaction;
-- a unique constraint, the violation read as "somebody was first";
-- `SERIALIZABLE`, and a retry — the database aborts the loser, the app reruns it.
+The bid, worked through:
 
-Never read-then-write in the app, and never a lock in a cache, a `synchronized`
-block or a concurrent map as the only guard: a second instance has memory of its
-own. The deadline is checked against the server's clock inside that transaction.
+    POST /auctions/{id}/bids
+    Idempotency-Key: <client-generated>
+    If-Match: <auction version>              -- optional, see below
+    { "amount": { "currency": "EUR", "minorUnits": 12345 } }
 
-**The condition carries what the user saw.** The request sends the price or
-version the decision was made on, and the write checks it:
+In one short transaction:
 
-    UPDATE auction SET price = :bid, leader = :me, version = version + 1
+    -- first: a bid with this (auction_id, request_id) exists → return its outcome
+    UPDATE auction
+       SET current_price = :amount, leading_bidder_id = :me, version = version + 1
      WHERE id = :id AND status = 'OPEN' AND ends_at > now()
-       AND version = :seenVersion AND :bid > price
+       AND :amount >= current_price + min_increment
+       AND seller_id <> :me
+    -- then: INSERT the immutable bid row, UNIQUE (auction_id, request_id)
+    -- then: INSERT the outbox row; commit; only now answer "accepted"
 
-Zero rows means the world moved: the loser gets **a refusal with the current
-state** — the new price, who leads, whether it closed — and decides again. Never
-retry it silently with fresh values: that commits an amount, a price or a
-balance the user never agreed to. A retry repeats the same check; it never
-loosens it.
+- **The condition is what the user agreed to.** A bid is an absolute amount, so
+  it still stands when the price moved but the amount clears it. Add
+  `AND version = :seenVersion` (the `If-Match`) only where the decision rested on
+  the exact state shown — buying at a displayed price, approving a balance.
+- **Zero rows is a refusal with the current state** — the price now, who leads,
+  whether it closed — and the user decides again. Never retry with fresh values:
+  that commits an amount nobody agreed to. A retry repeats the same check.
+- **The idempotency key answers a timeout.** The client did not hear the answer
+  and sends the same key again. It is looked up before the update — by then the
+  price is the client's own bid and the check would refuse it — and the unique
+  constraint catches two copies racing each other.
+- **Time is the server's, inside the transaction**, and the boundary is decided
+  once: is a bid at exactly `ends_at` in or out.
+- **Closing is a transition too** — `UPDATE … SET status = 'CLOSED' WHERE status
+  = 'OPEN'` — so a finaliser that runs twice closes once.
+- **Money is integer minor units with a currency**, never a float.
+
+The other forms of the same write: a row lock (`SELECT … FOR UPDATE`) in a short
+transaction; a unique constraint, the violation read as "somebody was first";
+`SERIALIZABLE`, where the database aborts the loser and the app reruns the same
+check.
 
 ## A message that must go out: transactional outbox
 
