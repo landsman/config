@@ -53,6 +53,7 @@ When a hot key expires or gets evicted, every concurrent request misses at once 
 - **A cached entity is detached:** its lazy associations throw, and it cannot be saved as-is.
 - **A local cache hands out the same instance.** A caller that modifies it modifies the cache for everyone. Cache immutable DTOs or values.
 - **Redis serialises the value.** A Hibernate proxy or lazy collection inside it either fails to serialise or loads the whole graph on the way in.
+- **A JSON serializer needs the type in the value.** Without it a hit comes back as a `LinkedHashMap` and the caller throws `ClassCastException`. Spring Data Redis's default is JDK serialisation, which needs `Serializable` values. With JSON, use `GenericJackson2JsonRedisSerializer` on Boot 3 (it writes the type). On Boot 4 (Jackson 3), use `GenericJacksonJsonRedisSerializer`, where typing is opt-in on its builder through `enableDefaultTyping(validator)`. Use a validator restricted to your own packages: the builder's default validator allows every type, and so does `enableUnsafeDefaultTyping()`.
 
 ## Spring's proxy
 
