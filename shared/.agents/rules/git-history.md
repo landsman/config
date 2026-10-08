@@ -14,8 +14,11 @@ The rule is therefore about folding commits, not about force-pushing:
   to stay current, or to resolve conflicts after someone else merged first. Use
   `--force-with-lease`; a plain `--force` needs asking. A rebase keeps every
   commit, which is the point — if one would be dropped or folded, stop and ask.
-- **`git reset --soft` is allowed**, in every project, no need to ask: it only
-  moves the branch and keeps every change staged, so nothing is lost.
+- **`git reset --soft` is a last resort, not a habit**: only when a commit has
+  to leave the history to fix a problem — a secret gitleaks caught, a file that
+  must not be pushed. It moves the branch and keeps every change staged, so
+  nothing is lost; say in the answer that it was used and why. Tidying a branch
+  is never that reason.
 - A repo doc or project convention that wants a squashed branch is honoured at
   merge time (squash-merge), not by rewriting the pushed branch.
 
