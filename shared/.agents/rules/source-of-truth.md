@@ -1,9 +1,9 @@
-# The database is the system of record
+# The database is the source of truth
 
 **Never let a cache become the only record of something by accident.** What the
 business depends on — money, a decision, a fact somebody will ask about later — is
-a committed row in the relational database. A cache, an in-memory map, a session,
-a read model or a message on its way out is derived from it: losing one costs
+a committed row in the relational database, the single source of truth (the
+system of record). A cache, an in-memory map, a session, a read model or a message on its way out is derived from it: losing one costs
 latency or a retry, never data.
 
 The test: wipe it and restart. Whatever is gone and cannot be rebuilt from the
