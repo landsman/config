@@ -10,7 +10,9 @@ trigger-keywords: spring boot, spring-boot, springboot, @SpringBootTest, @MockBe
 
 Boot 3 and Boot 4 are both in use, and code written for the wrong one either fails to compile or compiles against an API that is on its way out. Before writing anything, read the version the project actually builds with:
 
-    grep -rn -m3 'spring-boot' pom.xml build.gradle* gradle/libs.versions.toml 2>/dev/null
+    ~/.agents/skills/spring-boot/boot-version.sh <project-dir>
+
+It reads Maven (parent or BOM, `${property}` resolved) and Gradle (plugin, BOM, version catalog, `gradle.properties`) without running the build, and prints each declaration with its file. Nothing found means the version comes from outside the repo — a corporate parent or a convention plugin; then ask the build: `./mvnw help:effective-pom` or `./gradlew buildEnvironment`.
 
 - **Follow the project's version, never the newest.** A Boot 3 project gets Boot 3 code, even where Boot 4 has a nicer API. Upgrading is its own task, asked for, in its own diff.
 - **Match what the module already does.** If it still uses Spring Retry or `org.springframework.lang.Nullable`, a new file does too, unless the task is the migration.
