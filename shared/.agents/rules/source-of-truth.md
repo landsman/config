@@ -1,10 +1,27 @@
 # The database is the source of truth
 
-**Never let a cache become the only record of something by accident.** What the
+**Nothing but the database may become the only record of something.** What the
 business depends on — money, a decision, a fact somebody will ask about later — is
 a committed row in the relational database, the single source of truth (the
-system of record). A cache, an in-memory map, a session, a read model or a message on its way out is derived from it: losing one costs
-latency or a retry, never data.
+system of record). Everything else is derived from it, and losing it costs latency
+or a retry, never data.
+
+The places that quietly become the record instead, a cache being only the best
+known:
+
+- **process memory** — a field on a singleton, a static or companion-object map,
+  an executor's queue of work not yet run;
+- **a session** — the HTTP or UI session, a half-filled form, a wizard's state;
+- **the client** — local storage, a cookie, a token's claims, a hidden field;
+- **the wire** — a message in a broker or a queue, an event between two services;
+- **the local disk** — an upload or a generated file in a container that is
+  replaced on the next deploy;
+- **a log line or a metric** — retention deletes it, and nothing can query it
+  as data;
+- **a cache, a search index, a read model.**
+
+A provider's record (a card processor, a bank) is theirs: ours mirrors it and is
+reconciled against it, never assumed.
 
 The test: wipe it and restart. Whatever is gone and cannot be rebuilt from the
 database was the record.
