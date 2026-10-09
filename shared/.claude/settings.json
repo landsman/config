@@ -107,6 +107,7 @@
       "mcp__pencil"
     ],
     "deny": [
+      "WebFetch(domain:git.insuit.cz)",
       "Bash(git push* main)",
       "Bash(git push*:main)",
       "Bash(git push* +main)",
@@ -162,15 +163,6 @@
   },
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "WebFetch|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/private-host-guard.sh\""
-          }
-        ]
-      },
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [

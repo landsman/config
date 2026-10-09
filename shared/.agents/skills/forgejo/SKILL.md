@@ -2,15 +2,14 @@
 name: forgejo
 description: Load before opening a git.insuit.cz link or touching a pull request, issue, review comment, file or CI run on that Forgejo — before any curl, WebFetch or MCP call to it.
 trigger-keywords: git.insuit.cz, forgejo*
-private-hosts: git.insuit.cz
 ---
 
 # Reading git.insuit.cz
 
 `git.insuit.cz` is my Forgejo, and most repos on it are private. **Go straight to
 the `forgejo` MCP server** — it is signed in with my token. `curl`, `WebFetch`
-and the anonymous `/api/v1` all get a login page or a 404, and a hook refuses
-them anyway.
+and the anonymous `/api/v1` all get a login page or a 404, and WebFetch is
+denied outright.
 
 The tools are deferred, so load what the task needs in one call first:
 

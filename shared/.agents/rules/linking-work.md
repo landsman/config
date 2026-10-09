@@ -41,19 +41,7 @@ that URL in a public doc or a commit message is the thing that rule forbids.
 
 ## Reading one I handed you
 
-A link to my own work is behind a login, so open it with the forge's own
-signed-in tool, never `WebFetch` or an anonymous `curl`:
-
-| Host | Tool |
-|------|------|
-| `git.insuit.cz` | the `forgejo` MCP server — the `forgejo` skill maps each URL to a tool |
-| `github.com` | `gh pr view`, `gh api` |
-| `dev.azure.com` | the `azure-devops` MCP server |
-
-A missing server is a finding to report, not a reason to scrape the page.
-
-A new host behind a login gets a skill saying which tool reads it, with the host
-in both `trigger-keywords:` (a pasted link loads the skill) and `private-hosts:`
-(`private-host-guard.sh` refuses an anonymous fetch and names the skill; `*.`
-covers every subdomain). Neither hook changes, and `make bin-test` fails if the
-two lists disagree. The hooks are Claude Code's; any other agent has this table.
+A link to my own work is behind a login: read it with the signed-in tool its
+skill names (`forgejo` for git.insuit.cz, `gh` for GitHub), never `WebFetch` or
+an anonymous `curl`. A missing server is a finding to report, not a reason to
+scrape the page.
