@@ -45,6 +45,11 @@ printf 'fix: drop the name\n# ------------------------ >8 ----------------------
 check "commit -v: the diff below the scissors is not the message" 0 "$hook" msg
 refuse "stdin, for a PR body" sh -c "echo 'the acme-bot account' | '$hook' -"
 refuse "stdin: a Markdown heading is text, not a comment" sh -c "printf '# Deploy for acme\\nbody\\n' | '$hook' -"
+echo "setup: send mail from me@example.com" > msg
+check "an address in the subject refused" 1 "$hook" msg
+printf 'setup: pin the sender\n\nwas me@example.com before\n' > msg
+check "an address in the body passes" 0 "$hook" msg
+check "an address in the PR title refused" 1 sh -c "printf 'fe: mail me@example.com\nbody\n' | '$hook' -"
 git rm -q --cached f.txt && : > acme-deploy.sh && git add acme-deploy.sh
 refuse "an empty file named after it" "$hook"
 git rm -q --cached acme-deploy.sh && printf 'one\n++ acme\n' > f.txt && git add f.txt

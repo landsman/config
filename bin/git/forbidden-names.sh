@@ -19,6 +19,20 @@
 # comma-separated: `acme,acme-holding acme`.
 set -euo pipefail
 
+# An email address in the subject line, the one line a squash-merge copies from
+# the PR title, refused regardless of the names list. It also ends up in
+# `git log --oneline`, every changelog and every notification. The body may
+# carry one. Stdin (a PR) is read here once, so its title is line 1.
+if [ $# -gt 0 ]; then
+	if [ "$1" = - ]; then input=$(cat); subject=$(head -1 <<<"$input")
+	else subject=$(grep -v '^#' "$1" | grep -m1 . || true); fi
+	if grep -qE '[[:alnum:]._%+-]+@[[:alnum:]-]+(\.[[:alnum:]-]+)+' <<<"$subject"; then
+		echo "forbidden-names: an email address in the subject or PR title: $subject" >&2
+		echo "forbidden-names: say whose address it is (the work address), not the address." >&2
+		exit 1
+	fi
+fi
+
 file=$(git config --get forbiddenNames.file || true)
 # Unset means a machine this repo never set up (a CI runner): nothing to check.
 [ -n "$file" ] || exit 0
@@ -66,7 +80,7 @@ if [ $# -eq 0 ]; then
 	where="staged"
 elif [ "$1" = - ]; then
 	# A PR body: a line starting with # is a Markdown heading, not a comment.
-	text=$(grep -n '' || true)
+	text=$(grep -n '' <<<"$input" || true)
 	where="stdin"
 else
 	# git's template comments are not the message, and neither is the diff that
