@@ -137,6 +137,14 @@ w com.apple.mail AddLinkPreviews -bool false
 # Silent: no sound for new mail, and none for sending or fetching either.
 w com.apple.mail PlayMailSounds       -bool false
 w com.apple.mail NewMessagesSoundName -string ""
+# Fonts & Colors: message font Helvetica 13, message list Helvetica 11. The list
+# font is an archived NSFont, so it goes in as raw bytes. To change it, pick the
+# font in Mail, then dump it again:
+#   defaults export com.apple.mail - | plutil -extract MessageListFont raw -o - - | base64 -d | xxd -p | tr -d '\n'
+w com.apple.mail NSFont     -string Helvetica
+w com.apple.mail NSFontSize -string 13   # a string, as Mail itself writes it
+w com.apple.mail MessageListFont -data 62706c6973743030d4010203040506070a582476657273696f6e592461726368697665725424746f7058246f626a6563747312000186a05f100f4e534b657965644172636869766572d1080954726f6f748001a40b0c151655246e756c6cd40d0e0f1011121314564e5353697a65584e5366466c616773564e534e616d655624636c6173732340260000000000001010800280035948656c766574696361d21718191a5a24636c6173736e616d655824636c6173736573564e53466f6e74a2191b584e534f626a65637408111a24293237494c5153585e676e777e858e9092949ea3aeb7bec10000000000000101000000000000001c000000000000000000000000000000ca
+
 # General > search all mailboxes: include Trash. Off by default.
 w com.apple.mail IndexTrash -bool true
 
