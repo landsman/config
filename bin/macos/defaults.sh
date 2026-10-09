@@ -132,6 +132,11 @@ w com.apple.finder ShowHardDrivesOnDesktop         -bool false
 # .env.example), so it stays out of this public repo. Unset, Mail keeps
 # choosing the account itself.
 [ -z "${MAIL_FROM:-}" ] || w com.apple.mail NewMessageFromAddress -string "$MAIL_FROM"
+# Composing > "Add link previews": off, a pasted URL stays a URL.
+w com.apple.mail AddLinkPreviews -bool false
+# Silent: no sound for new mail, and none for sending or fetching either.
+w com.apple.mail PlayMailSounds       -bool false
+w com.apple.mail NewMessagesSoundName -string ""
 
 #
 # System-wide
