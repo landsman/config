@@ -15,7 +15,7 @@
 # bin/mirror/image.sh reads the version back out of it rather than keeping a
 # second copy. Pinned by digest beside the tag, which Dependabot bumps together:
 # a tag can be re-pointed upstream, a digest cannot (bin/mirror/image.sh).
-FROM semgrep/semgrep:1.178.0@sha256:32e459968daabe7ab86968184a29109b9564aa00392401156f9788452b42786b
+FROM semgrep/semgrep:1.179.0@sha256:93963d9295a366f59e4850127b1550400ee7b388f04fe144e4a1f6325d96e01b
 
 LABEL org.opencontainers.image.source=https://github.com/landsman/config
 LABEL org.opencontainers.image.description="Unmodified mirror of semgrep/semgrep, relabelled so it links back to landsman/config. Every repo of mine that runs `make security` pulls the scanner from here instead of Docker Hub, which rate-limits anonymous pulls on the shared IPs CI runners use. Published by the mirror workflow in landsman/config, one tag per version bump, for amd64 and arm64. Not a fork: to see what is in it, read semgrep's own docs for the version in the tag."
