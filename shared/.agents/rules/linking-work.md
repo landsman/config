@@ -54,5 +54,6 @@ A missing server is a finding to report, not a reason to scrape the page.
 
 A new host behind a login gets a skill saying which tool reads it, with the host
 in both `trigger-keywords:` (a pasted link loads the skill) and `private-hosts:`
-(`private-host-guard.sh` refuses an anonymous fetch and names the skill). Neither
-hook changes.
+(`private-host-guard.sh` refuses an anonymous fetch and names the skill; `*.`
+covers every subdomain). Neither hook changes, and `make bin-test` fails if the
+two lists disagree. The hooks are Claude Code's; any other agent has this table.

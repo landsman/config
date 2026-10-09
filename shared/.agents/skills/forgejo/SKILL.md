@@ -27,8 +27,8 @@ into every call.
 | `pulls/<n>`, its review comments | `list_pull_reviews`, then `list_pull_review_comments` per review `id` |
 | `pulls/<n>` or `issues/<n>`, the conversation | `list_issue_comments` — a PR's top-level comments live here, not under reviews |
 | `issues/<n>` | `get_issue_by_index` |
-| `src/branch/<ref>/<path>` | `get_file_content` with `ref` and `filePath` |
-| `actions/runs/<id>` | `get_workflow_run`, `list_action_run_jobs`, `get_action_job_logs` per `job_id` |
+| `src/{branch,tag,commit}/<ref>/<path>` | `get_file_content` with `ref` and `filePath`; `start_line`/`end_line` for a slice, `#L10-L20` in the URL says which |
+| `actions/runs/<n>` | `get_workflow_run`, `list_action_run_jobs`, `get_action_job_logs` per `job_id`; if `<n>` is not the run id, `list_workflow_runs` finds it |
 
 **Comments on a PR come from three places**: inline review comments
 (`list_pull_review_comments`, one call per review), the review bodies
