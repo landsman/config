@@ -16,6 +16,12 @@
 # usage: defaults.sh [--dry-run]
 set -eu
 
+# Machine-local values that must not be committed, such as MAIL_FROM.
+# ponytail: sourced as shell, so .env is trusted like any script in the repo.
+env="$(cd "$(dirname "$0")/../.." && pwd)/.env"
+# shellcheck source=/dev/null
+[ ! -f "$env" ] || { set -a; . "$env"; set +a; }
+
 [ "${1:-}" != "--dry-run" ] || DRY_RUN=1
 : "${DRY_RUN:=}"
 written=0   # counted by the helpers below, so the closing line can say how many
@@ -110,6 +116,22 @@ w com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
 w com.apple.finder ShowRemovableMediaOnDesktop     -bool true
 w com.apple.finder ShowMountedServersOnDesktop     -bool true
 w com.apple.finder ShowHardDrivesOnDesktop         -bool false
+
+#
+# Mail
+#
+# Settings > Composing > "Send new messages from", pinned instead of "Automatically
+# select best account". The value is "Full Name <address>" and should match an
+# account in Mail, so on a fresh install it means something once that account
+# is signed in. The key is absent while the setting is on automatic, so the
+# usual before/after diff has nothing to show until it is changed. The name
+# comes from Mail's own binary (`strings Mail.app/Contents/MacOS/Mail`).
+# Mail is not restarted below: it reads this at its next launch, and killing it
+# mid-draft costs more than waiting.
+# The address comes from MAIL_FROM in the repo's untracked .env (see
+# .env.example), so it stays out of this public repo. Unset, Mail keeps
+# choosing the account itself.
+[ -z "${MAIL_FROM:-}" ] || w com.apple.mail NewMessageFromAddress -string "$MAIL_FROM"
 
 #
 # System-wide
@@ -217,4 +239,4 @@ killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
 # Apple moves it, the settings are still written and a logout still applies them.
 /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u 2>/dev/null || true
 
-echo "$written settings written (menu bar, Dock, Finder, trackpad, formats, privacy, Spotlight results) plus the keyboard shortcuts from $(basename "$hotkeys"); Dock, Finder, the menu bar and Control Center restarted, so nothing here waits for a logout"
+echo "$written settings written (menu bar, Dock, Finder, Mail sender, trackpad, formats, privacy, Spotlight results) plus the keyboard shortcuts from $(basename "$hotkeys"); Dock, Finder, the menu bar and Control Center restarted, so nothing here waits for a logout"

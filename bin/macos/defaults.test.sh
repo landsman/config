@@ -21,7 +21,7 @@ check() {  # check <name> <expected> <actual>
 # a broken guard would rewrite the settings of whoever ran `make qa`.
 printf '#!/bin/sh\necho "STUB CALLED: $*"\nexit 1\n' > "$tmp/defaults"
 chmod +x "$tmp/defaults"
-out=$(PATH="$tmp:$PATH" "$script" --dry-run)
+out=$(MAIL_FROM="A <a@example.com>" PATH="$tmp:$PATH" "$script" --dry-run)
 
 check "dry run never calls defaults" '' "$(grep 'STUB CALLED' <<<"$out" || true)"
 check "every line is a defaults write or import" '0' \
@@ -44,14 +44,14 @@ fi
 pairs=$(sed -n "s/^defaults write \([^ ]*\) '\([^']*\)'.*/\1 \2/p" <<<"$out")
 
 # A setting written twice is silently the last one — and with 40-odd lines in
-# twelve domains, the same key landing in two sections is the way this file rots.
+# thirteen domains, the same key landing in two sections is the way this file rots.
 check "no key written twice" '' "$(sort <<<"$pairs" | uniq -d)"
 
 check "menu bar keys survive their spaces" '4' \
 	"$(grep -c "^com.apple.controlcenter NSStatusItem Preferred Position " <<<"$pairs")"
 
 # Cheap sanity that the list is still the list, not an empty loop.
-check "writes every domain" '12' "$(cut -d' ' -f1 <<<"$pairs" | sort -u | wc -l | tr -d ' ')"
+check "writes every domain" '13' "$(cut -d' ' -f1 <<<"$pairs" | sort -u | wc -l | tr -d ' ')"
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }
 echo "all passed"
