@@ -16,6 +16,12 @@
 # usage: defaults.sh [--dry-run]
 set -eu
 
+# Machine-local values that must not be committed, such as MAIL_FROM.
+# ponytail: sourced as shell, so .env is trusted like any script in the repo.
+env="$(cd "$(dirname "$0")/../.." && pwd)/.env"
+# shellcheck source=/dev/null
+[ ! -f "$env" ] || { set -a; . "$env"; set +a; }
+
 [ "${1:-}" != "--dry-run" ] || DRY_RUN=1
 : "${DRY_RUN:=}"
 written=0   # counted by the helpers below, so the closing line can say how many
@@ -110,6 +116,62 @@ w com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
 w com.apple.finder ShowRemovableMediaOnDesktop     -bool true
 w com.apple.finder ShowMountedServersOnDesktop     -bool true
 w com.apple.finder ShowHardDrivesOnDesktop         -bool false
+
+#
+# Mail
+#
+# Settings > Composing > "Send new messages from", pinned instead of "Automatically
+# select best account". The value is "Full Name <address>" and should match an
+# account in Mail, so on a fresh install it means something once that account
+# is signed in. The key is absent while the setting is on automatic, so the
+# usual before/after diff has nothing to show until it is changed. The name
+# comes from Mail's own binary (`strings Mail.app/Contents/MacOS/Mail`).
+# Mail is not restarted below: it reads this at its next launch, and killing it
+# mid-draft costs more than waiting.
+# The address comes from MAIL_FROM in the repo's untracked .env (see
+# .env.example), so it stays out of this public repo. Unset, Mail keeps
+# choosing the account itself.
+# Mail mirrors it into com.apple.mail-shared on launch; both are written so a
+# fresh install does not depend on which one it reads first.
+if [ -n "${MAIL_FROM:-}" ]; then
+	w com.apple.mail        NewMessageFromAddress -string "$MAIL_FROM"
+	w com.apple.mail-shared NewMessageFromAddress -string "$MAIL_FROM"
+fi
+# Composing > "Add link previews": off, a pasted URL stays a URL.
+w com.apple.mail AddLinkPreviews -bool false
+# Silent: no sound for new mail, and none for sending or fetching either.
+w com.apple.mail PlayMailSounds       -bool false
+w com.apple.mail NewMessagesSoundName -string ""
+# Fonts & Colors: message font Helvetica 13, message list Helvetica 11. The list
+# font is an archived NSFont, so it goes in as raw bytes. To change it, pick the
+# font in Mail, then dump it again:
+#   defaults export com.apple.mail - | plutil -extract MessageListFont raw -o - - | base64 -d | xxd -p | tr -d '\n'
+w com.apple.mail NSFont     -string Helvetica
+w com.apple.mail NSFontSize -string 13   # a string, as Mail itself writes it
+w com.apple.mail MessageListFont -data 62706c6973743030d4010203040506070a582476657273696f6e592461726368697665725424746f7058246f626a6563747312000186a05f100f4e534b657965644172636869766572d1080954726f6f748001a40b0c151655246e756c6cd40d0e0f1011121314564e5353697a65584e5366466c616773564e534e616d655624636c6173732340260000000000001010800280035948656c766574696361d21718191a5a24636c6173736e616d655824636c6173736573564e53466f6e74a2191b584e534f626a65637408111a24293237494c5153585e676e777e858e9092949ea3aeb7bec10000000000000101000000000000001c000000000000000000000000000000ca
+
+# The rest of what the panes show, written even where it matches Apple's default
+# today, so a changed default in a macOS update does not change Mail.
+w com.apple.mail PollTime -int -1                                         # General > check: automatically
+w com.apple.mail NumberOfSnippetLines -int 2                              # Viewing > list preview
+w com.apple.mail ShouldShowUnreadMessagesInBold -bool false               # Viewing
+w com.apple.mail SpellCheckingBehavior -string InlineSpellCheckingEnabled # Composing > as I type
+# Mail keeps these three in a separate domain of its own, com.apple.mail-shared.
+w com.apple.mail-shared AddressDisplayMode -int 0                 # Viewing > Use Smart Addresses: off
+w com.apple.mail-shared ExpandPrivateAliases -bool true           # Composing > show all group member addresses
+w com.apple.mail-shared AlertForNonmatchingDomains -bool false    # Composing > mark addresses not ending with
+
+# General > search all mailboxes: include Trash. Off by default.
+w com.apple.mail IndexTrash -bool true
+
+# These two are in Mail's group container, which `defaults` reaches only by path.
+mailgroup="$HOME/Library/Group Containers/group.com.apple.mail/Library/Preferences/group.com.apple.mail"
+# Viewing > "Summarize Message Previews": off.
+w "$mailgroup" DisableAutomaticMessageSummarization -bool true
+# The whole Privacy pane as one bitmask: Protect Mail Activity off, Hide IP
+# Address on, Block All Remote Content off. 9 is what the pane wrote for that
+# combination; the individual bits are not decoded.
+w "$mailgroup" LoadRemoteContent-v2 -int 9
 
 #
 # System-wide
@@ -217,4 +279,4 @@ killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
 # Apple moves it, the settings are still written and a logout still applies them.
 /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u 2>/dev/null || true
 
-echo "$written settings written (menu bar, Dock, Finder, trackpad, formats, privacy, Spotlight results) plus the keyboard shortcuts from $(basename "$hotkeys"); Dock, Finder, the menu bar and Control Center restarted, so nothing here waits for a logout"
+echo "$written settings written (menu bar, Dock, Finder, Mail sender, trackpad, formats, privacy, Spotlight results) plus the keyboard shortcuts from $(basename "$hotkeys"); Dock, Finder, the menu bar and Control Center restarted, so nothing here waits for a logout"
