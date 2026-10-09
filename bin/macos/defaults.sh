@@ -131,7 +131,12 @@ w com.apple.finder ShowHardDrivesOnDesktop         -bool false
 # The address comes from MAIL_FROM in the repo's untracked .env (see
 # .env.example), so it stays out of this public repo. Unset, Mail keeps
 # choosing the account itself.
-[ -z "${MAIL_FROM:-}" ] || w com.apple.mail NewMessageFromAddress -string "$MAIL_FROM"
+# Mail mirrors it into com.apple.mail-shared on launch; both are written so a
+# fresh install does not depend on which one it reads first.
+if [ -n "${MAIL_FROM:-}" ]; then
+	w com.apple.mail        NewMessageFromAddress -string "$MAIL_FROM"
+	w com.apple.mail-shared NewMessageFromAddress -string "$MAIL_FROM"
+fi
 # Composing > "Add link previews": off, a pasted URL stays a URL.
 w com.apple.mail AddLinkPreviews -bool false
 # Silent: no sound for new mail, and none for sending or fetching either.
@@ -144,6 +149,17 @@ w com.apple.mail NewMessagesSoundName -string ""
 w com.apple.mail NSFont     -string Helvetica
 w com.apple.mail NSFontSize -string 13   # a string, as Mail itself writes it
 w com.apple.mail MessageListFont -data 62706c6973743030d4010203040506070a582476657273696f6e592461726368697665725424746f7058246f626a6563747312000186a05f100f4e534b657965644172636869766572d1080954726f6f748001a40b0c151655246e756c6cd40d0e0f1011121314564e5353697a65584e5366466c616773564e534e616d655624636c6173732340260000000000001010800280035948656c766574696361d21718191a5a24636c6173736e616d655824636c6173736573564e53466f6e74a2191b584e534f626a65637408111a24293237494c5153585e676e777e858e9092949ea3aeb7bec10000000000000101000000000000001c000000000000000000000000000000ca
+
+# The rest of what the panes show, written even where it matches Apple's default
+# today, so a changed default in a macOS update does not change Mail.
+w com.apple.mail PollTime -int -1                                         # General > check: automatically
+w com.apple.mail NumberOfSnippetLines -int 2                              # Viewing > list preview
+w com.apple.mail ShouldShowUnreadMessagesInBold -bool false               # Viewing
+w com.apple.mail SpellCheckingBehavior -string InlineSpellCheckingEnabled # Composing > as I type
+# Mail keeps these three in a separate domain of its own, com.apple.mail-shared.
+w com.apple.mail-shared AddressDisplayMode -int 0                 # Viewing > Use Smart Addresses: off
+w com.apple.mail-shared ExpandPrivateAliases -bool true           # Composing > show all group member addresses
+w com.apple.mail-shared AlertForNonmatchingDomains -bool false    # Composing > mark addresses not ending with
 
 # General > search all mailboxes: include Trash. Off by default.
 w com.apple.mail IndexTrash -bool true
