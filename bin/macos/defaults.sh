@@ -137,6 +137,17 @@ w com.apple.mail AddLinkPreviews -bool false
 # Silent: no sound for new mail, and none for sending or fetching either.
 w com.apple.mail PlayMailSounds       -bool false
 w com.apple.mail NewMessagesSoundName -string ""
+# General > search all mailboxes: include Trash. Off by default.
+w com.apple.mail IndexTrash -bool true
+
+# These two are in Mail's group container, which `defaults` reaches only by path.
+mailgroup="$HOME/Library/Group Containers/group.com.apple.mail/Library/Preferences/group.com.apple.mail"
+# Viewing > "Summarize Message Previews": off.
+w "$mailgroup" DisableAutomaticMessageSummarization -bool true
+# The whole Privacy pane as one bitmask: Protect Mail Activity off, Hide IP
+# Address on, Block All Remote Content off. 9 is what the pane wrote for that
+# combination; the individual bits are not decoded.
+w "$mailgroup" LoadRemoteContent-v2 -int 9
 
 #
 # System-wide
