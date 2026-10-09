@@ -8,7 +8,7 @@
 # `trivy-action@v0.x` runs whatever that tag points at today. This line runs a
 # digest, bumped by Dependabot after a week's cooldown — longer than any of
 # those windows stayed open — and the copy in GHCR does not change after that.
-FROM aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+FROM aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
 
 LABEL org.opencontainers.image.source=https://github.com/landsman/config
 LABEL org.opencontainers.image.description="Unmodified mirror of aquasec/trivy, relabelled so it links back to landsman/config. The shared dockerfile and dependencies scans in landsman/config run trivy from here. Published by the mirror workflow in landsman/config, one tag per version bump, for amd64 and arm64. Not a fork: to see what is in it, read trivy's own docs for the version in the tag."
