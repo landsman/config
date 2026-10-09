@@ -19,11 +19,22 @@ the title. The rule is that the link is present, not that nothing else is.
 
 ## Where this does **not** apply
 
-**Inside the repository.** A commit message, a PR body, an issue comment or a doc
-in the repo refers to a sibling PR as `#177`, because the forge resolves it there
-and a full URL is noise that breaks when a repo moves.
+**Where the forge resolves it.** A commit message, a PR body and an issue comment
+refer to a sibling PR as `#177`. The forge links it there, and a full URL there is
+noise.
 
-That exception is for **the same repository on the same forge**, and nothing
+**A file is not one of those places.** In a Markdown file in the repo — a doc, a
+rule, a README, a plan — `#177` stays plain text, and that holds on GitHub and on
+Forgejo alike, in a rendered `.md` as much as in the IDE. So a file takes the full
+link, and since it is Markdown it can still read short:
+
+    ✅ in docs/money.md: [#177](https://github.com/owner/repo/pull/177)
+    ❌ in docs/money.md: #177
+
+`/pull/` on GitHub, `/pulls/` on Forgejo; `/issues/` for an issue, and on Forgejo
+`/issues/N` redirects to the pull request when N is one.
+
+The short form is for **the same repository on the same forge**, and nothing
 wider. Anything written in one repo about work in another — above all on another
 forge, such as a Forgejo issue about a GitHub PR — takes the full URL. Short forms
 resolve against the forge they are written on: `owner/repo#33` in a Forgejo issue
