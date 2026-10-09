@@ -167,7 +167,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/forge-guard.sh\""
+            "command": "\"$HOME/projects/landsman/config/bin/agents/private-host-guard.sh\""
           }
         ]
       },

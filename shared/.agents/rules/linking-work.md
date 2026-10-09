@@ -51,3 +51,8 @@ signed-in tool, never `WebFetch` or an anonymous `curl`:
 | `dev.azure.com` | the `azure-devops` MCP server |
 
 A missing server is a finding to report, not a reason to scrape the page.
+
+A new host behind a login gets a skill saying which tool reads it, with the host
+in both `trigger-keywords:` (a pasted link loads the skill) and `private-hosts:`
+(`private-host-guard.sh` refuses an anonymous fetch and names the skill). Neither
+hook changes.
