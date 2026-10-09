@@ -49,3 +49,10 @@ That is also the line the confidentiality rule draws — see
 name, which is fine in a terminal I am reading and not fine in anything that
 leaves the machine. Linking to a client PR in conversation is expected; putting
 that URL in a public doc or a commit message is the thing that rule forbids.
+
+## Reading one I handed you
+
+A link to my own work is behind a login: read it with the signed-in tool its
+skill names (`forgejo` for git.insuit.cz, `gh` for GitHub), never `WebFetch` or
+an anonymous `curl`. A missing server is a finding to report, not a reason to
+scrape the page.

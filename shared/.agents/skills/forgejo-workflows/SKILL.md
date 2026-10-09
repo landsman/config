@@ -1,7 +1,7 @@
 ---
 name: forgejo-workflows
-description: Load before writing a Forgejo Actions workflow or porting one from GitHub Actions — anything touching `.forgejo/workflows/`, `forgejo-runner`, or a repo on git.insuit.cz. The rule file carries the facts; this carries the order a port goes in, and it exists because the trigger is usually the request rather than a file, which is what the rule's `paths:` scoping cannot catch.
-trigger-keywords: forgejo*
+description: Load before writing a Forgejo Actions workflow or porting one from GitHub Actions — anything touching `.forgejo/workflows/` or `forgejo-runner`. The rule file carries the facts; this carries the order a port goes in, and it exists because the trigger is usually the request rather than a file, which is what the rule's `paths:` scoping cannot catch.
+trigger-keywords: forgejo-runner, .forgejo, forgejo actions, forgejo ci, forgejo workflow*
 ---
 
 # Porting a workflow to Forgejo Actions

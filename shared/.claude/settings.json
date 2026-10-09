@@ -107,6 +107,7 @@
       "mcp__pencil"
     ],
     "deny": [
+      "WebFetch(domain:git.insuit.cz)",
       "Bash(git push* main)",
       "Bash(git push*:main)",
       "Bash(git push* +main)",
