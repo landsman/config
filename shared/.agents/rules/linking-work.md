@@ -38,3 +38,16 @@ That is also the line the confidentiality rule draws — see
 name, which is fine in a terminal I am reading and not fine in anything that
 leaves the machine. Linking to a client PR in conversation is expected; putting
 that URL in a public doc or a commit message is the thing that rule forbids.
+
+## Reading one I handed you
+
+A link to my own work is behind a login, so open it with the forge's own
+signed-in tool, never `WebFetch` or an anonymous `curl`:
+
+| Host | Tool |
+|------|------|
+| `git.insuit.cz` | the `forgejo` MCP server — the `forgejo` skill maps each URL to a tool |
+| `github.com` | `gh pr view`, `gh api` |
+| `dev.azure.com` | the `azure-devops` MCP server |
+
+A missing server is a finding to report, not a reason to scrape the page.
