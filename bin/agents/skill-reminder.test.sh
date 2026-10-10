@@ -25,15 +25,15 @@ printf -- '---\nname: commit-messages\ntrigger-keywords: commit*, pull request\n
 printf -- '---\nname: postgres\ntrigger-keywords: postgres, index*, rešerš*\n---\n' > "$tmp/.claude/skills/pg/SKILL.md"
 printf -- '---\nname: quiet\ndescription: no keywords\n---\n' > "$tmp/.claude/skills/quiet/SKILL.md"
 
-check "whole word" "load the postgres skill" "why is Postgres slow"
+check "whole word" "matches the postgres skill" "why is Postgres slow"
 check "a prefix keyword catches an inflected form" "commit-messages" "napiš zprávu ke commitu"
 check "a multi-word keyword" "commit-messages" "open a pull request"
 check "no partial word without *" "" "postgresql is fine"
 check "no match inside a word" "" "the recommit flag"
-check "a keyword with diacritics matches a prompt without" "load the postgres skill" "udelej reserse"
+check "a keyword with diacritics matches a prompt without" "matches the postgres skill" "udelej reserse"
 mkdir -p "$tmp/.claude/skills/forge"
 printf -- '---\nname: forgejo\ntrigger-keywords: git.insuit.cz\n---\n' > "$tmp/.claude/skills/forge/SKILL.md"
-check "a host in a pasted link" "load the forgejo skill" "zapracuj https://git.insuit.cz/o/r/pulls/7"
+check "a host in a pasted link" "matches the forgejo skill" "zapracuj https://git.insuit.cz/o/r/pulls/7"
 check "unrelated prompt is silent" "" "hello"
 
 printf '%s\n' '{"message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"postgres"}}]}}' > "$tmp/t.jsonl"
@@ -41,6 +41,6 @@ check "a skill loaded this session is not repeated" "" "add an index" "$tmp/t.js
 
 mkdir -p "$tmp/p/.claude/skills/local"
 printf -- '---\nname: local\ntrigger-keywords: deploy\n---\n' > "$tmp/p/.claude/skills/local/SKILL.md"
-CLAUDE_PROJECT_DIR="$tmp/p" check "the project's own skills count" "load the local skill" "deploy it"
+CLAUDE_PROJECT_DIR="$tmp/p" check "the project's own skills count" "matches the local skill" "deploy it"
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }

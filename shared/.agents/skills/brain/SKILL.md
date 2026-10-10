@@ -1,7 +1,7 @@
 ---
 name: brain
 description: Load before writing to or reading from my long-term knowledge base in `~/projects/landsman/brain` — after finishing any research (web search, comparing tools, reading docs, an investigation whose findings outlive the session), when I say "remember this", "save it to the brain", "what do I know about X", or ask to tidy the brain up. Carries the ingest, query and lint steps and how to commit from another repo.
-trigger-keywords: brain*, remember this, zapamatuj*, research*, rešerš*
+trigger-keywords: brain, brainu, remember this, zapamatuj*, research*, rešerš*
 ---
 
 # Brain

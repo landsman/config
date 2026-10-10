@@ -77,7 +77,13 @@ def main() -> None:
     if hits:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
-            "additionalContext": "\n".join(f"IMPORTANT: load the {h} skill before acting on this prompt." for h in hits),
+            # Not "IMPORTANT: load it": a keyword is a guess, and the model
+            # judges relevance well once it is asked to (brain: skill-activation-hooks).
+            "additionalContext": "\n".join(
+                f"A keyword in this prompt matches the {h} skill. Load it before acting"
+                " if the prompt is really about what its description says; otherwise ignore this."
+                for h in hits
+            ),
         }}))
 
 
