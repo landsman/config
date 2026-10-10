@@ -75,10 +75,12 @@ reached for silently, and has to be in context *before* the mistake — which a
 scoped rule, by construction, is not. That is the same line that separates a rule
 from a skill, drawn one level finer.
 
-**The gap scoping cannot close: writing the file from scratch.** Nothing gets
-read first, so nothing matches, so the rule never loads — precisely when it is
-needed most. `CLAUDE.md` carries a one-line pointer per scoped rule to cover it;
-that row in the index is load-bearing, not a table of contents.
+**The gap scoping cannot close: writing the file from scratch.** A scoped rule
+loads when Claude reads, writes or edits a matching file
+(<https://code.claude.com/docs/en/memory#path-specific-rules>), so for a new file
+it arrives with the first write — after the draft it was meant to shape.
+`CLAUDE.md` carries a one-line pointer per scoped rule to cover it, and that row
+says to read the rule first; it is load-bearing, not a table of contents.
 
 **When the trigger is a request, the pair is a rule and a skill.** Forgejo
 Actions is the case that forced it: the rule is worth scoping, because most of it

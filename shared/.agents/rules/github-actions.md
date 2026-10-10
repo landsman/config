@@ -8,9 +8,10 @@ paths:
 
 # GitHub Actions and Dependabot
 
-Loaded only when something under `.github/` is being read, which is the only time
-any of it applies. `CLAUDE.md` keeps a one-line pointer for the case this misses:
-writing one of these files from scratch, where there is nothing to read first.
+Loaded when a file under `.github/` is read, written or edited, which is the only
+time any of it applies. `CLAUDE.md` keeps a one-line pointer for the case this
+misses: writing one of these files from scratch, where it arrives with the first
+write, after the draft.
 
 ## Actions stay on the major tag
 
