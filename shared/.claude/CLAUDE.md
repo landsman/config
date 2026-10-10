@@ -29,7 +29,6 @@ mistake, not after.
 | [The database is the source of truth](rules/source-of-truth.md) | state is about to live outside the database — memory, a session, a cache, a queue — or two writers race |
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Browser automation](rules/browser-automation.md) | a web app gets opened to check or drive it |
-| [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 
 The folder name is not a preference: `rules/` and `CLAUDE.md` are the only two
 things Claude Code loads on its own. A folder named anything else is inert
