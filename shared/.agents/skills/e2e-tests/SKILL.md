@@ -13,7 +13,7 @@ trigger-keywords: e2e, end-to-end, playwright*, cucumber*, gherkin*, chromi*, in
 - **One browser.** `playwright install chromium`, never a bare `install`. Playwright Java downloads all three browsers plus ffmpeg on the first `Playwright.create()`: install Chromium in its own task and set `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` on the test task, which depends on it.
 - **One Playwright version per repo.** Two suites (a Java app and a TypeScript site) pin the same version and are bumped in one Renovate group, so they share one browser directory and one package list.
 - **Headless in CI, headed locally on request** — a `make e2e-head` with slow-mo and one worker, never the default.
-- **Phone first.** Default viewport 390×844, a second pass at 1280×720; reuse those two sizes. A desktop default hides phone bugs: every assertion passes at 1280 against broken phone code.
+- **Phone first.** Default viewport 390×844, a second pass at 1280×720; reuse those two sizes. A desktop default hides phone bugs: every assertion passes at 1280 against broken phone code. The phone viewport still has no address bar, notch or keyboard; the mobile-first skill's item 13 says what to assert instead.
 
 ## CI: install and cache
 
