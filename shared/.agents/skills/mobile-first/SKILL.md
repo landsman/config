@@ -1,7 +1,7 @@
 ---
 name: mobile-first
 description: Load before writing or reviewing the layout of a web page or component — CSS, a media query, a viewport unit, anything pinned to an edge, a tap target, a form field, a dialog — and when something looks wrong on a phone. Carries the phone as the base case, the browser chrome that covers the page, viewport units, safe areas, touch and input, and how to test what an emulator cannot show.
-trigger-keywords: mobile*, mobil*, phone*, telefon*, responsive, viewport, svh, dvh, safe-area, touch
+trigger-keywords: mobil*, phone*, iphon*, ios, safari, telefon*, responsiv*, responziv*, viewport*, svh, dvh, 100vh, 100svh, 100dvh, safe-area, dotyk*
 ---
 
 # Mobile first
