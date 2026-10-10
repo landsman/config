@@ -68,7 +68,9 @@ finding it restored after a relaunch.
 ## Smaller things that cost an hour each
 
 - **`set -- $L` does not word-split in zsh.** The whole geometry lands in `$1` and the
-  instance starts with `--window-size=,`, silently, for months. Hence `${=L}`.
+  instance starts with `--window-size=,`, silently, for months. That was the start
+  command pasted from the rule into whatever shell ran it; it is
+  `bin/chrome/ai-e2e.sh` now, bash, with a self-check.
 - **`google-chrome-canary` is not a cask.** The name is `google-chrome@canary`, and
   `make apps-test` only parses the Brewfile as Ruby, so it does not catch a wrong one.
 - **The pairing prompt is a broadcast.** `switch_browser` opens it in every connected
