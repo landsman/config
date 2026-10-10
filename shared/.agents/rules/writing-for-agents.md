@@ -20,7 +20,9 @@ to fix one of them is eighty-nine points of waste, and it pushes out the code th
 agent was supposed to be looking at.
 
 1. **The trigger** — a skill's `description`, a rule's `paths:`, a row in an
-   index. Every session pays for it, so it says when to load and nothing else.
+   index. Every session pays for it, so it says when to load: the situations,
+   and for a skill the topics inside, which are what a prompt is matched
+   against. Never how.
 2. **The list** — what loads on the trigger. Numbered, one sentence per item,
    each starting with an identifier. Enough to tell which item applies, not
    enough to apply it: no explanation, no example, no exceptions.
@@ -53,3 +55,7 @@ form moves to a skill, the way `commit-messages` does it.
 
 Measure before deciding: `wc -w` on what loads at the trigger, against what is
 on disk.
+
+**In the config repo, a new file is not live until `make restow`.** Stow links
+`shared/.agents/` file by file, so a rule or a skill merged without it reaches
+no harness; the session-start hook lists what is missing.

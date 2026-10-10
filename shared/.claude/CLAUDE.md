@@ -21,15 +21,14 @@ mistake, not after.
 | [Worktrees](rules/worktrees.md) | an agent is about to change a repo |
 | [Subagents](rules/subagents.md) | work is about to be handed to a subagent or run in the background |
 | [Everything as code](rules/everything-as-code.md) | a machine, a service or a setting on one of my devices is about to be changed |
-| [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped, loads itself |
-| [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/`, or porting a workflow from GitHub — scoped, loads itself |
-| [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped, loads itself |
-| [Writing for agents](rules/writing-for-agents.md) | writing a rule, a skill or a reference an agent loads: a short list, details opened one at a time — scoped, loads itself |
+| [GitHub Actions](rules/github-actions.md) | writing under `.github/` — scoped; read it before creating one |
+| [Forgejo Actions](rules/forgejo-workflows.md) | writing under `.forgejo/workflows/`, or porting a workflow from GitHub — scoped; read it before creating one |
+| [Makefiles](rules/makefiles.md) | writing a `Makefile` — scoped; read it before creating one |
+| [Writing for agents](rules/writing-for-agents.md) | writing a rule, a skill or a reference an agent loads: a short list, details opened one at a time — scoped; read it before creating one |
 | [Shell in a config file](rules/shell-in-config.md) | shell goes inside a YAML or a Makefile |
 | [The database is the source of truth](rules/source-of-truth.md) | state is about to live outside the database — memory, a session, a cache, a queue — or two writers race |
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Browser automation](rules/browser-automation.md) | a web app gets opened to check or drive it |
-| [Voice](rules/voice.md) | background, not a rule: the plugin that reads answers aloud |
 
 The folder name is not a preference: `rules/` and `CLAUDE.md` are the only two
 things Claude Code loads on its own. A folder named anything else is inert

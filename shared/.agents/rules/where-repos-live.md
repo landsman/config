@@ -62,11 +62,11 @@ So, in any repo that is not that client's own:
 ### The list of names is in the brain
 
 Which names those are cannot live in this repo, because this repo is public.
-They are in **[Names that stay private](../../../brain/wiki/names-that-stay-private.md)** —
-`wiki/names-that-stay-private.md` in the brain, listed in its index, which every
-session already loads. It says what counts as the name (the organisation on
-the forge, the product, its domains and subdomains, accounts made for them on
-shared infrastructure) and which names are mine and therefore fine anywhere.
+They are in the brain's **Names that stay private** page,
+`~/projects/landsman/brain/wiki/names-that-stay-private.md`. It says what counts
+as the name (the organisation on the forge, the product, its domains and
+subdomains, accounts made for them on shared infrastructure) and which names are
+mine and therefore fine anywhere.
 The names themselves, each with its owner, are `private-names.txt` at the root
 of the brain — the one list, which the hook below reads too.
 

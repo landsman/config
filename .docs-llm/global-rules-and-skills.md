@@ -46,11 +46,9 @@ per harness after that. Never a copy.
 ## The cost of the glob
 
 opencode has no per-path scoping like Claude Code's `paths:`, so every rule
-land in every opencode session. Two of them would otherwise wait until a
-`.github/` file or a `Makefile` was actually read, and `voice.md` describes a
-plugin another client runs. That is roughly two hundred lines of short rules and
-buy you the absence of a second copy — a new rule reaches both clients with one
-edit. It is the same trade this repo already makes: one source, whatever the
+lands in every opencode session. The four scoped ones would otherwise wait until
+a matching file was read — about 360 lines, a third of the directory. That buys
+the absence of a second copy — a new rule reaches both clients with one edit. It is the same trade this repo already makes: one source, whatever the
 continuation cost.
 
 ## `paths:`-scoped rules
@@ -77,10 +75,12 @@ reached for silently, and has to be in context *before* the mistake — which a
 scoped rule, by construction, is not. That is the same line that separates a rule
 from a skill, drawn one level finer.
 
-**The gap scoping cannot close: writing the file from scratch.** Nothing gets
-read first, so nothing matches, so the rule never loads — precisely when it is
-needed most. `CLAUDE.md` carries a one-line pointer per scoped rule to cover it;
-that row in the index is load-bearing, not a table of contents.
+**The gap scoping cannot close: writing the file from scratch.** A scoped rule
+loads when Claude reads, writes or edits a matching file
+(<https://code.claude.com/docs/en/memory#path-specific-rules>), so for a new file
+it arrives with the first write — after the draft it was meant to shape.
+`CLAUDE.md` carries a one-line pointer per scoped rule to cover it, and that row
+says to read the rule first; it is load-bearing, not a table of contents.
 
 **When the trigger is a request, the pair is a rule and a skill.** Forgejo
 Actions is the case that forced it: the rule is worth scoping, because most of it
@@ -101,18 +101,20 @@ still read correctly when it arrives unprompted.
 ## A new rule is not live until `make restow`
 
 `~/.agents/rules/` is a real directory of **per-file** symlinks, not a symlinked
-directory — that is how GNU stow folds a package. So adding `rules/foo.md` to the
-repo changes nothing on the machine until `make restow` links it. Until then the
-file is tracked, reviewed, merged, and read by no harness at all.
+directory — that is what `--no-folding` makes stow do. So adding `rules/foo.md`
+to the repo changes nothing on the machine until `make restow` links it. Until
+then the file is tracked, reviewed, merged, and read by no harness at all.
 
-`linking-work.md` shipped this way: committed, indexed in `CLAUDE.md`, and absent
-from `~/.agents/rules/`. Nothing errors — a rule that was never linked and a rule
-being ignored look identical from inside a session.
+`linking-work.md` shipped this way, and later six rules and six skills at once:
+committed, indexed in `CLAUDE.md`, and absent from `~/.agents/`. Nothing errors —
+a rule that was never linked and a rule being ignored look identical from inside
+a session, and `/context`, the check this section used to name, is a step
+someone has to remember.
 
-So Claude Code sees a rule only when all three hold: it is stowed, it has no
-`paths:` frontmatter, and only then, on every turn. `/context` is the check —
-unconditional rules appear under **Memory files**, and the count there is the
-one that matters, not the number of files in the repo.
+So the check runs by itself now. [`bin/agents/session-start.sh`](../bin/agents/session-start.sh),
+the SessionStart hook, lists every file tracked under `shared/.agents/` that does
+not resolve in `$HOME`, and the session opens with that list. `/context` stays
+the way to see what did load: unconditional rules appear under **Memory files**.
 
 ## Adding a harness
 

@@ -79,7 +79,8 @@ Two things this does not change:
   subject only survives because the prefix is carrying it, it is not written yet.
 - **Lowercase the sentence, not the names.** `deps: bump GHCR mirror to 1.173.0`,
   not `ghcr`. Proper nouns, tool names and identifiers keep their own casing.
-- **No email address in a subject or a PR title**, mine included. Say whose it
-  is ("the work address"), not what it is. The value belongs in the diff or in
-  a gitignored `.env`. `bin/git/forbidden-names.sh` refuses the subject at
-  commit time, and refuses the title when the PR is piped through it.
+
+**No email address in a subject or a PR title**, mine included. Say whose it
+is ("the work address"), not what it is. The value belongs in the diff or in
+a gitignored `.env`. `bin/git/forbidden-names.sh` refuses the subject at
+commit time, and refuses the title when the PR is piped through it.
