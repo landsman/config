@@ -178,7 +178,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=\"$HOME/projects/landsman/brain/wiki/index.md\"; [ -f \"$f\" ] || exit 0; echo 'Brain index (~/projects/landsman/brain) - what I already know. Check it before researching; load the brain skill to read or write it.'; cat \"$f\""
+            "command": "\"$HOME/projects/landsman/config/bin/agents/session-start.sh\""
           }
         ]
       }

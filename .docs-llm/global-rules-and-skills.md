@@ -99,18 +99,20 @@ still read correctly when it arrives unprompted.
 ## A new rule is not live until `make restow`
 
 `~/.agents/rules/` is a real directory of **per-file** symlinks, not a symlinked
-directory — that is how GNU stow folds a package. So adding `rules/foo.md` to the
-repo changes nothing on the machine until `make restow` links it. Until then the
-file is tracked, reviewed, merged, and read by no harness at all.
+directory — that is what `--no-folding` makes stow do. So adding `rules/foo.md`
+to the repo changes nothing on the machine until `make restow` links it. Until
+then the file is tracked, reviewed, merged, and read by no harness at all.
 
-`linking-work.md` shipped this way: committed, indexed in `CLAUDE.md`, and absent
-from `~/.agents/rules/`. Nothing errors — a rule that was never linked and a rule
-being ignored look identical from inside a session.
+`linking-work.md` shipped this way, and later six rules and six skills at once:
+committed, indexed in `CLAUDE.md`, and absent from `~/.agents/`. Nothing errors —
+a rule that was never linked and a rule being ignored look identical from inside
+a session, and `/context`, the check this section used to name, is a step
+someone has to remember.
 
-So Claude Code sees a rule only when all three hold: it is stowed, it has no
-`paths:` frontmatter, and only then, on every turn. `/context` is the check —
-unconditional rules appear under **Memory files**, and the count there is the
-one that matters, not the number of files in the repo.
+So the check runs by itself now. [`bin/agents/session-start.sh`](../bin/agents/session-start.sh),
+the SessionStart hook, lists every file tracked under `shared/.agents/` that does
+not resolve in `$HOME`, and the session opens with that list. `/context` stays
+the way to see what did load: unconditional rules appear under **Memory files**.
 
 ## Adding a harness
 
