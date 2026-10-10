@@ -15,12 +15,14 @@ as "nothing to worry about".
 |-------------|-------|--------------|
 | `github.com` | `gh pr view <n> --json state,mergedAt` | `"state": "MERGED"` |
 | GitLab | `glab mr view <n> -F json \| jq .state` | `"merged"` |
-| Forgejo, Gitea | the MCP's `get_pull_request_by_index`, or `curl -s "$FORGEJO/api/v1/repos/<owner>/<repo>/pulls/<n>" \| jq .merged` | `true` |
+| Forgejo, Gitea | the `forgejo` MCP's `get_pull_request_by_index`, or `curl -s -H "Authorization: token $FORGEJO_ACCESS_TOKEN" "https://<host>/api/v1/repos/<owner>/<repo>/pulls/<n>" \| jq .merged` | `true` |
 | `dev.azure.com`, `*.visualstudio.com` | `az repos pr show --id <n> --query status -o tsv` | `completed` |
 
 The words differ too: Azure DevOps calls a merged pull request *completed* and a
 closed one *abandoned*, and Forgejo's `state` is only `open` or `closed` — a merged
-one is `closed` with `merged: true`, so check `merged`, not `state`.
+one is `closed` with `merged: true`, so check `merged`, not `state`. Without the
+token a private repository answers 404, and `jq .merged` prints `null`: the
+check failed, it did not say the PR is open.
 
 Within the first fifteen minutes, push without checking.
 
