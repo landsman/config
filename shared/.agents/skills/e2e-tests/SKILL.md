@@ -1,7 +1,7 @@
 ---
 name: e2e-tests
 description: Load before adding, changing, reviewing or speeding up a browser end-to-end suite — Playwright (Java or TypeScript), Cucumber scenarios over it, the CI job that runs it, or a failing or flaky e2e run. Carries my defaults (Chromium only, as fast as CI allows), where the app under test should run, test data and teardown, locators and waiting, what a failed run must leave behind, and how CI installs and caches the browser and its OS packages. Framework traps (Vaadin, Playwright Java, Cucumber, React hydration) are in pitfalls.md.
-trigger-keywords: e2e, end-to-end, playwright*, cucumber, gherkin, chromium, install-deps, testEndToEnd, flaky test*
+trigger-keywords: e2e, end-to-end, playwright*, cucumber*, gherkin*, chromi*, install-deps, testEndToEnd, flaky*
 ---
 
 # Browser end-to-end tests
