@@ -10,6 +10,21 @@ The phone is the design. A wider screen is the phone with room to spare, not
 the reverse: a layout drawn on a desktop and squeezed down hides its failures
 exactly where most visitors are.
 
+## How to work
+
+The list below is a catalogue of traps; this comes first.
+
+1. **Read what the project has** — its breakpoint, tokens and components.
+2. **Decide what matters on the page** — the main content and action, and how
+   they reorder as the width changes. Mobile first is about that, not about
+   which media query comes first.
+3. **Make the smallest change that fixes it** — no redesign on the side.
+4. **Check what the change touches** — the widths, zoom, touch, keyboard and
+   focus it could affect.
+5. **Say what was checked where** — in emulation, on a real device, or not at all.
+
+Then walk the list and open the items that apply.
+
 ## The list
 
 1. **base** — unprefixed CSS is the phone; wider screens add.
@@ -18,15 +33,15 @@ exactly where most visitors are.
 4. **safe-area** — `env(safe-area-inset-*)` is zero unless you opt in.
 5. **tap-targets** — 44px to aim at, never under 24px.
 6. **no-hover** — nothing may exist only on `:hover`.
-7. **inputs** — 16px text in a field, and the right keyboard.
-8. **width** — no horizontal scroll at 320px.
+7. **inputs** — 16px text in a field, the right keyboard, and the field still visible above it.
+8. **width** — no horizontal scroll at 320px, nor anywhere between the breakpoints.
 9. **reach** — a gesture beside every small control a thumb has to hit.
 10. **no-jump** — reserve room for what appears after the script runs.
 11. **short-screen** — a landscape phone is 320px tall.
-12. **dialogs** — lock the page behind, contain the scroll inside.
-13. **testing** — an emulator has no browser chrome; assert distances.
+12. **dialogs** — native `<dialog>` for focus, then lock the page behind it.
+13. **testing** — an emulator has no browser chrome; assert distances and behaviour.
 
-Each item below stands alone.
+Each section below stands alone, so it can be opened on its own.
 
 ## 1. base
 
@@ -37,13 +52,17 @@ other way (`max-width`) keeps its convention — do not flip it as a side effect
 
 ## 2. bottom-edge
 
-Safari on iOS 26 floats its address bar over the bottom of the page, about 90px
-on a phone, and draws the page underneath it. `100svh` counts that strip as
-page. A menu pinned to the bottom of a `min-height: 100svh` body landed behind
-the bar, out of reach — found on a real site, invisible in every test.
+Observed on Safari, iOS 26 (October 2026): the address bar floats over the
+bottom of the page, about 90px on that iPhone, and the page is drawn underneath
+it. `100svh` counts that strip as page. A menu pinned to the bottom of a
+`min-height: 100svh` body landed behind the bar, out of reach — found on a real
+site, invisible in every test. The bar's height depends on the browser, its
+settings and the device; the version will change, the trap will not.
 
-- Nothing that must be tapped sits in the bottom ~90px at rest: leave room under
-  it (112px worked), or let it follow the content instead of the edge.
+- Nothing that must be tapped sits at the bottom edge unchecked. Either let it
+  follow the content instead of the edge, or leave room under it and confirm on
+  a device, with the browser's bar showing, that the room is enough — 112px was
+  for that one phone, not a constant.
 - The same goes for `position: fixed; bottom: 0` bars and cookie banners.
 - Other browsers put their bar there too, as an option; design for the bar
   being there.
@@ -91,9 +110,16 @@ A field under 16px makes iOS Safari zoom in on focus, and it does not zoom back.
 Set `font-size: max(16px, 1em)` on `input, select, textarea`. Pick the keyboard:
 `type="email|tel|url|number"`, `inputmode`, `autocomplete`, `enterkeyhint`.
 
+The on-screen keyboard takes about half the screen. The focused field and the
+action that submits it must stay reachable with it open — which a submit button
+in a bar pinned by a viewport height is not. Check with the keyboard up.
+
 ## 8. width
 
-Test at 320px wide, the narrowest phone still sold. The usual culprits: a long
+Test at 320px wide: that is the width WCAG 1.4.10 Reflow asks content to work
+at without scrolling sideways, and what 400% zoom on a 1280px screen comes to.
+Then drag the width through every range, not only the named devices — a layout
+breaks between breakpoints. The usual culprits: a long
 word or URL (`overflow-wrap: anywhere`), an image (`max-width: 100%`), a table
 or a code block (scroll inside its own `overflow-x: auto` container, never the
 page), a fixed `width` in px.
@@ -119,7 +145,12 @@ when there is no room. A landscape phone is ~320px tall; check it.
 
 ## 12. dialogs
 
-While a dialog is open the page behind should not scroll:
+The CSS is the smaller half. A native `<dialog>` opened with `showModal()`
+moves focus in, makes the page behind inert, closes on Esc and returns focus
+when it closes; a `<div>` dialog has to rebuild all of that and usually misses
+some.
+
+Then, while it is open the page behind should not scroll:
 `html:has(dialog[open]) { overflow: hidden }`. Give the dialog's own scroller
 `overscroll-behavior: contain` so reaching its end does not drag the page.
 
@@ -129,9 +160,12 @@ A Playwright phone viewport — even `devices['iPhone 15']`, with its touch and
 pixel ratio — has no address bar, no notch and no keyboard. The page looks
 right there and wrong on the phone. So:
 
-- **Assert distances, not screenshots**: "the menu ends more than 90px above the
-  bottom", "the links share one row", "nothing is wider than the viewport"
-  (`document.documentElement.scrollWidth <= innerWidth`).
+- **Assert distances and behaviour, not screenshots**: "the menu ends more than
+  90px above the bottom", "the links share one row", "nothing is wider than the
+  viewport" (`document.documentElement.scrollWidth <= innerWidth`), "the control
+  works by tap and by keyboard".
+- **Zoom to 200%** and check that nothing is cut off or covered; check visible
+  focus and `prefers-reduced-motion` when the change touches them.
 - **Check on a real phone** or the iOS Simulator (Xcode) before calling a layout
   change done, and say when that did not happen.
 - A screenshot from the user's phone is the best bug report there is; read the
