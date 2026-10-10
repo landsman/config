@@ -23,7 +23,7 @@ The list below is a catalogue of traps; this comes first.
    focus it could affect.
 5. **Say what was checked where** — in emulation, on a real device, or not at all.
 
-Then walk the list and open the items that apply.
+Then walk the list and read the sections that apply.
 
 ## The list
 
@@ -35,13 +35,11 @@ Then walk the list and open the items that apply.
 6. **no-hover** — nothing may exist only on `:hover`.
 7. **inputs** — 16px text in a field, the right keyboard, and the field still visible above it.
 8. **width** — no horizontal scroll at 320px, nor anywhere between the breakpoints.
-9. **reach** — a gesture beside every small control a thumb has to hit.
+9. **reach** — a swipe beside a gallery's arrows, primary actions in the lower half.
 10. **no-jump** — reserve room for what appears after the script runs.
 11. **short-screen** — a landscape phone is 320px tall.
 12. **dialogs** — native `<dialog>` for focus, then lock the page behind it.
 13. **testing** — an emulator has no browser chrome; assert distances and behaviour.
-
-Each section below stands alone, so it can be opened on its own.
 
 ## 1. base
 
@@ -162,10 +160,11 @@ A Playwright phone viewport — even `devices['iPhone 15']`, with its touch and
 pixel ratio — has no address bar, no notch and no keyboard. The page looks
 right there and wrong on the phone. So:
 
-- **Assert distances and behaviour, not screenshots**: "the menu ends more than
-  90px above the bottom", "the links share one row", "nothing is wider than the
-  viewport" (`document.documentElement.scrollWidth <= innerWidth`), "the control
-  works by tap and by keyboard".
+- **Assert distances and behaviour, not screenshots**: "the menu ends above the
+  bar height measured on a phone (item 2)", "the links share one row", "nothing
+  is wider than the viewport"
+  (`document.documentElement.scrollWidth <= innerWidth`), "the control works by
+  tap and by keyboard".
 - **Zoom to 200%** and check that nothing is cut off or covered; check visible
   focus and `prefers-reduced-motion` when the change touches them.
 - **Check on a real phone** or the iOS Simulator (Xcode) before calling a layout
