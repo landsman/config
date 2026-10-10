@@ -9,9 +9,10 @@ points at:
 
 Playwright Java sends a `Pattern`'s source string to the browser, where it is
 compiled with `RegExp`. JavaScript has no `\Q…\E`, so `\Q` becomes a literal `Q`
-and the pattern never matches; `DOTALL` and the other Java flags are dropped too.
-Escape the regex characters by hand in one helper, and build URL matchers from
-the route catalog through it.
+and the pattern never matches. Flags carry over only where JavaScript has one:
+`CASE_INSENSITIVE`, `DOTALL` and `MULTILINE` become `i`, `s` and `m`, and any
+other flag throws. Escape the regex characters by hand in one helper, and build
+URL matchers from the route catalog through it.
 
 ## P2 Playwright Java: forward every `-D` to the test JVM
 
@@ -92,7 +93,8 @@ empty list — wait for the text.
 
 On a phone, a select's overlay keeps a `closing` attribute through its
 animation, and the next pick on it times out. Wait for
-`not().hasAttribute("closing")` before the second selection.
+`not().hasAttribute("closing", Pattern.compile(".*"))` before the second
+selection; Java has no one-argument `hasAttribute`.
 
 ## P11 Transactions: rollback and teardown
 
