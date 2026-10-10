@@ -76,8 +76,7 @@ retracted — so a `100vh` section is taller than what is visible on load.
 - `dvh`: follows the toolbar as it slides; anything sized by it moves on scroll.
 - `lvh`: the old `vh`.
 
-Write a fallback first, `min-height: 100vh; min-height: 100svh;`. None of these
-subtracts an overlaid bar (item 2).
+None of these subtracts an overlaid bar (item 2).
 
 ## 4. safe-area
 
@@ -140,8 +139,10 @@ give images `width`/`height` or `aspect-ratio`.
 ## 11. short-screen
 
 Centring with `justify-content: center` clips the top of content taller than the
-viewport, out of scroll reach. Centre with auto margins, which collapse to 0
-when there is no room. A landscape phone is ~320px tall; check it.
+viewport, out of scroll reach. `justify-content: safe center` centres what fits
+and starts at the top what does not; auto margins on the child, which collapse
+to 0 when there is no room, do the same where `safe` is missing. A landscape
+phone is ~320px tall; check it.
 
 ## 12. dialogs
 
@@ -151,7 +152,8 @@ when it closes; a `<div>` dialog has to rebuild all of that and usually misses
 some.
 
 Then, while it is open the page behind should not scroll:
-`html:has(dialog[open]) { overflow: hidden }`. Give the dialog's own scroller
+`html:has(dialog:modal) { overflow: hidden }` — not `[open]`, which also locks
+the page behind a non-modal `show()`. Give the dialog's own scroller
 `overscroll-behavior: contain` so reaching its end does not drag the page.
 
 ## 13. testing
