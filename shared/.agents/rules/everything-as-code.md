@@ -38,9 +38,10 @@ So when I ask for something on a machine, the change is a commit in the config
 repo that installs it, never an edit in place. When you find one already
 sitting on a device, say so, and move it into the repo or delete it. Two
 exceptions: a secret goes to 1Password and is referenced from the repo, and a
-setting that names a client goes where that client's work is tracked — its
-repo or its private runbook — because this one is public (see
-[where the repos live](where-repos-live.md)).
+setting that names a client never comes here, because this repo is public (see
+[where the repos live](where-repos-live.md)). It goes into that client's repo,
+or, when it cannot, stays in the untracked `~/.claude/settings.local.json` —
+which `make claude-settings-test` already expects.
 
 ## Doing it in the right order
 
