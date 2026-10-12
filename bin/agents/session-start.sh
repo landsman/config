@@ -17,7 +17,12 @@ unlinked() {
 	git -C "$repo" ls-files shared/.agents | sed 's|^shared/||' |
 		while read -r f; do [ -e "$HOME/$f" ] || echo "  ~/$f"; done
 }
-if [ -n "$(unlinked)" ]; then
+if [ -n "$(unlinked)" ] && [ "$(git -C "$repo" symbolic-ref --short -q HEAD)" != main ]; then
+	# The links point into this checkout, so a restow from a feature branch
+	# links that branch, and leaves dangling links once it is switched back.
+	echo "Not linked into \$HOME, so not loaded in this session - tell me; the checkout is not on main, so \`make -C $repo restow\` is left to me:"
+	unlinked
+elif [ -n "$(unlinked)" ]; then
 	# RESTOW is the test's seam; nothing else sets it.
 	out=$(${RESTOW:-make -C "$repo" restow} 2>&1)
 	# restow moves aside a real file an app wrote over a link; say which, or a
