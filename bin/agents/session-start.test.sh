@@ -53,6 +53,14 @@ export SESSION_START_RESTOW="echo boom"
 run
 expect "restow failed, its output is shown" "boom" yes
 expect "and pointed at" "The end of its output is below" yes
+# What a real failed restow prints: make's lines around stow's own error.
+printf '#!/bin/sh\necho "make: Entering directory /r"\necho "stow: ERROR: conflicts"\necho "make: *** [restow] Error 2"\necho "make: Leaving directory /r"\n' > "$tmp/failing-restow"
+chmod +x "$tmp/failing-restow"
+export SESSION_START_RESTOW="$tmp/failing-restow"
+run
+expect "stow's own error is shown" "stow: ERROR: conflicts" yes
+expect "make's lines around it are not" "make: " no
+expect "and it is not called silent" "printed nothing" no
 export SESSION_START_RESTOW="echo NOTE: ~/x was a real file"
 check "a moved file is doubted when restow then failed" "probably not linked yet either" yes
 
@@ -76,6 +84,7 @@ export SESSION_START_RESTOW="echo NOTE: restow ran"
 TMPDIR="$tmp/nope" run
 expect "no usable \$TMPDIR, restow runs without a lock" "restow ran" yes
 expect "and no other session is blamed" "Another session" no
+[ ! -e "$tmp/nope" ] && [ ! -e "$lock" ] || { echo "FAIL no usable \$TMPDIR, yet a lock was made"; fails=$((fails + 1)); }
 
 mkdir "$lock"
 # The other session links the rules before it lets go: a hook that did not
@@ -90,6 +99,8 @@ mkdir "$lock"
 perl -e 'utime undef, time - 90, shift' "$lock"
 run
 expect "a stuck lock is waited out and named, restow not run" "has not finished in 10 s" yes
+expect "without claiming it crashed" "or it is still running" yes
+expect "restow not run while it is held" "restow ran" no
 expect "with what is unlinked" "$rule" yes
 rmdir "$lock"
 mkdir "$lock"
@@ -99,11 +110,18 @@ expect "another session's restow failed, said as such" "The reason went to that 
 expect "with what is unlinked" "$rule" yes
 
 # A hook killed mid-restow lets go of the lock on its way out. bash runs the
-# trap only once the restow it waits on returns, hence the wait.
+# EXIT trap only once the restow it waits on returns, hence the wait.
 export SESSION_START_RESTOW="sleep 2"
-bash "$hook" >/dev/null & pid=$!
-sleep 1; kill -TERM "$pid"; wait "$pid" 2>/dev/null || true
-[ ! -d "$lock" ] || { echo "FAIL a killed hook leaves the lock behind"; fails=$((fails + 1)); rmdir "$lock"; }
+for sig in TERM INT; do
+	# A background job ignores INT unless it is told otherwise; set -m gives it
+	# its own process group, as a hook run by Claude Code has.
+	set -m; bash "$hook" >/dev/null & pid=$!; set +m
+	sleep 1
+	[ -d "$lock" ] || { echo "FAIL the hook to be killed by $sig holds no lock"; fails=$((fails + 1)); }
+	kill -"$sig" "$pid"; wait "$pid" 2>/dev/null || true
+	if [ -d "$lock" ]; then echo "FAIL a hook killed by $sig leaves the lock behind"; fails=$((fails + 1)); rmdir "$lock"
+	else echo "ok   a hook killed by $sig lets go of the lock"; fi
+done
 export SESSION_START_RESTOW="echo NOTE: restow ran"
 mkdir "$lock"
 touch -t 202001010000 "$lock"

@@ -48,10 +48,11 @@ elif [ -n "$(unlinked)" ]; then
 	else
 		# No lock and none to wait for means $TMPDIR is missing or read-only:
 		# restow without one rather than wait for a session that does not exist.
-		[ -z "$held" ] || { trap 'rmdir "$lock" 2>/dev/null' EXIT; trap 'exit 1' INT TERM; }
+		# bash runs the EXIT trap on TERM and INT too, once the restow returns.
+		[ -z "$held" ] || trap 'rmdir "$lock" 2>/dev/null' EXIT
 		# SESSION_START_RESTOW is the test's seam; nothing else sets it.
 		out=$(${SESSION_START_RESTOW:-make -C "$repo" restow} 2>&1)
-		[ -z "$held" ] || { rmdir "$lock"; trap - EXIT INT TERM; }
+		[ -z "$held" ] || { rmdir "$lock"; trap - EXIT; }
 	fi
 	# restow moves aside a real file in the way of a link; say which, or a
 	# changed setting disappears into a .bak nobody looks at.
@@ -70,7 +71,7 @@ elif [ -n "$(unlinked)" ]; then
 	missing=$(unlinked)
 	if [ -n "$missing" ] && [ -n "$stuck" ]; then
 		echo "Tell the user, in plain words: some rules and skills from the config repo are not linked into ~/, so this session does not load them."
-		echo "Another session started linking them and has not finished in 10 s, where it normally takes about a second. It most likely crashed and left its lock behind, which clears itself after 2 minutes."
+		echo "Another session started linking them and has not finished in 10 s, where it normally takes about a second. It either crashed and left its lock behind, which clears itself after 2 minutes, or it is still running."
 		echo "What to do: wait two minutes, then start a new session - it links them by itself. To link them right now instead, and only if no other Claude session is starting at this moment, run: rmdir $lock 2>/dev/null; make -C $repo restow"
 		echo "Not linked:"
 		echo "$missing"
@@ -85,6 +86,9 @@ elif [ -n "$(unlinked)" ]; then
 		# backup.sh says "now linked" before stow runs, and a stow that fails
 		# links nothing at all.
 		[ -z "$notes" ] || echo "The files above that were moved aside are probably not linked yet either."
+		# make's own Entering/Leaving/Error lines would fill the tail; the cause
+		# is in what stow said.
+		out=$(grep -Ev '^make(\[[0-9]+\])?: ' <<<"$out")
 		if [ -n "$out" ]; then
 			echo "This session ran make -C $repo restow to link them, and it did not help. The end of its output is below."
 			echo "What to do: fix what that output says (\"stow not installed\" means: run brew install stow), run make -C $repo restow again, then start a new session."
