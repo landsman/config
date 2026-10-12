@@ -38,8 +38,13 @@ elif [ -n "$(unlinked)" ]; then
 		out="another session was running restow, this one waited for it"
 	fi
 	# restow moves aside a real file an app wrote over a link; say which, or a
-	# changed setting disappears into a .bak nobody looks at.
-	grep -E '^(NOTE|WARNING):' <<<"$out"
+	# changed setting disappears into a .bak nobody looks at. Only the agent
+	# reads this output, so it has to pass it on.
+	moved=$(grep -E '^(NOTE|WARNING):' <<<"$out")
+	if [ -n "$moved" ]; then
+		echo "restow moved these aside at session start - tell me, the app may have written a setting I want in the repo:"
+		echo "$moved"
+	fi
 	missing=$(unlinked)
 	if [ -n "$missing" ]; then
 		echo "Not linked into \$HOME even after \`make -C $repo restow\`, so not loaded in this session - tell me:"

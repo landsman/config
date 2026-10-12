@@ -40,6 +40,7 @@ check "restow linked it, nothing to say" "Not linked" no
 rm "$tmp/.agents"
 export SESSION_START_RESTOW="echo NOTE: ~/x was a real file"
 check "a file restow moved aside is named" "NOTE: ~/x" yes
+check "and the agent is told to pass it on" "tell me, the app may" yes
 export SESSION_START_RESTOW="echo NOTE: restow ran"
 mkdir "$tmp/session-start-restow.lock"
 (sleep 1; rmdir "$tmp/session-start-restow.lock") &
