@@ -23,8 +23,9 @@ branch=$(git -C "$repo" symbolic-ref --short -q HEAD)
 if [ -n "$(unlinked)" ] && [ "$branch" != main ]; then
 	# The links point into this checkout, so a restow from a feature branch
 	# links that branch, and leaves dangling links once it is switched back.
+	if [ -n "$branch" ]; then where="branch '$branch'"; else where="a detached HEAD"; fi
 	echo "Tell the user, in plain words: some rules and skills from the config repo are not linked into ~/, so this session does not load them."
-	echo "They were not linked automatically because $repo is on '${branch:-a detached HEAD}', not main, and linking from there would point ~/ at that branch's files."
+	echo "They were not linked automatically because $repo is on $where, not on main, and linking from there would point ~/ at that branch's files."
 	echo "What to do: switch $repo back to main and start a new session - it links them by itself. Or, to link this branch on purpose, run: make -C $repo restow"
 	echo "Not linked:"
 	unlinked
@@ -36,35 +37,41 @@ elif [ -n "$(unlinked)" ]; then
 	# hook cap, so a slow restow never has its lock taken from under it.
 	lock="${TMPDIR:-/tmp}/session-start-restow.lock"
 	find "$lock" -maxdepth 0 -mmin +2 -exec rmdir {} \; 2>/dev/null
-	stuck='' waited=''
-	if mkdir "$lock" 2>/dev/null; then
-		trap 'rmdir "$lock" 2>/dev/null' EXIT
-		trap 'exit 1' INT TERM
-		# SESSION_START_RESTOW is the test's seam; nothing else sets it.
-		out=$(${SESSION_START_RESTOW:-make -C "$repo" restow} 2>&1)
-		rmdir "$lock"
-		trap - EXIT INT TERM
-	else
+	stuck='' waited='' held=''
+	mkdir "$lock" 2>/dev/null && held=1
+	if [ -z "$held" ] && [ -d "$lock" ]; then
 		# 10 s, not longer: a lock that outlives a restow (~1 s) is stuck, and
 		# every second here comes out of the same 60 s cap.
 		for _ in $(seq 10); do [ -d "$lock" ] || break; sleep 1; done
 		[ ! -d "$lock" ] || stuck=1
 		out='' waited=1
+	else
+		# No lock and none to wait for means $TMPDIR is missing or read-only:
+		# restow without one rather than wait for a session that does not exist.
+		[ -z "$held" ] || { trap 'rmdir "$lock" 2>/dev/null' EXIT; trap 'exit 1' INT TERM; }
+		# SESSION_START_RESTOW is the test's seam; nothing else sets it.
+		out=$(${SESSION_START_RESTOW:-make -C "$repo" restow} 2>&1)
+		[ -z "$held" ] || { rmdir "$lock"; trap - EXIT INT TERM; }
 	fi
-	# restow moves aside a real file an app wrote over a link; say which, or a
-	# changed setting disappears into a .bak nobody looks at. Only the agent
-	# reads this output, so it has to pass it on.
-	moved=$(grep -E '^(NOTE|WARNING):' <<<"$out")
-	if [ -n "$moved" ]; then
-		echo "Tell the user, in plain words: an app had replaced some of the config repo's links with its own files. This session moved those files aside and linked the repo's version again. Nothing was deleted."
-		echo "What to do: compare each .bak file below with the same file in $repo. Copy any change worth keeping into the repo, then delete the .bak. A WARNING line is a file that could not be moved, so it is still not linked: move it away by hand and start a new session."
-		echo "$moved"
+	# restow moves aside a real file in the way of a link; say which, or a
+	# changed setting disappears into a .bak nobody looks at.
+	notes=$(grep '^NOTE:' <<<"$out")
+	warnings=$(grep '^WARNING:' <<<"$out")
+	if [ -n "$notes" ]; then
+		echo "Tell the user, in plain words: this session found real files where the config repo keeps its links - an app may have overwritten a link, or the file was there before the repo was set up. It renamed each one to <name>.bak.<time> next to it. Nothing was deleted."
+		echo "What to do: compare each .bak file below with the repo's version (in $repo, under shared, devices or os), copy any change worth keeping into the repo, then delete the .bak."
+		echo "$notes"
+	fi
+	if [ -n "$warnings" ]; then
+		echo "Tell the user, in plain words: these files are in the way of the config repo's links and could not be moved aside, so they are still not linked."
+		echo "What to do: rename each one by hand (add .bak to its name), run make -C $repo restow, then start a new session."
+		echo "$warnings"
 	fi
 	missing=$(unlinked)
 	if [ -n "$missing" ] && [ -n "$stuck" ]; then
 		echo "Tell the user, in plain words: some rules and skills from the config repo are not linked into ~/, so this session does not load them."
-		echo "Another session started linking them and has not finished in 10 s, where it normally takes about a second. It most likely crashed and left its lock behind."
-		echo "What to do: if no other Claude session is starting right now, run: rmdir $lock && make -C $repo restow - then start a new session."
+		echo "Another session started linking them and has not finished in 10 s, where it normally takes about a second. It most likely crashed and left its lock behind, which clears itself after 2 minutes."
+		echo "What to do: wait two minutes, then start a new session - it links them by itself. To link them right now instead, and only if no other Claude session is starting at this moment, run: rmdir $lock 2>/dev/null; make -C $repo restow"
 		echo "Not linked:"
 		echo "$missing"
 	elif [ -n "$missing" ] && [ -n "$waited" ]; then
@@ -75,12 +82,19 @@ elif [ -n "$(unlinked)" ]; then
 		echo "$missing"
 	elif [ -n "$missing" ]; then
 		echo "Tell the user, in plain words: some rules and skills from the config repo are not linked into ~/, so this session does not load them."
-		echo "This session ran make -C $repo restow to link them, and it did not help. The end of its output is below."
-		echo "What to do: fix what that output says (\"stow not installed\" means: run make -C $repo apps), run make -C $repo restow again, then start a new session."
+		# backup.sh says "now linked" before stow runs, and a stow that fails
+		# links nothing at all.
+		[ -z "$notes" ] || echo "The files above that were moved aside are probably not linked yet either."
+		if [ -n "$out" ]; then
+			echo "This session ran make -C $repo restow to link them, and it did not help. The end of its output is below."
+			echo "What to do: fix what that output says (\"stow not installed\" means: run brew install stow), run make -C $repo restow again, then start a new session."
+		else
+			echo "This session ran make -C $repo restow to link them; it printed nothing and it did not help."
+			echo "What to do: run make -C $repo restow yourself and look at what it says, then start a new session."
+		fi
 		echo "Not linked:"
 		echo "$missing"
-		echo "restow output:"
-		tail -n 5 <<<"$out"
+		[ -z "$out" ] || { echo "restow output:"; tail -n 5 <<<"$out"; }
 	fi
 fi
 

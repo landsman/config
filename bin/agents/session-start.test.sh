@@ -17,61 +17,98 @@ git -C "$repo" init -q -b main
 git -C "$repo" add .
 git -C "$repo" -c user.name=t -c user.email=t@t commit -qm t
 
-check() { # check <name> <substring> <yes|no>: is the substring in the output?
-	local out
-	out=$(bash "$hook")
-	if { [ "$3" = yes ] && [[ "$out" == *"$2"* ]]; } || { [ "$3" = no ] && [[ "$out" != *"$2"* ]]; }; then
+run() { last=$(bash "$hook"); } # run the hook once, for several expects
+expect() { # expect <name> <substring> <yes|no>: is the substring in the last run?
+	if { [ "$3" = yes ] && [[ "$last" == *"$2"* ]]; } || { [ "$3" = no ] && [[ "$last" != *"$2"* ]]; }; then
 		echo "ok   $1"
 	else
-		echo "FAIL $1"; echo "  got: $out"; fails=$((fails + 1))
+		echo "FAIL $1"; echo "  got: $last"; fails=$((fails + 1))
 	fi
 }
+check() { run; expect "$@"; }
+lock="$tmp/session-start-restow.lock"
+rule=".agents/rules/attribution.md"
+# A restow that links everything and prints its arguments, so what the hook
+# says about them cannot come from the "did not help" message's tail.
+fake="$tmp/fake-restow"
+printf '#!/bin/sh\nln -s "%s" "%s"\necho "$*"\n' "$repo/shared/.agents" "$tmp/.agents" > "$fake"
+chmod +x "$fake"
 
 export SESSION_START_RESTOW="echo NOTE: restow ran"
 git -C "$repo" checkout -q -b feature
-check "off main, restow not run" "restow ran" no
-check "off main, the unlinked rule is named" ".agents/rules/attribution.md" yes
-check "and the branch is named" "is on 'feature', not main" yes
+run
+expect "off main, restow not run" "restow ran" no
+expect "off main, the unlinked rule is named" "$rule" yes
+expect "and the branch is named" "is on branch 'feature', not on main" yes
+git -C "$repo" checkout -q --detach
+check "a detached HEAD is called that" "is on a detached HEAD, not on main" yes
 git -C "$repo" checkout -q main
+
 export SESSION_START_RESTOW=true
-check "a rule restow could not link is named" ".agents/rules/attribution.md" yes
-check "after restow ran" "it did not help" yes
-check "no brain, no index" "Brain index" no
+run
+expect "a rule restow could not link is named" "$rule" yes
+expect "after restow ran and printed nothing" "it printed nothing and it did not help" yes
+expect "no brain, no index" "Brain index" no
+export SESSION_START_RESTOW="echo boom"
+run
+expect "restow failed, its output is shown" "boom" yes
+expect "and pointed at" "The end of its output is below" yes
+export SESSION_START_RESTOW="echo NOTE: ~/x was a real file"
+check "a moved file is doubted when restow then failed" "probably not linked yet either" yes
+
 export SESSION_START_RESTOW="ln -s $repo/shared/.agents $tmp/.agents"
 check "restow linked it, nothing to say" "Not linked" no
 rm "$tmp/.agents"
-export SESSION_START_RESTOW="echo NOTE: ~/x was a real file"
-check "a file restow moved aside is named" "NOTE: ~/x" yes
-check "and the agent is told to pass it on" "an app had replaced" yes
-export SESSION_START_RESTOW="echo WARNING: could not back up ~/y"
-check "a file restow could not move aside is named" "WARNING: could not back up ~/y" yes
+export SESSION_START_RESTOW="$fake NOTE: ~/x was a real file"
+run
+expect "a file restow moved aside is named" "NOTE: ~/x" yes
+expect "and explained" "found real files where the config repo keeps its links" yes
+expect "and not as a failure" "did not help" no
+rm "$tmp/.agents"
+export SESSION_START_RESTOW="$fake WARNING: could not back up ~/y"
+run
+expect "a file restow could not move aside is named" "WARNING: could not back up ~/y" yes
+expect "and said to be still in the way" "could not be moved aside" yes
+expect "and not as moved" "found real files" no
+rm "$tmp/.agents"
+
 export SESSION_START_RESTOW="echo NOTE: restow ran"
-mkdir "$tmp/session-start-restow.lock"
+TMPDIR="$tmp/nope" run
+expect "no usable \$TMPDIR, restow runs without a lock" "restow ran" yes
+expect "and no other session is blamed" "Another session" no
+
+mkdir "$lock"
 # The other session links the rules before it lets go: a hook that did not
 # wait would still see them unlinked.
-(sleep 1; ln -s "$repo/shared/.agents" "$tmp/.agents"; rmdir "$tmp/session-start-restow.lock") &
-check "another session holds the lock, restow not run twice" "restow ran" no
-check "and this one waited for it" "Not linked" no
+(sleep 1; ln -s "$repo/shared/.agents" "$tmp/.agents"; rmdir "$lock") &
+run
+expect "another session holds the lock, restow not run twice" "restow ran" no
+expect "and this one waited for it" "Not linked" no
 rm "$tmp/.agents"
-mkdir "$tmp/session-start-restow.lock"
+mkdir "$lock"
 # 90 s old: stale at one minute, still live at two.
-perl -e 'utime undef, time - 90, shift' "$tmp/session-start-restow.lock"
-check "a stuck lock is waited out and named, restow not run" "has not finished in 10 s" yes
-rmdir "$tmp/session-start-restow.lock"
-mkdir "$tmp/session-start-restow.lock"
-(sleep 1; rmdir "$tmp/session-start-restow.lock") &
-check "another session's restow failed, said as such" "The reason went to that session" yes
+perl -e 'utime undef, time - 90, shift' "$lock"
+run
+expect "a stuck lock is waited out and named, restow not run" "has not finished in 10 s" yes
+expect "with what is unlinked" "$rule" yes
+rmdir "$lock"
+mkdir "$lock"
+(sleep 1; rmdir "$lock") &
+run
+expect "another session's restow failed, said as such" "The reason went to that session" yes
+expect "with what is unlinked" "$rule" yes
+
 # A hook killed mid-restow lets go of the lock on its way out. bash runs the
 # trap only once the restow it waits on returns, hence the wait.
 export SESSION_START_RESTOW="sleep 2"
 bash "$hook" >/dev/null & pid=$!
-sleep 1; kill -TERM "$pid"; wait "$pid" || true
-[ ! -d "$tmp/session-start-restow.lock" ] || { echo "FAIL a killed hook leaves the lock behind"; fails=$((fails + 1)); rmdir "$tmp/session-start-restow.lock"; }
+sleep 1; kill -TERM "$pid"; wait "$pid" 2>/dev/null || true
+[ ! -d "$lock" ] || { echo "FAIL a killed hook leaves the lock behind"; fails=$((fails + 1)); rmdir "$lock"; }
 export SESSION_START_RESTOW="echo NOTE: restow ran"
-mkdir "$tmp/session-start-restow.lock"
-touch -t 202001010000 "$tmp/session-start-restow.lock"
+mkdir "$lock"
+touch -t 202001010000 "$lock"
 check "a stale lock is cleared, restow runs" "restow ran" yes
-[ ! -d "$tmp/session-start-restow.lock" ] || { echo "FAIL the lock is left behind"; fails=$((fails + 1)); }
+[ ! -d "$lock" ] || { echo "FAIL the lock is left behind"; fails=$((fails + 1)); }
 ln -s "$repo/shared/.agents" "$tmp/.agents"
 check "everything linked, restow not run" "restow ran" no
 

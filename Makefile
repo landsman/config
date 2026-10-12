@@ -60,7 +60,7 @@ qa-deps:
 	@# is no reason to add one. `lint` skips the one file that needs it when it is
 	@# missing, and the macOS leg of the matrix is where that file gets parsed.
 	@command -v stow >/dev/null && exit 0; \
-	if [ -z "$$CI" ]; then echo "qa needs stow - run: make apps"; exit 1; \
+	if [ -z "$$CI" ]; then echo "qa needs stow - run: brew install stow"; exit 1; \
 	elif command -v brew >/dev/null; then brew install stow; \
 	else sudo apt-get update && sudo apt-get install -y stow; fi
 	@# yq, for the same reason: bin/rss/add.test.sh skips itself without one,
@@ -411,7 +411,7 @@ stow-backup:
 	@if [ -n '$(OS_PKG)' ]; then ./bin/stow/backup.sh os '$(OS_PKG)'; fi
 
 stow: agents-link stow-backup ## symlink shared + device + os packages into $HOME (see README for first run)
-	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: brew install stow"; exit 1; }
 	stow $(STOW_FLAGS) shared
 	@# `if`, not `test && stow || echo`: with the latter a *failing stow* falls
 	@# through to the echo and the target exits 0, reporting a conflict as
@@ -423,7 +423,7 @@ stow: agents-link stow-backup ## symlink shared + device + os packages into $HOM
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
 restow: agents-link stow-backup ## re-link after adding files, or after an app replaced a symlink
-	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
+	@command -v stow >/dev/null || { echo "stow not installed - run: brew install stow"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
 	@if [ -n '$(OS_PKG)' ]; then stow $(STOW_FLAGS) -R -d os $(OS_PKG); fi
