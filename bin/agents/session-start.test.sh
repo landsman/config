@@ -21,10 +21,17 @@ check() { # check <name> <substring> <yes|no>: is the substring in the output?
 	fi
 }
 
-check "an unlinked rule is named" ".agents/rules/attribution.md" yes
+export RESTOW=true
+check "a rule restow could not link is named" ".agents/rules/attribution.md" yes
 check "no brain, no index" "Brain index" no
+export RESTOW="ln -s $repo/shared/.agents $tmp/.agents"
+check "restow linked it, nothing to say" "Not linked" no
+rm "$tmp/.agents"
+export RESTOW="echo NOTE: ~/x was a real file"
+check "a file restow moved aside is named" "NOTE: ~/x" yes
 ln -s "$repo/shared/.agents" "$tmp/.agents"
-check "everything linked, nothing to say" "Not linked" no
+export RESTOW="echo NOTE: restow ran"
+check "everything linked, restow not run" "restow ran" no
 
 mkdir -p "$tmp/projects/landsman/brain/wiki"
 idx="$tmp/projects/landsman/brain/wiki/index.md"

@@ -11,12 +11,24 @@ repo=$(cd "$(dirname "$0")/../.." && pwd)
 
 # stow links file by file (--no-folding), so a rule or skill merged into the
 # repo is read by no harness until `make restow`. From inside a session that
-# looks exactly like a rule being ignored, and it shipped that way twice.
-missing=$(git -C "$repo" ls-files shared/.agents | sed 's|^shared/||' |
-	while read -r f; do [ -e "$HOME/$f" ] || echo "  ~/$f"; done)
-if [ -n "$missing" ]; then
-	echo "Not linked into \$HOME, so not loaded in this session - tell me; \`make -C $repo restow\` links them:"
-	echo "$missing"
+# looks exactly like a rule being ignored, and it shipped that way twice - so
+# the session that notices runs it, rather than asking me to.
+unlinked() {
+	git -C "$repo" ls-files shared/.agents | sed 's|^shared/||' |
+		while read -r f; do [ -e "$HOME/$f" ] || echo "  ~/$f"; done
+}
+if [ -n "$(unlinked)" ]; then
+	# RESTOW is the test's seam; nothing else sets it.
+	out=$(${RESTOW:-make -C "$repo" restow} 2>&1)
+	# restow moves aside a real file an app wrote over a link; say which, or a
+	# changed setting disappears into a .bak nobody looks at.
+	grep -E '^(NOTE|WARNING):' <<<"$out"
+	missing=$(unlinked)
+	if [ -n "$missing" ]; then
+		echo "Not linked into \$HOME even after \`make -C $repo restow\`, so not loaded in this session - tell me:"
+		echo "$missing"
+		tail -n 5 <<<"$out"
+	fi
 fi
 
 f="$HOME/projects/landsman/brain/wiki/index.md"
