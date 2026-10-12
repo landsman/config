@@ -30,8 +30,8 @@ elif [ -n "$(unlinked)" ]; then
 	lock="${TMPDIR:-/tmp}/session-start-restow.lock"
 	find "$lock" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null
 	if mkdir "$lock" 2>/dev/null; then
-		# RESTOW is the test's seam; nothing else sets it.
-		out=$(${RESTOW:-make -C "$repo" restow} 2>&1)
+		# SESSION_START_RESTOW is the test's seam; nothing else sets it.
+		out=$(${SESSION_START_RESTOW:-make -C "$repo" restow} 2>&1)
 		rmdir "$lock"
 	else
 		for _ in $(seq 30); do [ -d "$lock" ] || break; sleep 1; done

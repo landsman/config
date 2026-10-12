@@ -27,20 +27,20 @@ check() { # check <name> <substring> <yes|no>: is the substring in the output?
 	fi
 }
 
-export RESTOW="echo NOTE: restow ran"
+export SESSION_START_RESTOW="echo NOTE: restow ran"
 git -C "$repo" checkout -q -b feature
 check "off main, restow not run" "restow ran" no
 check "off main, the unlinked rule is named" ".agents/rules/attribution.md" yes
 git -C "$repo" checkout -q main
-export RESTOW=true
+export SESSION_START_RESTOW=true
 check "a rule restow could not link is named" ".agents/rules/attribution.md" yes
 check "no brain, no index" "Brain index" no
-export RESTOW="ln -s $repo/shared/.agents $tmp/.agents"
+export SESSION_START_RESTOW="ln -s $repo/shared/.agents $tmp/.agents"
 check "restow linked it, nothing to say" "Not linked" no
 rm "$tmp/.agents"
-export RESTOW="echo NOTE: ~/x was a real file"
+export SESSION_START_RESTOW="echo NOTE: ~/x was a real file"
 check "a file restow moved aside is named" "NOTE: ~/x" yes
-export RESTOW="echo NOTE: restow ran"
+export SESSION_START_RESTOW="echo NOTE: restow ran"
 mkdir "$tmp/session-start-restow.lock"
 (sleep 1; rmdir "$tmp/session-start-restow.lock") &
 check "another session holds the lock, restow not run twice" "restow ran" no
