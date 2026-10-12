@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+# stamp [-j] <text>: a timestamped line in the timeline. A hook calls it, so the
+# timeline shows when it ran. -j also reads the hook's JSON from stdin and adds
+# the event and file it was about (InstructionsLoaded names the rule).
+use strict; use warnings; use Time::HiRes qw(time);
+my $json = @ARGV && $ARGV[0] eq '-j' ? do { shift; local $/; <STDIN> } : '';
+my $extra = join ' ', map { $json =~ /"$_"\s*:\s*"([^"]*)"/ ? "$_=$1" : () } qw(hook_event_name file_path load_reason);
+open my $t, '>>', "$ENV{SBX_OUT}/timeline.log" or die "SBX_OUT: $!";
+printf $t "%.2f hook %s\n", time, join ' ', grep { length } "@ARGV", $extra;

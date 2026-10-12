@@ -539,6 +539,19 @@ claude: ## set the machine-local values the MCP servers read (Azure DevOps org, 
 	echo "$$f: FORGEJO_ACCESS_TOKEN set"
 	@echo "open a new shell, then: claude mcp list | grep -E 'azure-devops|forgejo'"
 
+.PHONY: claude-sandbox claude-sandbox-test
+claude-sandbox: ## run a Claude Code scenario in a container: SCENARIO=<dir> [MODE=p|tty|both] (needs Docker)
+	@# What a hook, rule or setting really does to a session, without touching
+	@# this machine's $$HOME or a real API. See bin/claude-sandbox/README.md.
+	@test -n "$(SCENARIO)" || { echo "usage: make claude-sandbox SCENARIO=bin/claude-sandbox/scenarios/late-rule"; exit 1; }
+	@bin/claude-sandbox/run.sh "$(SCENARIO)" $(or $(MODE),p)
+
+claude-sandbox-test: ## build the sandbox image and run its example scenario (needs Docker)
+	@# Not in `qa`: building downloads Claude Code. bin-test runs the same test
+	@# but only where the image already exists.
+	@docker info >/dev/null 2>&1 || { echo "claude-sandbox-test skipped (docker not running)"; exit 0; }
+	@CLAUDE_SANDBOX_BUILD=1 bash bin/claude-sandbox/run.test.sh
+
 ##@ Development
 #
 # What day-to-day work on any repo needs from this machine, as opposed to
