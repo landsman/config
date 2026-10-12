@@ -19,7 +19,6 @@ updates:
     directories:
       - /bin/semgrep
       - /bin/trivy
-      - /bin/claude-sandbox
     schedule:
       interval: weekly
     # p/ci's dependabot-missing-cooldown asked for this, and it is worth more here
