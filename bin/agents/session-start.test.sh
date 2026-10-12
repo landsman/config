@@ -34,6 +34,7 @@ check "off main, the unlinked rule is named" ".agents/rules/attribution.md" yes
 git -C "$repo" checkout -q main
 export SESSION_START_RESTOW=true
 check "a rule restow could not link is named" ".agents/rules/attribution.md" yes
+check "after restow ran" "even after" yes
 check "no brain, no index" "Brain index" no
 export SESSION_START_RESTOW="ln -s $repo/shared/.agents $tmp/.agents"
 check "restow linked it, nothing to say" "Not linked" no
@@ -41,10 +42,21 @@ rm "$tmp/.agents"
 export SESSION_START_RESTOW="echo NOTE: ~/x was a real file"
 check "a file restow moved aside is named" "NOTE: ~/x" yes
 check "and the agent is told to pass it on" "tell me, the app may" yes
+export SESSION_START_RESTOW="echo WARNING: could not back up ~/y"
+check "a file restow could not move aside is named" "WARNING: could not back up ~/y" yes
 export SESSION_START_RESTOW="echo NOTE: restow ran"
 mkdir "$tmp/session-start-restow.lock"
-(sleep 1; rmdir "$tmp/session-start-restow.lock") &
+# The other session links the rules before it lets go: a hook that did not
+# wait would still see them unlinked.
+(sleep 1; ln -s "$repo/shared/.agents" "$tmp/.agents"; rmdir "$tmp/session-start-restow.lock") &
 check "another session holds the lock, restow not run twice" "restow ran" no
+check "and this one waited for it" "Not linked" no
+rm "$tmp/.agents"
+mkdir "$tmp/session-start-restow.lock"
+# 90 s old: stale at one minute, still live at two.
+perl -e 'utime undef, time - 90, shift' "$tmp/session-start-restow.lock"
+check "a stuck lock is waited out and named, restow not run" "has been held for over 10 s" yes
+rmdir "$tmp/session-start-restow.lock"
 mkdir "$tmp/session-start-restow.lock"
 touch -t 202001010000 "$tmp/session-start-restow.lock"
 check "a stale lock is cleared, restow runs" "restow ran" yes

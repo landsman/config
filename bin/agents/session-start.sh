@@ -26,16 +26,24 @@ elif [ -n "$(unlinked)" ]; then
 	# Sessions started together would otherwise restow together, and two
 	# backup.sh runs race to move the same file. mkdir is the lock: the first
 	# session restows, the rest wait for it and only check the result. A lock
-	# older than a minute is one a killed hook left behind.
+	# older than two minutes is one a killed hook left behind - past the 60 s
+	# hook cap, so a slow restow never has its lock taken from under it.
 	lock="${TMPDIR:-/tmp}/session-start-restow.lock"
-	find "$lock" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null
+	find "$lock" -maxdepth 0 -mmin +2 -exec rmdir {} \; 2>/dev/null
+	stuck=
 	if mkdir "$lock" 2>/dev/null; then
+		trap 'rmdir "$lock" 2>/dev/null' EXIT
+		trap 'exit 1' INT TERM
 		# SESSION_START_RESTOW is the test's seam; nothing else sets it.
 		out=$(${SESSION_START_RESTOW:-make -C "$repo" restow} 2>&1)
 		rmdir "$lock"
+		trap - EXIT INT TERM
 	else
-		for _ in $(seq 30); do [ -d "$lock" ] || break; sleep 1; done
-		out="another session was running restow, this one waited for it"
+		# 10 s, not longer: a lock that outlives a restow (~1 s) is stuck, and
+		# every second here comes out of the same 60 s cap.
+		for _ in $(seq 10); do [ -d "$lock" ] || break; sleep 1; done
+		[ ! -d "$lock" ] || stuck=1
+		out=
 	fi
 	# restow moves aside a real file an app wrote over a link; say which, or a
 	# changed setting disappears into a .bak nobody looks at. Only the agent
@@ -46,7 +54,10 @@ elif [ -n "$(unlinked)" ]; then
 		echo "$moved"
 	fi
 	missing=$(unlinked)
-	if [ -n "$missing" ]; then
+	if [ -n "$missing" ] && [ -n "$stuck" ]; then
+		echo "Not linked into \$HOME, and $lock has been held for over 10 s, so no restow ran - tell me; if no restow is running, remove it and run \`make -C $repo restow\`:"
+		echo "$missing"
+	elif [ -n "$missing" ]; then
 		echo "Not linked into \$HOME even after \`make -C $repo restow\`, so not loaded in this session - tell me:"
 		echo "$missing"
 		tail -n 5 <<<"$out"
