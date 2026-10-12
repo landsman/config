@@ -65,6 +65,9 @@ tagged with it, and `make claude-sandbox-test` shows whether the example still
 holds. To compare two versions, run the same scenario before and after and
 diff the `req-1.json` files.
 
+A weekly workflow, `claude-sandbox-version.yml`, opens (or updates) one issue
+when a newer Claude Code major is out; minor and patch bumps are not announced.
+
 ## What it cannot show
 
 - Anything after the first response. The 401 ends the turn, so there are no
