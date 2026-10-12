@@ -371,7 +371,7 @@ rss: ## add an RSS feed to the OPML list (prompts; reads the title off the feed)
 
 ##@ Dotfiles ($HOME) via GNU stow
 
-.PHONY: stow restow unstow stow-backup stow-test agents-link
+.PHONY: stow restow relink unstow stow-backup stow-test agents-link
 agents-link:
 	@# The rules and the skills are not Claude Code's, they are every agent's, so
 	@# they live at ~/.agents/<n> and ~/.claude/<n> is a symlink to it. Codex only
@@ -422,7 +422,13 @@ stow: agents-link stow-backup ## symlink shared + device + os packages into $HOM
 		else echo "no package for os '$(OS)' - skipped"; fi
 	@echo "linked: shared $(DEVICE_PKG) $(OS_PKG)"
 
-restow: agents-link stow-backup ## re-link after adding files, or after an app replaced a symlink
+restow: agents-link stow-backup relink ## re-link after adding files, or after an app replaced a symlink
+	@# relink last: make builds prerequisites left to right, and nothing here runs -j.
+
+relink: ## link what is new in the repo, never moving a file aside - what each session start runs
+	@# No stow-backup: a real file in the way stops stow rather than being
+	@# renamed, because unattended nothing may vanish into a .bak. Moving files
+	@# is `make restow`, run by someone watching its output.
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
