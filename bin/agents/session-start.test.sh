@@ -7,7 +7,7 @@ dir="$(cd "$(dirname "$0")" && pwd)"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 fails=0
-export HOME="$tmp"
+export HOME="$tmp" TMPDIR="$tmp"
 repo="$tmp/repo"
 hook="$repo/bin/agents/session-start.sh"
 mkdir -p "$repo/bin/agents" "$repo/shared"
@@ -40,8 +40,15 @@ check "restow linked it, nothing to say" "Not linked" no
 rm "$tmp/.agents"
 export RESTOW="echo NOTE: ~/x was a real file"
 check "a file restow moved aside is named" "NOTE: ~/x" yes
-ln -s "$repo/shared/.agents" "$tmp/.agents"
 export RESTOW="echo NOTE: restow ran"
+mkdir "$tmp/session-start-restow.lock"
+(sleep 1; rmdir "$tmp/session-start-restow.lock") &
+check "another session holds the lock, restow not run twice" "restow ran" no
+mkdir "$tmp/session-start-restow.lock"
+touch -t 202001010000 "$tmp/session-start-restow.lock"
+check "a stale lock is cleared, restow runs" "restow ran" yes
+[ ! -d "$tmp/session-start-restow.lock" ] || { echo "FAIL the lock is left behind"; fails=$((fails + 1)); }
+ln -s "$repo/shared/.agents" "$tmp/.agents"
 check "everything linked, restow not run" "restow ran" no
 
 mkdir -p "$tmp/projects/landsman/brain/wiki"

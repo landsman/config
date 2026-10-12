@@ -23,8 +23,20 @@ if [ -n "$(unlinked)" ] && [ "$(git -C "$repo" symbolic-ref --short -q HEAD)" !=
 	echo "Not linked into \$HOME, so not loaded in this session - tell me; the checkout is not on main, so \`make -C $repo restow\` is left to me:"
 	unlinked
 elif [ -n "$(unlinked)" ]; then
-	# RESTOW is the test's seam; nothing else sets it.
-	out=$(${RESTOW:-make -C "$repo" restow} 2>&1)
+	# Sessions started together would otherwise restow together, and two
+	# backup.sh runs race to move the same file. mkdir is the lock: the first
+	# session restows, the rest wait for it and only check the result. A lock
+	# older than a minute is one a killed hook left behind.
+	lock="${TMPDIR:-/tmp}/session-start-restow.lock"
+	find "$lock" -maxdepth 0 -mmin +1 -exec rmdir {} \; 2>/dev/null
+	if mkdir "$lock" 2>/dev/null; then
+		# RESTOW is the test's seam; nothing else sets it.
+		out=$(${RESTOW:-make -C "$repo" restow} 2>&1)
+		rmdir "$lock"
+	else
+		for _ in $(seq 30); do [ -d "$lock" ] || break; sleep 1; done
+		out="another session was running restow, this one waited for it"
+	fi
 	# restow moves aside a real file an app wrote over a link; say which, or a
 	# changed setting disappears into a .bak nobody looks at.
 	grep -E '^(NOTE|WARNING):' <<<"$out"
