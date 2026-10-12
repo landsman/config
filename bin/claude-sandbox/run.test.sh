@@ -23,7 +23,9 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 cp -a "$dir/scenarios/late-rule/." "$tmp/"
 echo "present LATE-RULE-MARKER" > "$tmp/expect"
-if "$dir/run.sh" "$tmp" p >/dev/null; then
+# Fails for the right reason: the FAIL line for that marker, not any error.
+if bad=$("$dir/run.sh" "$tmp" p 2>&1); then
 	echo "FAIL a wrong expectation passed"; exit 1
 fi
-echo "ok   a wrong expectation fails"
+echo "$bad" | grep -Eq '^FAIL +present +LATE-RULE-MARKER' || { echo "$bad"; echo "FAIL it failed, but not on the LATE-RULE-MARKER line"; exit 1; }
+echo "ok   a wrong expectation fails on its own line"

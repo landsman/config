@@ -12,7 +12,7 @@ work=/sbx/work
 port=47613
 key=sk-ant-api03-invalidsandboxkey-0123456789abcdefghij
 
-mkdir -p "$home" "$work" /sbx/tmp
+mkdir -p "$home/.claude" "$work" /sbx/tmp
 [ -d /scenario/home ] && cp -a /scenario/home/. "$home/"
 [ -d /scenario/work ] && cp -a /scenario/work/. "$work/"
 prompt=$(cat /scenario/prompt)

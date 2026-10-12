@@ -21,6 +21,7 @@ dir="$(cd "$(dirname "$0")" && pwd)"
 scenario=$(cd "${1:?usage: run.sh <scenario-dir> [p|tty|both]}" && pwd)
 modes=${2:-p}
 [ "$modes" = both ] && modes="p tty"
+case $scenario in *:*) echo "the scenario path contains ':', which docker -v cannot mount; move it: $scenario" >&2; exit 2 ;; esac
 [ -f "$scenario/prompt" ] || { echo "$scenario/prompt is missing" >&2; exit 2; }
 
 # The version is whatever the Dockerfile pins; the image tag follows it, so a
@@ -39,7 +40,7 @@ for mode in $modes; do
 
 	echo "== $(basename "$scenario"), claude $version, mode $mode"
 	echo "-- timeline (seconds since launch)"
-	sort -n "$out/timeline.log" | awk 'NR == 1 { t0 = $1 } { printf "%7.2f ", $1 - t0; $1 = ""; print substr($0, 2) }'
+	if [ -f "$out/timeline.log" ]; then sort -n "$out/timeline.log"; else echo "0 no timeline.log: the container died early, see $out/claude.out"; fi | awk 'NR == 1 { t0 = $1 } { printf "%7.2f ", $1 - t0; $1 = ""; print substr($0, 2) }'
 
 	reqs=$(find "$out" -name 'req-*.json' | sort -V)
 	echo "-- requests: $(echo "$reqs" | grep -c .)"
@@ -48,7 +49,7 @@ for mode in $modes; do
 		while read -r want text; do
 			[ -n "$want" ] || continue
 			counts=$(for r in $reqs; do grep -aoF -- "$text" "$r" | wc -l | tr -d ' '; done | tr '\n' ' ')
-			total=$(echo "$counts" | tr ' ' '+' | sed 's/+$//' | bc)
+			total=$(echo "$counts" | awk '{ for (i = 1; i <= NF; i++) s += $i } END { print s + 0 }')
 			if { [ "$want" = present ] && [ "$total" -gt 0 ]; } || { [ "$want" = absent ] && [ "$total" -eq 0 ]; }; then
 				verdict=ok
 			else verdict=FAIL; fails=$((fails + 1)); fi
@@ -57,6 +58,7 @@ for mode in $modes; do
 	elif [ -f "$scenario/expect" ]; then
 		echo "FAIL no request reached the fake API; see $out/claude.out"; fails=$((fails + 1))
 	fi
+	for r in $reqs; do [ -s "$r" ] || echo "WARN $(basename "$r") is empty, so an absent check on it proves nothing"; done
 	echo "-- raw: $out (req-N.json, timeline.log, claude.out)"
 done
 [ "$fails" -eq 0 ]

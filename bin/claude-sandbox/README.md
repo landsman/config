@@ -9,7 +9,7 @@ questions like: does this rule load, in what order do the hooks run, does a
     make claude-sandbox-test        # the example as a self-check
 
 Needs Docker. The first run builds the image (downloads Claude Code, checked
-against the release manifest's SHA-256).
+against SHA-256s pinned in the Dockerfile).
 
 ## What is isolated
 
@@ -17,6 +17,7 @@ against the release manifest's SHA-256).
 - `--network none`: loopback only. The API key is invalid and the endpoint is
   `server.pl` on 127.0.0.1, which stores each request and answers 401.
 - Claude Code starts with `env -i`; autoupdate and telemetry are off.
+- A scenario path with `:` in it is refused, since `docker -v` cannot mount it.
 - The container's uid is the host user's, with no capabilities.
 
 ## A scenario
@@ -35,6 +36,10 @@ Hooks can call `stamp "text"` to put a line in the timeline, and `stamp -j
 `expect` text is matched literally in the raw request, which is JSON, so use a
 single-line token rather than a sentence with newlines.
 
+Give every scenario at least one `present` line. An `absent` passes just as
+well when the request was empty or the wrong one, and only a `present` that
+holds shows the request was the real one.
+
 `scenarios/late-rule` is the worked example: a SessionStart hook creates a rule
 two seconds in. The rule that already existed is in the request, the one the
 hook made is not, because rules load in parallel with the hook, 10 to 80 ms
@@ -48,11 +53,14 @@ A timeline in seconds since launch, the number of requests, one line per
 
 `MODE=p` is `claude -p`; `tty` is the interactive UI through `script(1)`, with
 the prompt typed after 8 s. `both` runs one after the other (about 20 s more).
-The two send different requests (the interactive one is larger).
+Interactive mode types after fixed sleeps (8 s before the prompt, a 40 s cap),
+so a slow or cold machine can miss; rerun before trusting a failure. The two
+send different requests (the interactive one is larger).
 
 ## Bumping Claude Code
 
-Change `ARG CLAUDE_VERSION` in the [Dockerfile](Dockerfile). The image is
+Change `CLAUDE_VERSION` and the two `CLAUDE_SHA256_*` values in the
+[Dockerfile](Dockerfile); its comment says where the checksums come from. The image is
 tagged with it, and `make claude-sandbox-test` shows whether the example still
 holds. To compare two versions, run the same scenario before and after and
 diff the `req-1.json` files.
