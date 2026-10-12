@@ -193,6 +193,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/no-blockquote.py\""
+          }
+        ]
+      }
     ]
   },
   "model": "opus[1m]",

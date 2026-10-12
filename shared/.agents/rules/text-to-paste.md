@@ -12,3 +12,6 @@ can be pasted. A code block copies clean and keeps the Markdown inside it
 - One block per thing to paste, tagged `markdown` when it holds Markdown.
 - Commentary about the draft goes outside the block, never inside it.
 - Links inside are full URLs; see [linking to work](linking-work.md).
+
+A Stop hook, `bin/agents/no-blockquote.py`, sends a reply holding a blockquote
+back to be rewritten, so this holds even when the rule was not in mind.
