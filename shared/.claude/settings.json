@@ -194,12 +194,12 @@
         ]
       }
     ],
-    "Stop": [
+    "MessageDisplay": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/no-blockquote.py\""
+            "command": "\"$HOME/projects/landsman/config/bin/agents/quote-to-fence.py\""
           }
         ]
       }
