@@ -56,6 +56,7 @@ form moves to a skill, the way `commit-messages` does it.
 Measure before deciding: `wc -w` on what loads at the trigger, against what is
 on disk.
 
-**In the config repo, a new file is not live until `make restow`.** Stow links
+**In the config repo, a new file is not live until it is linked.** Stow links
 `shared/.agents/` file by file, so a rule or a skill merged without it reaches
-no harness; the session-start hook lists what is missing.
+no harness. The session-start hook links it on `main`, but only the session
+after that one loads it.

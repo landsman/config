@@ -111,9 +111,12 @@ a rule that was never linked and a rule being ignored look identical from inside
 a session, and `/context`, the check this section used to name, is a step
 someone has to remember.
 
-So the check runs by itself now. [`bin/agents/session-start.sh`](../bin/agents/session-start.sh),
-the SessionStart hook, lists every file tracked under `shared/.agents/` that does
-not resolve in `$HOME`, and the session opens with that list. `/context` stays
+So the fix runs by itself now. [`bin/agents/session-start.sh`](../bin/agents/session-start.sh),
+the SessionStart hook, finds every file tracked under `shared/.agents/` that does
+not resolve in `$HOME` and, on `main`, links it with `make relink` — which never
+moves a file aside; a real file in the way is left for `make restow`. Rules load
+in parallel with that hook, so what it links reaches the *next* session, and the
+session that linked it says so. `/context` stays
 the way to see what did load: unconditional rules appear under **Memory files**.
 
 ## Adding a harness

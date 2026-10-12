@@ -178,7 +178,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/session-start.sh\""
+            "command": "\"$HOME/projects/landsman/config/bin/agents/session-start.sh\"",
+            "timeout": 60
           }
         ]
       }
