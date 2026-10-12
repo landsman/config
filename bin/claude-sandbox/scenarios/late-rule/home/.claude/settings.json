@@ -1,0 +1,6 @@
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "$HOME/.claude/hooks/session-start.sh" }] }],
+    "InstructionsLoaded": [{ "hooks": [{ "type": "command", "command": "stamp -j InstructionsLoaded" }] }]
+  }
+}

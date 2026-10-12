@@ -13,3 +13,4 @@ tool writes there.
 - [What of the agent config is tracked](agent-config.md) — `~/.claude`, the global rules, and keeping `settings.json` machine-independent
 - [Local models with ollama](ollama.md) — `make ollama`, and pointing Claude Code or opencode at them
 - [Global rules and skills across harnesses](global-rules-and-skills.md) — one source, read by Claude Code and opencode
+- [Claude Code sandbox](../bin/claude-sandbox/README.md) — see what a hook, rule or setting really sends the model, in a container, before it ships
