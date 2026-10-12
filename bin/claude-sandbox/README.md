@@ -1,9 +1,27 @@
 # Claude Code sandbox
 
 Runs Claude Code in a container with a scenario's settings, rules, skills and
-hooks, against a fake API, and prints what reached the model and when. For
-questions like: does this rule load, in what order do the hooks run, does a
-`settings.json` change do what I meant, did an upgrade change the context.
+hooks, against a fake API, and prints what reached the model and when.
+
+## When to reach for it
+
+Before a change to the agent config in this repo ships, instead of trying it on
+a laptop — where it mutates the real `$HOME`, cannot be repeated, and never shows
+what the model was actually sent:
+
+- **Does a rule or skill reach the context?** A new file under
+  `shared/.agents/`, a `paths:` rule and when it loads, a skill's listing.
+- **When does something load, relative to what?** Hook order, and rules against
+  hooks: a SessionStart hook cannot add a rule to its own session, because rules
+  load in parallel with it (`scenarios/late-rule`). That finding reshaped the
+  session-start hook, and it took this sandbox to see it.
+- **Does a hook do what I meant?** A script under `bin/agents/` or a change to
+  `shared/.claude/settings.json`: what its stdout looks like in the request, what
+  happens past the 10 000-character output cap.
+- **Did a Claude Code upgrade change anything?** Bump `CLAUDE_VERSION`, rerun
+  the same scenario, diff `req-1.json`.
+
+Not for what the agent *does* with that context — see the end of this file.
 
     make claude-sandbox SCENARIO=bin/claude-sandbox/scenarios/late-rule MODE=both
     make claude-sandbox-test        # the example as a self-check
