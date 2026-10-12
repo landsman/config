@@ -9,6 +9,10 @@
 # patch bumps are left alone on purpose: the example scenario is the check for
 # those, and a weekly issue per release would be noise. Needs gh and a token
 # with issues: write for `report`.
+#
+# TODO: replace this script and its workflow with a Renovate custom regex
+# manager on `ARG CLAUDE_VERSION` (and the two checksums), once Renovate runs
+# here - one config block instead of a script, a test and a pipeline.
 set -euo pipefail
 
 dir="$(cd "$(dirname "$0")" && pwd)"

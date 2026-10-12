@@ -67,6 +67,8 @@ diff the `req-1.json` files.
 
 A weekly workflow, `claude-sandbox-version.yml`, opens (or updates) one issue
 when a newer Claude Code major is out; minor and patch bumps are not announced.
+It is a stopgap: the plan is a Renovate custom regex manager on the `ARG`s,
+which would replace the script, its test and the workflow.
 
 ## What it cannot show
 
