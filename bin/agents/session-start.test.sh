@@ -31,17 +31,18 @@ export SESSION_START_RESTOW="echo NOTE: restow ran"
 git -C "$repo" checkout -q -b feature
 check "off main, restow not run" "restow ran" no
 check "off main, the unlinked rule is named" ".agents/rules/attribution.md" yes
+check "and the branch is named" "is on 'feature', not main" yes
 git -C "$repo" checkout -q main
 export SESSION_START_RESTOW=true
 check "a rule restow could not link is named" ".agents/rules/attribution.md" yes
-check "after restow ran" "even after" yes
+check "after restow ran" "it did not help" yes
 check "no brain, no index" "Brain index" no
 export SESSION_START_RESTOW="ln -s $repo/shared/.agents $tmp/.agents"
 check "restow linked it, nothing to say" "Not linked" no
 rm "$tmp/.agents"
 export SESSION_START_RESTOW="echo NOTE: ~/x was a real file"
 check "a file restow moved aside is named" "NOTE: ~/x" yes
-check "and the agent is told to pass it on" "tell me, the app may" yes
+check "and the agent is told to pass it on" "an app had replaced" yes
 export SESSION_START_RESTOW="echo WARNING: could not back up ~/y"
 check "a file restow could not move aside is named" "WARNING: could not back up ~/y" yes
 export SESSION_START_RESTOW="echo NOTE: restow ran"
@@ -55,8 +56,18 @@ rm "$tmp/.agents"
 mkdir "$tmp/session-start-restow.lock"
 # 90 s old: stale at one minute, still live at two.
 perl -e 'utime undef, time - 90, shift' "$tmp/session-start-restow.lock"
-check "a stuck lock is waited out and named, restow not run" "has been held for over 10 s" yes
+check "a stuck lock is waited out and named, restow not run" "has not finished in 10 s" yes
 rmdir "$tmp/session-start-restow.lock"
+mkdir "$tmp/session-start-restow.lock"
+(sleep 1; rmdir "$tmp/session-start-restow.lock") &
+check "another session's restow failed, said as such" "The reason went to that session" yes
+# A hook killed mid-restow lets go of the lock on its way out. bash runs the
+# trap only once the restow it waits on returns, hence the wait.
+export SESSION_START_RESTOW="sleep 2"
+bash "$hook" >/dev/null & pid=$!
+sleep 1; kill -TERM "$pid"; wait "$pid" || true
+[ ! -d "$tmp/session-start-restow.lock" ] || { echo "FAIL a killed hook leaves the lock behind"; fails=$((fails + 1)); rmdir "$tmp/session-start-restow.lock"; }
+export SESSION_START_RESTOW="echo NOTE: restow ran"
 mkdir "$tmp/session-start-restow.lock"
 touch -t 202001010000 "$tmp/session-start-restow.lock"
 check "a stale lock is cleared, restow runs" "restow ran" yes
