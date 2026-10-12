@@ -16,6 +16,7 @@ mistake, not after.
 | [Commit messages](rules/commit-messages.md) | writing a commit or a PR title |
 | [Short, and explains more](rules/terse-prose.md) | writing a code comment, a PR description, an error message, release notes, an explanation |
 | [Linking to work](rules/linking-work.md) | a PR, MR, issue or CI run is mentioned |
+| [Text to paste](rules/text-to-paste.md) | a draft goes in front of me to copy elsewhere — a comment, a reply, an email |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
 | [Pushing to a pull request](rules/pushing-to-a-pr.md) | pushing to a branch whose PR is older than fifteen minutes |
 | [Worktrees](rules/worktrees.md) | an agent is about to change a repo |
