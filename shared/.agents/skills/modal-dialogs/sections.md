@@ -38,8 +38,9 @@ convention. Every button quiet — a border and the background colour. The one
 action that keeps the change is filled, last, in the bottom-right corner (green
 when the project has a destructive pair, so the two cannot be confused).
 A destructive action is outlined red, `margin-right: auto` to the left, away
-from the button pressed without reading; it fills on hover. Cancel is
-`formmethod="dialog"` in a form, so it closes without a line of script.
+from the button pressed without reading; it fills on hover. Cancel
+is the same close request as Escape (item 7), so a form with changes asks
+first; `formmethod="dialog"` alone would close it without asking.
 
 ## 5. motion
 
@@ -69,27 +70,80 @@ unlock it as well as Cancel; `:modal`, not `[open]`, which also locks the page
 behind a non-modal `show()`. `scrollbar-gutter: stable` on the page, so the
 scrollbar disappearing does not shift it sideways on every open.
 
-## 7. dismiss
+## 7. escape
 
-`closedby="any"` closes on a click outside. Where the browser does not know it
+Escape closes every modal, always — the one exit a keyboard user can count on
+([APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialogmodal/)). `showModal()`
+gives it for free; never swallow it in a `keydown` handler. The only thing
+allowed to hold it back is the unsaved-changes question (item 9), and then the
+question itself closes on Escape.
+
+Route every way out — Escape, the close button, Cancel, a click outside — through
+one close request, so one guard sees them all: the close button and Cancel call
+`dialog.requestClose()` where it exists (it fires `cancel` like Escape does),
+and the guard is called directly where it does not.
+
+## 8. dismiss
+
+`closedby="any"` closes on a click outside, through the same `cancel` as
+Escape. Where the browser does not know it
 (`!("closedBy" in HTMLDialogElement.prototype)`), handle it: a click whose
-target is the dialog element itself landed on the backdrop → `close()`. Leave
-it off for a dialog that asks before discarding edits; that one closes through
-its own Cancel. A close `×` in the header when the dialog has no footer.
+target is the dialog element itself landed on the backdrop → the same close
+request. A close `×` in the header when the dialog has no footer.
 
-## 8. focus
+## 9. unsaved
 
-`showModal()` then `dialog.focus()` (with `tabindex="-1"`), so a close button's
-focus ring does not flash on every open and keys meant for the content reach
-it. A form dialog may focus its first field instead.
+A dialog holding a form asks before discarding what was typed — on Escape, the
+close button, Cancel and a click outside alike. Saving is the only way out
+that does not ask.
 
-## 9. forms
+- **Dirty** means the form differs from when the dialog opened: snapshot
+  `new URLSearchParams(new FormData(form)).toString()` on open and compare,
+  rather than a flag set on `input`, which stays set when a change is undone.
+- **Guard `cancel`**: dirty → `event.preventDefault()`, then ask.
+- **Guard `close` too.** `cancel` is not always cancelable: Chromium ignores
+  `preventDefault()` on a second Escape with no user activation in between, and
+  can skip `cancel` entirely right after the click that opened the dialog
+  ([Chromium 41484805](https://issues.chromium.org/issues/41484805),
+  [whatwg/html#11230](https://github.com/whatwg/html/issues/11230)). So on
+  `close`, if still dirty and not confirmed, `showModal()` again and ask — the
+  fields keep their values, a closed dialog is not reset.
+- **The question** is a second modal from the same template: "Discard
+  changes?", *Keep editing* as the quiet default with focus on it, *Discard*
+  as the danger button. `window.confirm()` only where the project already uses
+  it; it cannot be styled and an embedded webview may not show it at all.
+- **After a save** clear the snapshot first, so closing does not ask.
+
+## 10. accessible
+
+`showModal()` already makes the page behind inert, traps Tab inside and
+closes on Escape. What is still the template's job
+([APG](https://www.w3.org/WAI/ARIA/apg/patterns/dialogmodal/),
+[MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog)):
+
+- **A name**: `aria-labelledby` on the dialog pointing at the header's heading;
+  without one a screen reader announces only "dialog". `aria-describedby` for
+  a short line of explanation, never for a whole form.
+- **Focus in**: the first field of a form dialog (`autofocus` on it); the
+  dialog itself (`tabindex="-1"`, then `dialog.focus()`) for content without
+  one, so a close button's ring does not flash on every open; the least
+  destructive button of a confirmation.
+- **Focus back**: to the element that opened it. The browser restores it when
+  it can; restore it yourself when that element was re-rendered meanwhile.
+- **The close button** has a name (`aria-label` with the translated "Close"),
+  a visible focus ring, and a target of at least 24px (44px on a phone).
+- **Nothing positive in `tabindex`**, and every action reachable by keyboard
+  in the order it reads.
+- **Reduced motion** turns the fade off (item 5), and the text inside keeps
+  its contrast against the tinted bands.
+
+## 11. forms
 
 Forms do not nest: a dialog printed inside another form submits that one, and
 Enter in the dialog's field triggers the outer form's first submit button.
 Render the dialog outside it — the end of `<body>`, a portal, another region.
 
-## 10. sticky
+## 12. sticky
 
 A sticky `<thead>` sticks to the scrollport's content edge, so `padding-top`
 on the body is a strip where rows scroll through above the header. Space the
