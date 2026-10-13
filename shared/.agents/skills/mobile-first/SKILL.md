@@ -153,6 +153,8 @@ Then, while it is open the page behind should not scroll:
 `html:has(dialog:modal) { overflow: hidden }` — not `[open]`, which also locks
 the page behind a non-modal `show()`. Give the dialog's own scroller
 `overscroll-behavior: contain` so reaching its end does not drag the page.
+How the dialog itself is built — the template, its bands and buttons, the fade —
+is the `modal-dialogs` skill.
 
 ## 13. testing
 
