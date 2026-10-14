@@ -149,11 +149,15 @@ closes on Escape. What is still the template's job
   it can; restore it yourself when that element was re-rendered meanwhile.
 - **The `×`** is a `<button type="button">` named by `aria-label` with the
   translated "Close", and no `title` saying the same — a screen reader reads
-  that a second time, as the description. The icon `aria-hidden`, at 3:1 or
-  more against the band (WCAG 1.4.11). A target of at least 24px (44px on a
-  phone); negative margins keep it from making the band taller than its title.
-  Its focus ring is an `outline`, not a `box-shadow`: forced-colours mode
-  drops shadows, and a borderless icon button would show no focus at all.
+  that a second time, as the description. The icon `aria-hidden`, drawn in
+  `currentColor` set from the text colour (`color-mix(in srgb, var(--fg) 68%,
+  transparent)`), never a fixed grey: it flips with the scheme the way the
+  bands do, where a grey picked on a light band all but vanishes on a dark one.
+  Measure it at 3:1 or more against the band (WCAG 1.4.11) in light and in
+  dark, and its focus ring too. A target of at least 24px (44px on a phone);
+  negative margins keep it from making the band taller than its title. Its
+  focus ring is an `outline`, not a `box-shadow`: forced-colours mode drops
+  shadows, and a borderless icon button would show no focus at all.
 - **Nothing positive in `tabindex`**, and every action reachable by keyboard
   in the order it reads.
 - **Reduced motion** turns the fade off (item 5), and the text inside keeps
