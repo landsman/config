@@ -20,6 +20,14 @@ keyed on the template's classes (`.modal`, `.modal-header`, `.modal-body`,
 `.modal-footer`). A new dialog fills the slots and adds only its size and its
 fields.
 
+The template also owns the close `×`, top right in the header of every modal —
+a form, a settings panel and a confirmation alike — so the way out is always in
+the same place. The header is a grid, `grid-template-columns: 1fr auto`, the `×`
+in row 1 of column 2 and everything else in column 1, so it centres on the
+title and not on a header that also holds tabs. Space such a second row with
+`row-gap`, never with the title's margin, which counts as part of the title's
+row and drops the `×` below its middle.
+
 ## 3. bands
 
 Header and footer: a tint a few percent of the text colour over the background
@@ -31,6 +39,11 @@ when open — `dialog[open] { display: flex }`; a bare `display: flex` overrides
 the closed dialog's `display: none` and it never closes. The body gets
 `flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain`.
 
+The header's title resets everything the page gives its own headings — margin,
+padding, border and `min-height` — at the specificity of the page's rule. A
+page-title `min-height` once doubled the header of the one dialog printed
+inside the content region, and of no other.
+
 ## 4. buttons
 
 Not the site's general button style: a dialog follows the platform's dialog
@@ -38,9 +51,13 @@ convention. Every button quiet — a border and the background colour. The one
 action that keeps the change is filled, last, in the bottom-right corner (green
 when the project has a destructive pair, so the two cannot be confused).
 A destructive action is outlined red, `margin-right: auto` to the left, away
-from the button pressed without reading; it fills on hover. Cancel
-is the same close request as Escape (item 7), so a form with changes asks
-first; `formmethod="dialog"` alone would close it without asking.
+from the button pressed without reading; it fills on hover.
+
+The footer holds actions, not a way out: no Close or Cancel there, the `×` is
+it (item 2). The one exception is a confirmation, where Cancel is an answer —
+the safe one, with the focus (item 10). Either is the same close request as
+Escape (item 7), so a form with changes asks first; `formmethod="dialog"` alone
+would close it without asking.
 
 ## 5. motion
 
@@ -78,8 +95,8 @@ gives it for free; never swallow it in a `keydown` handler. The only thing
 allowed to hold it back is the unsaved-changes question (item 9), and then the
 question itself closes on Escape.
 
-Route every way out — Escape, the close button, Cancel, a click outside — through
-one close request, so one guard sees them all: the close button and Cancel call
+Route every way out — Escape, the `×`, a confirmation's Cancel, a click outside —
+through one close request, so one guard sees them all: the `×` and Cancel call
 `dialog.requestClose()` where it exists (it fires `cancel` like Escape does),
 and the guard is called directly where it does not.
 
@@ -89,12 +106,12 @@ and the guard is called directly where it does not.
 Escape. Where the browser does not know it
 (`!("closedBy" in HTMLDialogElement.prototype)`), handle it: a click whose
 target is the dialog element itself landed on the backdrop → the same close
-request. A close `×` in the header when the dialog has no footer.
+request.
 
 ## 9. unsaved
 
 A dialog holding a form asks before discarding what was typed — on Escape, the
-close button, Cancel and a click outside alike. Saving is the only way out
+`×` and a click outside alike. Saving is the only way out
 that does not ask.
 
 - **Dirty** means the form differs from when the dialog opened: snapshot
@@ -126,12 +143,17 @@ closes on Escape. What is still the template's job
   a short line of explanation, never for a whole form.
 - **Focus in**: the first field of a form dialog (`autofocus` on it); the
   dialog itself (`tabindex="-1"`, then `dialog.focus()`) for content without
-  one, so a close button's ring does not flash on every open; the least
-  destructive button of a confirmation.
+  one, so the `×`'s ring does not flash on every open; the least destructive
+  button of a confirmation. Never the `×` itself.
 - **Focus back**: to the element that opened it. The browser restores it when
   it can; restore it yourself when that element was re-rendered meanwhile.
-- **The close button** has a name (`aria-label` with the translated "Close"),
-  a visible focus ring, and a target of at least 24px (44px on a phone).
+- **The `×`** is a `<button type="button">` named by `aria-label` with the
+  translated "Close", and no `title` saying the same — a screen reader reads
+  that a second time, as the description. The icon `aria-hidden`, at 3:1 or
+  more against the band (WCAG 1.4.11). A target of at least 24px (44px on a
+  phone); negative margins keep it from making the band taller than its title.
+  Its focus ring is an `outline`, not a `box-shadow`: forced-colours mode
+  drops shadows, and a borderless icon button would show no focus at all.
 - **Nothing positive in `tabindex`**, and every action reachable by keyboard
   in the order it reads.
 - **Reduced motion** turns the fade off (item 5), and the text inside keeps
