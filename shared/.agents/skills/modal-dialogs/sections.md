@@ -28,6 +28,13 @@ title and not on a header that also holds tabs. Space such a second row with
 `row-gap`, never with the title's margin, which counts as part of the title's
 row and drops the `×` below its middle.
 
+The template names its own `×` — its translated "Close" comes from the
+template, not from each dialog; a Latte `{embed}` sees only its arguments, so
+register a `t()` function on the engine rather than pass the label everywhere.
+The icon is a template of its own (`icons/close.latte`, a component), its SVG
+inline with `stroke="currentColor"`: an `<img src="close.svg">` is a separate
+document CSS cannot colour, and a `filter` only approximates one.
+
 ## 3. bands
 
 Header and footer: a tint a few percent of the text colour over the background
