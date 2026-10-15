@@ -100,15 +100,15 @@ lint: ## parse every shell file without running it
 	else echo "== *.ps1  SKIPPED (no pwsh here - CI parses them)"; fi
 
 bin-test: ## run every *.test.sh — self-contained, no machine state touched
-	@# `|| exit 1`, because a for loop exits with the status of its *last*
+	@# Found by git, not by a glob per directory: a test one level deeper, or in a
+	@# folder nobody added here, still runs. Run by path, so the shebang picks the
+	@# shell. `rc`, because a for loop exits with the status of its *last*
 	@# iteration: without it a failure in any but the last test is reported green,
-	@# and this is what CI gates on.
-	@# os/ too, not just bin/: the distro installers stub apt and dpkg rather
-	@# than touching them, so they run anywhere, including the macOS runner.
-	@# A skill's helper script is tested beside it, in shared/.agents/skills/.
-	@for t in bin/*/*.test.sh os/*/*.test.sh shared/.agents/skills/*/*.test.sh; do \
-		echo "== $$t"; bash "$$t" || exit 1; \
-	done
+	@# and this is what CI gates on. It also reports every failure in one run, and
+	@# names it: the error arrives after the last test, whichever that was.
+	@rc=0; for t in $$(git ls-files '*.test.sh'); do \
+		echo "== $$t"; "./$$t" || { echo "FAIL $$t"; rc=1; }; \
+	done; exit $$rc
 
 .PHONY: claude-settings-test
 claude-settings-test: ## check the stowed Claude settings parse and stay machine-independent
