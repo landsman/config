@@ -65,8 +65,8 @@ paths:
 ```
 
 The `**/` prefix is not decoration — the glob is matched against the path as
-given, so without it the rule misses anything below the repo root. Four rules
-use this today: `github-actions.md`, `makefiles.md`, `forgejo-workflows.md` and
+given, so without it the rule misses anything below the repo root. Five rules
+use this today: `github-actions.md`, `makefiles.md`, `forgejo-workflows.md`, `shell-scripts.md` and
 `writing-for-agents.md`.
 
 **A rule earns scoping only when its trigger is a file path *and* breaking it
