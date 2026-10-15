@@ -17,6 +17,10 @@ and forgotten when the next one is.
   subcommand.
 - Each decision is a subcommand (`release.sh checkout <tag>`,
   `release.sh publish <tag> <file>`), so a test reaches it without the rest.
+- **Nothing it runs waits for input.** CI has no terminal, so a tool that asks
+  a question either repeats it on EOF or waits until the job times out.
+  `dylibbundler` filled 1.2 GB of log that way in 21 minutes. Answer it
+  (`yes quit | tool`) or pass the flag that turns the prompt off.
 - It lives where the repo keeps its scripts; see
   [shell in a config file](shell-in-config.md).
 
@@ -43,11 +47,13 @@ and forgotten when the next one is.
 
 ## Running them
 
-One target, which CI runs on its cheapest runner:
+One target, which CI runs on its cheapest runner, and which is run locally
+before every push. CI confirms a green run; it is not where a change is tried
+for the first time.
 
 ```make
 scripts-test: ## shellcheck every script, run every *.test.sh
-	shellcheck $$(git ls-files '*.sh')
+	mise exec shellcheck -- shellcheck $$(git ls-files '*.sh')
 	@rc=0; for t in $$(git ls-files '*.test.sh'); do echo "== $$t"; "./$$t" || { echo "FAIL $$t"; rc=1; }; done; exit $$rc
 ```
 
@@ -62,5 +68,9 @@ scripts-test: ## shellcheck every script, run every *.test.sh
 - **The loop names the test that failed.** The error arrives after the last
   test, so without the `FAIL $t` line the log points at whichever test ran last,
   and a test can exit non-zero without printing a `FAIL` of its own.
-- A shellcheck suppression sits on its line, with the reason:
-  `# shellcheck disable=SC2329 # called through check`.
+- **The same shellcheck everywhere**, pinned in `mise.toml` and run as
+  `mise exec shellcheck -- shellcheck`, with CI installing that pin rather than
+  using the runner's. Versions give one finding different codes: an indirectly
+  called function is SC2317 up to 0.10 and SC2329 in 0.11, so a suppression
+  written locally failed CI. Rewrite the code so that it needs no suppression,
+  and where one cannot be avoided, put it on its line with the reason.
