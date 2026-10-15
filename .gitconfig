@@ -22,6 +22,12 @@
 	event = pre-commit
 	event = commit-msg
 
+# A new worktree clears out the finished ones, whichever agent left them — see
+# bin/git/worktree-sweep.sh.
+[hook "worktree-sweep"]
+	command = "$HOME/projects/landsman/config/bin/git/worktree-sweep.sh --hook"
+	event = post-checkout
+
 [forbiddenNames]
 	file = ~/projects/landsman/brain/private-names.txt
 
