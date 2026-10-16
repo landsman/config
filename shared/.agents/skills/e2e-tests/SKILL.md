@@ -55,7 +55,7 @@ trigger-keywords: e2e, end-to-end, playwright*, cucumber*, behat*, gherkin*, chr
 ## Writing a test
 
 - **Cucumber when the suite is the spec:** Gherkin says the behaviour in the domain's words, Kotlin or TypeScript holds locators and waits. Step text and hooks are global — reuse a step or phrase it for its screen, no untagged `@Before`.
-- **Every step binds to code, and a step that does not fails the build.** The real run fails on a step with no definition, and a dry run that binds every step belongs in the checks before a push. Do not trust the runner's default here: Behat's lets an undefined step exit 0 (P18).
+- **Every step binds to code, and a step that does not fails the build.** The real run fails on a step with no definition, and a dry run that binds every step belongs in the checks before a push. Do not trust the runner's default here: Behat's lets an undefined step exit 0 (P18). Cucumber-JVM fails it unasked, and a Gradle task can fail an unused definition too (P19).
 - **Locators:** role or label first, then a test id, then CSS. A test id is kebab-case English, never translated, and comes from a constant shared by the production view and the step, so a rename breaks both at compile time. Add one only where role and label cannot do it.
 - **Routes come from the app's route catalog,** never a literal path in a test.
 - **Wait on the web-first assertion,** not a snapshot read. A value that needs a server round trip is polled with a deadline. Gate a click on an indicator that changes with the state being waited for. Assert presence before absence: an empty page passes every `isHidden`.
@@ -95,3 +95,4 @@ One section each in [pitfalls.md](pitfalls.md), never read whole:
 - P16 Lifecycle: JUnit's `TestWatcher` fires after teardown.
 - P17 CI shell: inline pipeline shell silenced three nightlies.
 - P18 Behat: an undefined step exits 0, and `--strict` cannot share the dry run that catches it.
+- P19 Cucumber-JVM: already strict, so the dry run's exit code holds; unused definitions need a `doLast`.
