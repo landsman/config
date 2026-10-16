@@ -222,6 +222,8 @@ tasks.register<Test>("e2eDryRun") {
   when there are none, so a plain `isNotEmpty()` fails every run. A definition
   only a `@wip` scenario uses counts as unused. Behat has no such report.
 - **The test report shows every scenario as passed:** bound, not run.
+- **`usage-json:<file>` (7.31+) is worth uploading from the same run:** every
+  definition with the steps it binds, where to look before writing a near-duplicate.
 - **`exceptionFormat = FULL`,** or the snippet for the missing step stays out of
   the log.
 
