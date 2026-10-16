@@ -203,6 +203,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/send-files.py\""
+          }
+        ]
+      }
     ]
   },
   "model": "opus[1m]",

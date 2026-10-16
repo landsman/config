@@ -17,6 +17,20 @@ address. A number is a lookup task handed back to the reader.
 Alongside the URL, keep whatever makes it readable: `#177` next to the link, or
 the title. The rule is that the link is present, not that nothing else is.
 
+## A file I am meant to look at
+
+**A screenshot, a report, a rendered page or a spreadsheet reaches me as the file
+itself**, sent with the harness's file tool (`SendUserFile` in Claude Code) in the
+turn it is made. A path in the reply is not a link: the terminal does not open
+it, and a phone following the session has no file behind it at all. The path can
+stay beside it as detail.
+
+A path to source code is a reference into a repo I have open, `file:line`, and
+stays a path.
+
+In Claude Code a Stop hook (`bin/agents/send-files.py`) holds the turn once when
+the reply names an existing file of that kind that was never sent.
+
 ## Where this does **not** apply
 
 **Where the forge resolves it.** A commit message, a PR body and an issue comment
