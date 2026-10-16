@@ -62,5 +62,8 @@ problem:
   that would otherwise fail silently. Expose it as a subcommand so a test can
   reach it without a network, a token or a server.
 
+How to write the script and its test, and how they are found and run, is in
+[shell scripts](shell-scripts.md).
+
 A script that only shells out to one command needs neither, and the same
 proportionality applies as everywhere else.
