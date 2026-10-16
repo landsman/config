@@ -2,9 +2,10 @@
 
 **A research that needs many sources is run by me, in Perplexity, from a prompt
 you write.** It costs no Claude tokens. Your part is the prompt, and reading
-back what it returns. That covers comparing libraries or tools, a market, the
-state of a standard — anything you would otherwise spend more than a handful of
-searches on.
+back what it returns. That covers picking a new dependency (an npm, Gradle or
+Maven, Composer, Go or Homebrew package), comparing tools, a market or the state
+of a standard: anything you would otherwise spend more than a handful of
+searches on. Bumping a dependency we already have is not one.
 
 Load the `perplexity-research` skill, then:
 

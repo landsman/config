@@ -1,6 +1,6 @@
 ---
 name: perplexity-research
-description: Load before writing a deep-research prompt for Perplexity — comparing libraries or tools, a market, the state of a standard — and when I hand back what Perplexity returned, a downloaded Markdown file. Carries what the prompt must contain, what must stay out of it, the output contract that makes the result easy to bring back, and how to take it back — read it, check its sources, file it in the brain.
+description: Load before writing a deep-research prompt for Perplexity — picking a new dependency (npm, Gradle or Maven, Composer, Go, PyPI, Homebrew), comparing tools, a market, the state of a standard — and when I hand back what Perplexity returned, a downloaded Markdown file. Carries what the prompt must contain, where to look and what to rank by for a dependency, what must stay out of it, the output contract that makes the result easy to bring back, and how to take it back — read it, check its sources, file it in the brain.
 trigger-keywords: perplexity, deep research, rešerš*, průzkum*
 ---
 
@@ -26,6 +26,9 @@ everything that must not leave the machine is not.
 
 - **The question and the criteria, ranked** — which decide, in what order, and
   which are hard filters.
+- **Picking a dependency** — a library, a plugin or a tool for npm, Gradle or Maven,
+  Composer, Go, PyPI or Homebrew: paste the sources and the criteria from
+  [dependencies.md](dependencies.md) that apply.
 - **Candidates to start from**, marked as not exhaustive, plus the baseline:
   doing nothing, or building it ourselves.
 - **Method**: a longlist, a filter, then a deep look at the shortlist; each
