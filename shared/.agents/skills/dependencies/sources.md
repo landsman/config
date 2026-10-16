@@ -192,9 +192,12 @@ grype sbom:brew-sbom.json -o json
 ## Actions
 
 An action is build code holding the workflow's credentials: stricter than a
-library, and C6, C8, C10 and C15 come first. A tag such as `@v4` is a name, not
-an identity — pin the reviewed full commit SHA with the version as a comment.
-On Forgejo, the `forgejo-workflows` rule says where actions come from.
+library, and C6, C8, C10 and C15 come first. **The repo's rule sets the pin,
+not this skill**: here the `github-actions` rule keeps `uses:` on the major tag
+and never the SHA; a SHA only after the human says so, and the case to ask about
+is a third-party action nobody watches. Whatever the pin, review the commit the
+tag points at today. On Forgejo, the `forgejo-workflows` rule says where actions
+come from.
 
 | Source | Gives | For an agent |
 |---|---|---|
@@ -209,7 +212,6 @@ gh api "repos/$OWNER/$REPO/contents/action.yml?ref=$SHA" --jq .content | base64 
 gh api --method GET /advisories -f ecosystem=actions -f affects="$OWNER/$REPO" --paginate
 gh api "repos/$OWNER/$REPO/security-advisories" --paginate
 gh api "repos/$OWNER/$REPO/tarball/$SHA" > action.tar.gz     # read offline, never run
-# uses: OWNER/REPO@<SHA> # <TAG>
 ```
 
 Read `runs.using`, `main`, `pre` and `post`, bundled JavaScript against its

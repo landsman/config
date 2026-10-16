@@ -46,7 +46,7 @@ working on:
 8. **Rank the survivors on C8–C19**, weighted by privilege: for an action, a build plugin or a base image, integrity, governance and security posture outrank popularity.
 9. **Two sources for what decides** (below), then test compatibility and cost in the real target.
 10. **Report**: verdict; exact version, its release date and the pinning form; the coordinate and its repository; the hard-filter results; ranked alternatives; commands run; any exception as an expiring VEX (V6); what is unresolved; when to look again.
-11. **Ask the human** before a new or look-alike package, an ownership change, install hooks, opaque binaries, remote code, a nonstandard license, telemetry, a mutable action tag or an unattributed image.
+11. **Ask the human** before a new or look-alike package, an ownership change, install hooks, opaque binaries, remote code, a nonstandard license, telemetry, a third-party action nobody watches or an unattributed image.
 
 Auditing a lockfile we already have, or a project's track record: V9 and V8.
 
@@ -80,8 +80,8 @@ Ranking signals:
 ## Never trust alone
 
 Stars, forks, badges; download counts; a vendor's comparison page; README claims;
-an aggregate Scorecard; a package name from a model; a mutable tag, branch or
-`@v4`; a provenance badge nobody verified; registry license metadata without the
+an aggregate Scorecard; a package name from a model; a tag or a branch as proof
+of which code runs — read the commit behind it; a provenance badge nobody verified; registry license metadata without the
 shipped license file; a clean scan of a graph you did not resolve; a missing EPSS
 score, which is unknown, not zero; "not reachable" from a tool that had no
 symbols for the advisory; NVD's silence — it stopped enriching every CVE on
