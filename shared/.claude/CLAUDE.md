@@ -30,6 +30,7 @@ be in context before the mistake, not after.
 | [Shell scripts](rules/shell-scripts.md) | writing a `.sh` file or its `.test.sh`, and the target that runs them — scoped; read it before creating one |
 | [The database is the source of truth](rules/source-of-truth.md) | state is about to live outside the database — memory, a session, a cache, a queue — or two writers race |
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
+| [Deep research](rules/deep-research.md) | a research needs many sources, a new dependency included — it goes to Perplexity as a prompt, unless I say to do it myself |
 | [Browser automation](rules/browser-automation.md) | a web app gets opened to check or drive it |
 
 The folder name is not a preference: `rules/` and `CLAUDE.md` are the only two
