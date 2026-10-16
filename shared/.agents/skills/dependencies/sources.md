@@ -46,7 +46,7 @@ osv-scanner scan source --recursive --format json --output osv.json .
 | Source | Gives | For an agent | Page |
 |---|---|---|---|
 | registry | existence, versions, maintainers, repository, engines, scripts, integrity | `https://registry.npmjs.org/{name}` or `/{name}/{version}`; `npm view` | npmjs.com ❌ |
-| downloads | counts over a period — popularity only | `https://api.npmjs.org/downloads/range/last-year/{name}` | npmtrends ❌ |
+| downloads | counts over a period — popularity only | `https://api.npmjs.org/downloads/range/last-year/{name}` | npmtrends ⚠️ answers, but its `robots.txt` disallows every bot except Google's |
 | provenance | registry signatures and Sigstore attestations | `npm audit signatures` | — |
 | publint, arethetypeswrong | how the package is published, types and exports | `npx publint`, `npx -p @arethetypeswrong/cli attw` | ⚠️ |
 | bundlephobia | estimated bundle size — a lead, the local build decides | `https://bundlephobia.com/api/size?package={name}@{version}` | ⚠️ |
