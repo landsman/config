@@ -46,7 +46,9 @@ CanvasText` there. A worked example:
 Preload such an icon when it shows up without warning — the `×` of a closed
 dialog, a spinner shown as the page navigates away: a mask is fetched only once
 its element is displayed, so without it the icon appears after the dialog does,
-or not at all. `<link rel="preload" href="close.svg" as="image" crossorigin>`;
+or not at all. Native HTML in the `<head>`, never a script that fetches it, so
+the browser finds it before any script runs:
+`<link rel="preload" href="close.svg" as="image" crossorigin>`,
 `crossorigin` because a mask is fetched in CORS mode, and a preload made another
 way is not reused but fetched a second time. Only those icons: every preload
 competes with what the page needs first.
