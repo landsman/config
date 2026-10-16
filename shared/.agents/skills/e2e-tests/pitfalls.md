@@ -202,6 +202,15 @@ tasks.register<Test>("e2eDryRun") {
 
 - **CI calls it by name.** The e2e source set sits outside `check` (P5), so a
   green `build` never compiled it. This one task compiles and binds.
+- **With cucumber-spring, set `cucumber.object-factory` to
+  `io.cucumber.core.backend.DefaultObjectFactory`.** A dry run still starts the
+  object factory for every scenario (`Runner.runPickle`), and Spring's boots the
+  whole `@SpringBootTest` app, containers included, to instantiate nothing.
+- **A `JavaExec` on `io.cucumber.core.cli.Main --dry-run` works as well:** no
+  JUnit report and no `@Suite` to outrank its options, but it repeats the glue
+  package and the features path.
+- **Filtering the CI step on the suite's paths** misses a main-code change the
+  steps compile against, unless the suite is a module with no project dependency.
 - **Its own tag filter, wider than the nightly's,** so the scenarios the nightly
   leaves out are still bound. P3 applies: a filter or a plugin pinned on the
   `@Suite` outranks the task's.
@@ -215,3 +224,5 @@ tasks.register<Test>("e2eDryRun") {
 Checked on Cucumber 7.18 in a work Kotlin suite: about 340 scenarios bound in
 1.6 s after the compile. With `@wip` let in, it failed on that scenario's six
 undefined steps, and a throwaway definition no scenario used failed it by name.
+A second suite, on cucumber-spring and Cucumber 7.34, runs it as that `JavaExec`
+with the default object factory.
