@@ -68,7 +68,8 @@ scripts-test: ## shellcheck every script, run every *.test.sh
 - **The loop names the test that failed.** The error arrives after the last
   test, so without the `FAIL $t` line the log points at whichever test ran last,
   and a test can exit non-zero without printing a `FAIL` of its own.
-- **The same shellcheck everywhere**, pinned in `mise.toml` and run as
+- **The same shellcheck everywhere**: the repo that adds the target pins it in
+  its `mise.toml` (`shellcheck = "0.11.0"`) and runs it as
   `mise exec shellcheck -- shellcheck`, with CI installing that pin rather than
   using the runner's. Versions give one finding different codes: an indirectly
   called function is SC2317 up to 0.10 and SC2329 in 0.11, so a suppression

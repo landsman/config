@@ -106,6 +106,7 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	@# iteration: without it a failure in any but the last test is reported green,
 	@# and this is what CI gates on. It also reports every failure in one run, and
 	@# names it: the error arrives after the last test, whichever that was.
+	@# The loop is the one in shared/.agents/rules/shell-scripts.md; change both.
 	@rc=0; for t in $$(git ls-files '*.test.sh'); do \
 		echo "== $$t"; "./$$t" || { echo "FAIL $$t"; rc=1; }; \
 	done; exit $$rc

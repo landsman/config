@@ -3,9 +3,9 @@ Every rule lives in [`rules/`](rules/), one file each. This file is the index.
 A rule there loads unconditionally unless it declares `paths:` frontmatter,
 which scopes it to the files it is about. A rule earns that scoping only when
 its trigger is a file path *and* breaking it shows up in a diff — GitHub Actions,
-Forgejo Actions, Makefiles, shell scripts and writing for agents are the five so far. The rest override a default
-I would otherwise fall back to, so they have to be in context before the
-mistake, not after.
+Forgejo Actions, Makefiles, shell scripts and writing for agents are the five so
+far. The rest override a default I would otherwise fall back to, so they have to
+be in context before the mistake, not after.
 
 | Rule | Applies when |
 |------|--------------|
