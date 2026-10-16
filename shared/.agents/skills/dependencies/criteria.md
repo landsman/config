@@ -5,7 +5,7 @@
     awk '/^## C9 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/criteria.md
 
 Compiled from a research of 2026-10-16 (the brain's *Choosing a dependency*
-page), sources read that day. C1–C7 are hard filters; C8–C18 rank.
+page), sources read that day. C1–C7 are hard filters; C8–C19 rank.
 
 ## C1 Necessity
 
@@ -78,17 +78,20 @@ page), sources read that day. C1–C7 are hard filters; C8–C18 rank.
 
 ## C5 Vulnerabilities and support
 
-- **Why:** known holes and unsupported versions are measurable exposure, though a
-  package-level match can overstate it. OWASP widened the category to every
-  supply-chain failure
-  ([A03:2025](https://top10.owasp.org/2025/A03_2025-Software_Supply_Chain_Failures/)).
-- **Measure:** OSV and GitHub Advisories for the exact version, the ecosystem's
-  scanner over the resolved graph, the vendor's advisories, CISA KEV, the fixed
-  version and the support window.
-- **Fails when** a known-exploited hole is unpatched, a reachable critical or high
-  one has no mitigation, or the version is out of security support.
-- **Exceptions:** wrong coordinates, unreachable code, dev-only use and backported
-  fixes — a time-bounded exception, with the evidence written down.
+- **Why:** whether *this version* exposes us now — a different question from the
+  project's record (C19). OWASP widened the category to every supply-chain
+  failure ([A03:2025](https://top10.owasp.org/2025/A03_2025-Software_Supply_Chain_Failures/)).
+- **Measure:** query the exact version — a package-only query is discovery, not
+  evidence; expand aliases; ecosystem-native ranges before NVD CPEs, which NVD no
+  longer fills for every CVE; KEV, then EPSS with its date; malicious records
+  (OSV `MAL-`, GitHub malware advisories); reachability as one of its states; the
+  support window. How: `vulnerabilities.md` V1, V4, V5, V7.
+- **Fails when** a malicious record exists; a known-exploited hole is unpatched in
+  an exposed or privileged path; a reachable critical or high one has no
+  mitigation; or the version is out of security support. Unknown reachability is
+  not safe.
+- **Exceptions:** not exploitable here, recorded as an expiring VEX plus the
+  scanner's narrowest ignore (V6) — never a dismissed alert.
 
 ## C6 Execution at install
 
@@ -227,11 +230,14 @@ page), sources read that day. C1–C7 are hard filters; C8–C18 rank.
 
 ## C15 Security posture
 
-- **Why:** practices help prevention and fixing; they do not stop a malicious
-  maintainer.
-- **Measure:** security policy, disclosure channel, advisory history and fix
-  times, branch protection, required review, workflow permissions, pinned
-  automation, and the [Scorecard checks](https://github.com/ossf/scorecard/blob/main/docs/checks.md)
+- **Why:** process helps prevention and fixing; it does not stop a malicious
+  maintainer. How fast fixes actually shipped is C19.
+- **Measure:** `SECURITY.md` naming supported versions; a private reporting
+  path, GitHub's private vulnerability reporting where it exists; advisories that
+  name affected and fixed branches; incomplete fixes corrected openly; backports
+  or a clear end of support; release and advisory notifications; branch
+  protection, required review, workflow permissions; the
+  [Scorecard checks](https://github.com/ossf/scorecard/blob/main/docs/checks.md)
   one by one.
 - **Fails when** exploitation is known and open, or the release process lets
   someone publish who should not.
@@ -263,3 +269,17 @@ page), sources read that day. C1–C7 are hard filters; C8–C18 rank.
   persistence formats and security components.
 - **Exceptions:** standard interfaces already are one — JDBC, PSR, `io.Reader`,
   Fetch.
+
+## C19 Remediation speed
+
+- **Why:** it describes the project, not the version — a good record says little
+  about today's release, and the reverse.
+- **Measure:** per advisory and supported branch, public disclosure to the first
+  registry-published release containing the complete fix; open advisories kept,
+  with their age; a fix before disclosure reported as such. How:
+  `vulnerabilities.md` V2, V3, V8.
+- **No universal threshold** exists; compare candidates in the same ecosystem
+  and function. No advisories is "no public track record", never a perfect one;
+  one to four are listed one by one, not averaged.
+- **Exceptions:** embargoed coordinated releases, backport-heavy release trains —
+  compare like with like.
