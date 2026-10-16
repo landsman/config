@@ -49,6 +49,11 @@ WORKTREE_SWEEP_IDLE_MINUTES=0 bash "$sweep" --hook "$(g -C "$r" rev-parse HEAD)"
 check kept clean # a plain checkout
 (cd "$t" && bash "$sweep" --hook 0000000000000000000000000000000000000000 x 1) || { echo "FAIL hook exit code outside a repo"; fail=1; }
 
+# A process list that comes back empty failed; nothing goes on a guess.
+mkdir "$t/bin" && printf '#!/bin/sh\n' >"$t/bin/lsof" && chmod +x "$t/bin/lsof"
+PATH="$t/bin:$PATH" WORKTREE_SWEEP_IDLE_MINUTES=0 bash "$sweep" "$r" >/dev/null
+check kept clean # no process list
+
 (cd "$wt/dirty" && WORKTREE_SWEEP_IDLE_MINUTES=0 bash "$sweep" --hook 0000000000000000000000000000000000000000 x 1 2>/dev/null)
 check removed clean # with a submodule checked out, which git refuses without --force
 check kept dirty

@@ -25,10 +25,6 @@
 # are rebuilt or recopied, so no check.
 set -euo pipefail
 unset CDPATH
-# Inherited from the git command that runs the hook, these would answer for the
-# wrong repo.
-# shellcheck disable=SC2046 # git's own list of variable names, split on purpose
-unset $(git rev-parse --local-env-vars)
 
 if [ "${1-}" = --hook ]; then
 	# post-checkout gets <old HEAD> <new HEAD> <flag>; the old one is all zeros
@@ -39,6 +35,11 @@ if [ "${1-}" = --hook ]; then
 	"$0" "$PWD" >&2 || true
 	exit 0
 fi
+
+# Inherited from the git command that runs the hook, these would answer for the
+# wrong repo. After the hook's early exit, so a plain checkout skips the git call.
+# shellcheck disable=SC2046 # git's own list of variable names, split on purpose
+unset $(git rev-parse --local-env-vars)
 
 list=
 [ "${1-}" != --list ] || { list=1; shift; }
@@ -96,14 +97,23 @@ git -C "$dir" worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= 
 	case $w in "$main/.claude/worktrees/"*) ;; *) continue ;; esac
 	finished "$w" || continue
 	# Once per run, and only when something got this far.
-	[ -n "$used" ] || used=$(cwds)$'\n'
+	if [ -z "$used" ]; then
+		used=$(cwds)
+		# This shell has a working directory too, so an empty list means the
+		# lookup failed: keep everything rather than remove what may be in use.
+		[ -n "$used" ] || exit 0
+	fi
 	awk -v w="$w" '$0 == w || index($0, w "/") == 1 { f = 1 } END { exit f }' <<<"$used" || continue
 	branch=$(git -C "$w" symbolic-ref -q --short HEAD || echo detached)
 	if [ -n "$list" ]; then
 		echo "would remove $w ($branch)"
 	# --force: git refuses any worktree with a submodule without it, and
 	# finished() has checked everything it would throw away.
-	elif git -C "$main" worktree remove --force "$w" 2>/dev/null; then
+	elif err=$(git -C "$main" worktree remove --force "$w" 2>&1); then
 		echo "removed finished worktree $w ($branch); the branch stays"
+	# Gone means a sweep running in parallel got there first. Anything else would
+	# be retried on every worktree add without a word.
+	elif [ -e "$w" ]; then
+		echo "could not remove finished worktree $w: $err" >&2
 	fi
 done
