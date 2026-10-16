@@ -172,3 +172,44 @@ exit code for a config or context that does not load. With more than one context
 `--snippets-for='Ns\Context'` skips the prompt and prints the definition to add.
 Checked on Behat 4 with a throwaway step: the real run and the dry run both
 failed on it, and both passed without it.
+
+## P19 Cucumber-JVM: strict already, and the dry run is a Gradle task
+
+Unlike Behat (P18), Cucumber-JVM has had no `--strict` since 7.0: an undefined or
+ambiguous step fails its scenario, in the real run and in a dry run alike. So no
+grep. `cucumber.execution.dry-run=true` binds every step without hooks or a
+browser, and the task's exit code is the check.
+
+```kotlin
+val unused = layout.buildDirectory.file("cucumber/unused-steps.txt")
+tasks.register<Test>("e2eDryRun") {
+    testClassesDirs = sourceSets["e2eTest"].output.classesDirs
+    classpath = sourceSets["e2eTest"].runtimeClasspath
+    useJUnitPlatform { includeEngines("junit-platform-suite") }
+    systemProperty("cucumber.filter.tags", "not @wip")
+    systemProperty("cucumber.execution.dry-run", "true")
+    systemProperty("cucumber.plugin", "unused:${unused.get().asFile.path}")
+    outputs.file(unused)
+    testLogging { events("failed"); exceptionFormat = TestExceptionFormat.FULL }
+    doLast {
+        val report = unused.get().asFile.readText().trim()
+        if (report.isNotEmpty()) throw GradleException("Step definitions no scenario uses:\n$report")
+    }
+}
+```
+
+- **CI calls it by name.** The e2e source set sits outside `check` (P5), so a
+  green `build` never compiled it. This one task compiles and binds.
+- **Its own tag filter, wider than the nightly's,** so the scenarios the nightly
+  leaves out are still bound. P3 applies: a filter or a plugin pinned on the
+  `@Suite` outranks the task's.
+- **An unused definition fails too.** The `unused:` plugin only writes the list;
+  the `doLast` fails on it. A definition only a `@wip` scenario uses counts as
+  unused. Behat has no such report.
+- **The test report shows every scenario as passed:** bound, not run.
+- **`exceptionFormat = FULL`,** or the snippet for the missing step stays out of
+  the log.
+
+Checked on Cucumber 7.18 in a work Kotlin suite: about 340 scenarios bound in
+1.6 s after the compile. With `@wip` let in, it failed on that scenario's six
+undefined steps, and a throwaway definition no scenario used failed it by name.
