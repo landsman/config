@@ -31,6 +31,10 @@ pushed locked && g -C "$r" worktree lock "$wt/locked"
 # disown: bash would report the kill at exit as a "Terminated" line.
 pushed busy && { (cd "$wt/busy" && exec sleep 60) & pid=$! && disown; }
 g -C "$r" worktree add -q "$t/elsewhere" -b elsewhere main
+# All of the above can take less than a second, and find counts the current
+# second as within -mmin -0, so whether a case looked idle was down to the
+# clock. Dated back, the reflog alone says how old they are.
+touch -t 202001010000 "$r"/.git/worktrees/*/HEAD "$r"/.git/worktrees/*/index
 
 fail=0
 check() { # want name
@@ -49,10 +53,15 @@ WORKTREE_SWEEP_IDLE_MINUTES=0 bash "$sweep" --hook "$(g -C "$r" rev-parse HEAD)"
 check kept clean # a plain checkout
 (cd "$t" && bash "$sweep" --hook 0000000000000000000000000000000000000000 x 1) || { echo "FAIL hook exit code outside a repo"; fail=1; }
 
-# A process list that comes back empty failed; nothing goes on a guess.
-mkdir "$t/bin" && printf '#!/bin/sh\n' >"$t/bin/lsof" && chmod +x "$t/bin/lsof"
-PATH="$t/bin:$PATH" WORKTREE_SWEEP_IDLE_MINUTES=0 bash "$sweep" "$r" >/dev/null
-check kept clean # no process list
+# A process list that comes back empty, or from a failed lsof, is no list:
+# nothing goes on a guess, and the sweep says why it did nothing.
+mkdir "$t/bin"
+for fake in '' 'echo n/nowhere; exit 1'; do
+	printf '#!/bin/sh\n%s\n' "$fake" >"$t/bin/lsof" && chmod +x "$t/bin/lsof"
+	err=$(PATH="$t/bin:$PATH" WORKTREE_SWEEP_IDLE_MINUTES=0 bash "$sweep" "$r" 2>&1 >/dev/null)
+	check kept clean # lsof: ${fake:-empty}
+	[ -n "$err" ] || { echo "FAIL no word when lsof gives no list: ${fake:-empty}"; fail=1; }
+done
 
 (cd "$wt/dirty" && WORKTREE_SWEEP_IDLE_MINUTES=0 bash "$sweep" --hook 0000000000000000000000000000000000000000 x 1 2>/dev/null)
 check removed clean # with a submodule checked out, which git refuses without --force

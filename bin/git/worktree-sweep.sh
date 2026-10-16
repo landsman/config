@@ -98,10 +98,11 @@ git -C "$dir" worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= 
 	finished "$w" || continue
 	# Once per run, and only when something got this far.
 	if [ -z "$used" ]; then
-		used=$(cwds)
 		# This shell has a working directory too, so an empty list means the
-		# lookup failed: keep everything rather than remove what may be in use.
-		[ -n "$used" ] || exit 0
+		# lookup failed, as does lsof failing: keep everything rather than remove
+		# what may be in use, and say so, or the sweep stops without a word.
+		used=$(cwds) || used=
+		[ -n "$used" ] || { echo "no process list, so every worktree stays" >&2; exit 0; }
 	fi
 	awk -v w="$w" '$0 == w || index($0, w "/") == 1 { f = 1 } END { exit f }' <<<"$used" || continue
 	branch=$(git -C "$w" symbolic-ref -q --short HEAD || echo detached)
