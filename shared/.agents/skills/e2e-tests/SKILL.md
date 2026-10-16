@@ -75,7 +75,7 @@ trigger-keywords: e2e, end-to-end, playwright*, cucumber*, behat*, gherkin*, chr
 
 One section each in [pitfalls.md](pitfalls.md), never read whole:
 
-    awk '/^## P7 /{f=1;print;next} /^## /{f=0} f' pitfalls.md
+    awk '/^## P7 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/e2e-tests/pitfalls.md
 
 - P1 Playwright Java: a regex is compiled in the browser, so no `Pattern.quote`.
 - P2 Playwright Java: a `-D` reaches the Gradle JVM, not the test JVM.

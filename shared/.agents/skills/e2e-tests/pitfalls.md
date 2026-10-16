@@ -3,7 +3,7 @@
 **Do not read this file whole.** Open the one section the e2e-tests skill's list
 points at:
 
-    awk '/^## P7 /{f=1;print;next} /^## /{f=0} f' pitfalls.md
+    awk '/^## P7 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/e2e-tests/pitfalls.md
 
 ## P1 Playwright Java: no `Pattern.quote`
 
