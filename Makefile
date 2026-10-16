@@ -140,6 +140,7 @@ opencode-config-test: ## check the stowed opencode config parses and stays machi
 	@# /home would load nothing on the other machines. ~/ is expanded by opencode
 	@# itself (the source resolves "~/x" against $HOME before globbing).
 	@python3 -c 'import json;json.load(open("shared/.config/opencode/opencode.json"))'
+	@python3 -c 'import json;json.load(open("shared/.config/opencode/cli.json"))'
 	@grep -nE '"[^"]*/(Users|home)/' shared/.config/opencode/opencode.json \
 		&& { echo "^ only true on one machine - use \$$HOME (via ~), or opencode ignores it"; exit 1; } \
 		|| true
