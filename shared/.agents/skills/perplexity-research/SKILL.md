@@ -11,6 +11,10 @@ Markdown file. Perplexity sees nothing but the prompt: no disk, no repo, no
 earlier conversation, no skill. Everything it needs is in the prompt, and
 everything that must not leave the machine is not.
 
+No API and no MCP server: Perplexity has an official one, but it runs on a paid
+API key, and I do not pay for that (decided 2026-10-16). The desktop app with a
+prompt is the whole integration.
+
 ## Writing the prompt
 
 - **Self-contained context.** What is being built, for whom, the stack with
