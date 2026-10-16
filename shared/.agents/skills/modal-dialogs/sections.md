@@ -28,6 +28,31 @@ title and not on a header that also holds tabs. Space such a second row with
 `row-gap`, never with the title's margin, which counts as part of the title's
 row and drops the `×` below its middle.
 
+The template names its own `×`: it calls the project's translator for "Close"
+itself, so no dialog has to pass the label and none can forget it.
+
+The icon is a file, `close.svg`, never SVG markup pasted into a template or a
+component, whatever the stack. An icon with colours of its own, a logo, is an
+`<img src>` on it. One in the text colour, like the `×`, is a CSS mask over the
+same file: an empty `<span class="icon icon-close" aria-hidden="true">` with
+`background: currentColor` and `mask: url(close.svg) center / contain no-repeat`,
+so it follows the scheme and the hover like a glyph, and the file's own colour
+does not matter. An `<img>` cannot: CSS does not reach into the file, and a
+`filter` only approximates a colour. Forced colours replace the background and
+the mask paints nothing, so set `forced-color-adjust: none; background:
+CanvasText` there. A worked example:
+[svg-icons](https://github.com/landsman/frontend-playground/tree/master/svg-icons).
+
+Preload such an icon when it shows up without warning — the `×` of a closed
+dialog, a spinner shown as the page navigates away: a mask is fetched only once
+its element is displayed, so without it the icon appears after the dialog does,
+or not at all. Native HTML in the `<head>`, never a script that fetches it, so
+the browser finds it before any script runs:
+`<link rel="preload" href="close.svg" as="image" crossorigin>`,
+`crossorigin` because a mask is fetched in CORS mode, and a preload made another
+way is not reused but fetched a second time. Only those icons: every preload
+competes with what the page needs first.
+
 ## 3. bands
 
 Header and footer: a tint a few percent of the text colour over the background
