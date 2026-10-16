@@ -80,3 +80,15 @@ It does not work inside `tmux`: a tmux pane is not attached to the session that
 owns the Touch ID prompt. `pam_reattach` fixes that, and is deliberately not here
 — it would put a `/opt/homebrew` object into root's authentication stack, and
 Homebrew's prefix is writable by the user it would be granting root to.
+
+**Notifications are allowed by hand, once per machine.** Ghostty shows the ones
+coding agents send (opencode's `attention.notifications`, Claude Code's
+`ghostty-notify` plugin), and macOS asks whether to allow them the first time
+one arrives — answer *Allow*. No script can give that answer: per-app
+notification permissions are honoured only from an MDM-installed profile, and
+the `com.apple.ncprefs.plist` older scripts edit is gone on current macOS. If
+the question was missed or declined, this opens the pane to turn Ghostty on:
+
+```
+open "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
+```
