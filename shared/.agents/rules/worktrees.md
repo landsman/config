@@ -16,8 +16,11 @@ disappearing, not as an error.
   puts them under `.claude/worktrees/`. Without it, `git worktree add` into that
   same folder, so every agent's worktrees sit where
   [where the repos live](where-repos-live.md) already says to expect them.
-- **Leave it when the work is pushed**; removing it is `git worktree remove`,
-  and only once nothing in it is unpushed.
+- **Leave it when the work is pushed.** The next `git worktree add` in that
+  repo removes it once it is clean, has nothing unpushed and sat a day
+  untouched, whichever harness made it (`bin/git/worktree-sweep.sh`, a
+  post-checkout hook in `.gitconfig`). By hand it is `git worktree remove`, and
+  only once nothing in it is unpushed.
 
 In Claude Code this is enforced, not just written: a hook
 (`bin/agents/checkout-guard.sh` in the config repo) refuses an edit in a main
