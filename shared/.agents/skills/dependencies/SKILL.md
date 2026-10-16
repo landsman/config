@@ -18,10 +18,18 @@ working on:
     awk '/^## V4 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/vulnerabilities.md
     awk '/^## npm/{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/sources.md
 
-`vulnerabilities.md`: V1 which source wins, V2 remediation speed, V3 other
-track-record metrics, V4 prioritising a finding, V5 reachability, V6 recording an
-exception, V7 malicious packages, V8 a project's track record, V9 auditing a
-lockfile we have, V10 continuous checks and targets.
+`vulnerabilities.md`:
+
+- V1 Which source wins
+- V2 Remediation speed
+- V3 Other track-record metrics
+- V4 Prioritising a finding
+- V5 Reachability
+- V6 Recording an exception
+- V7 Malicious packages
+- V8 A project's track record
+- V9 Auditing a lockfile we have
+- V10 Continuous checks and targets
 
 `sources.md`: `Cross-ecosystem`, `npm and Bun`, `Gradle and Maven`, `Composer`,
 `Go`, `PyPI`, `Homebrew`, `Actions`, `Container images`.
