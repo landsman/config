@@ -1,80 +1,71 @@
 ---
 name: dependencies
-description: Load before adding, proposing or reviewing a new dependency — an npm, Gradle or Maven, Composer, Go, PyPI or Homebrew package, a plugin or a tool — and when writing a research prompt that picks one. Carries where to look per ecosystem (the page for a person, the JSON API for an agent) and what to rank by — hard filters, then a ranked list. Not for bumping a version already in use.
+description: Load before adding, proposing or reviewing a new dependency — an npm, Gradle or Maven, Composer, Go, PyPI or Homebrew package, a plugin, a GitHub or Forgejo action, a container base image or a tool — and when writing a research prompt that picks one. Carries the procedure (identity first, hard filters, then ranking), eighteen criteria with how to measure each, the sources and commands per ecosystem with the API an agent can read, and what never to trust alone. Not for bumping a version already in use.
 trigger-keywords: dependenc*, závislost*, knihovn*, library, libraries
 ---
 
 # Choosing a dependency
 
-The sources and the criteria are the same whoever does the research: you, a
-subagent, or Perplexity from a prompt (`perplexity-research` skill). Perplexity
-cannot read this file, so paste the parts that apply into the prompt, the API
-column included.
+A dependency is code inside the product's trust boundary, not a convenience. The
+same procedure holds whoever does the research — you, a subagent, or Perplexity
+from a prompt (`perplexity-research` skill; it cannot read these files, so paste
+what applies).
 
-## Where to look
+Two files hold the detail. **Neither is read whole**; open the one section you
+are working on:
 
-**Read the API, not the page.** Many of these pages render in JavaScript or sit
-behind a bot check, and a fetch without a browser gets an empty shell or a 403.
-Measured on 2026-10-16 with a plain HTTP client, which is what a web-fetch tool
-is: ✅ the page carries its data, ⚠️ it is thin or rendered in JavaScript, ❌ it
-is blocked.
+    awk '/^## C9 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/criteria.md
+    awk '/^## npm/{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/sources.md
 
-Across ecosystems:
+`sources.md` sections: `Cross-ecosystem`, `npm and Bun`, `Gradle and Maven`,
+`Composer`, `Go`, `PyPI`, `Homebrew`, `Actions`, `Container images`.
 
-| What | Page | For an agent |
-|---|---|---|
-| Versions, licenses, dependents | https://deps.dev ⚠️ | `https://api.deps.dev/v3/systems/<system>/packages/<name>` |
-| Vulnerabilities | https://osv.dev ✅, https://github.com/advisories ✅ | `POST https://api.osv.dev/v1/query` with `{"package":{"name":"<name>","ecosystem":"<ecosystem>"}}`; `https://api.github.com/advisories?ecosystem=<ecosystem>&affects=<name>` |
-| Repo hygiene, the OpenSSF Scorecard | https://scorecard.dev ⚠️ | `https://api.securityscorecards.dev/projects/github.com/<owner>/<repo>` |
-| Support windows | https://endoflife.date ✅ | `https://endoflife.date/api/v1/products/<product>` |
-| The source repo | GitHub ✅ | `gh api repos/<owner>/<repo>`, `/releases`, `/issues?labels=bug` |
+## Procedure
 
-Per ecosystem:
+1. **Requirement and risk class** — the capability in one sentence, and what the dependency will touch: data, CI or build credentials, the browser or the edge, native code.
+2. **Names from authoritative sources** — the framework's docs, the project's repo or the registry; never a coordinate that only a model, a blog command or autocomplete produced.
+3. **Prove identity (C2)** — registry and repository agree on name, namespace, repository, publisher and release tag.
+4. **Fetch without executing** — the exact artifact or manifest, inspected before anything installs or runs its scripts.
+5. **Resolve the real graph safely** — dry run, lockfile only or scripts ignored; runtime, build, dev, peer and optional apart.
+6. **Hard filters C1–C7**, for the package and its transitives — the first unresolvable failure ends it, reported in one line.
+7. **Rank the survivors on C8–C18**, weighted by privilege: for an action, a build plugin or a base image, integrity, governance and security posture outrank popularity.
+8. **Two sources for what decides** (below), then test compatibility and cost in the real target.
+9. **Report**: verdict; exact version, its release date and the pinning form; the coordinate and its repository; the hard-filter results; ranked alternatives; commands run; what is unresolved; when to look again.
+10. **Ask the human** before a new or look-alike package, an ownership change, install hooks, opaque binaries, remote code, a nonstandard license, telemetry, a mutable action tag or an unattributed image.
 
-| Ecosystem | Page | For an agent | Also |
-|---|---|---|---|
-| npm | https://www.npmjs.com ❌, https://npmtrends.com ❌ | `https://registry.npmjs.org/<name>/latest`; a year of downloads: `https://api.npmjs.org/downloads/range/last-year/<name>` | size: `https://bundlephobia.com/api/size?package=<name>` (page ⚠️); types and exports: `npx @arethetypeswrong/cli`, `npx publint`, run locally; supply chain: https://socket.dev ❌, a person's check |
-| Gradle, Maven | https://central.sonatype.com ⚠️, https://mvnrepository.com ❌ | `https://search.maven.org/solrsearch/select?q=g:<group>+AND+a:<artifact>&wt=json`; `https://repo1.maven.org/maven2/<group/as/path>/<artifact>/maven-metadata.xml` | plugins: https://plugins.gradle.org ✅; on Spring Boot, whether Boot already manages it: https://docs.spring.io/spring-boot/appendix/dependency-versions/coordinates.html ✅ |
-| Composer | https://packagist.org ✅ | `https://packagist.org/packages/<vendor>/<name>.json` (downloads, `abandoned`) | `composer audit` |
-| Go | https://pkg.go.dev ✅ | `https://proxy.golang.org/<module>/@latest` | — |
-| PyPI | https://pypi.org ✅, https://pypistats.org ⚠️ | `https://pypi.org/pypi/<name>/json`; `https://pypistats.org/api/packages/<name>/recent` | — |
-| Homebrew | https://formulae.brew.sh ✅ | `https://formulae.brew.sh/api/formula/<name>.json`, install analytics included | — |
+## Criteria
 
-## What to rank by
+Hard filters, any failure ends it:
 
-Hard filters first: a candidate that fails one is out, with the reason in one
-line.
+- **C1 Necessity** — not already covered by the standard library, the platform or a dependency we have.
+- **C2 Identity** — the coordinate is real, intended and controlled by the expected project.
+- **C3 License** — the shipped license and every transitive one fit how we distribute and deploy.
+- **C4 Compatibility** — shown to run on our runtime, framework, module system and target, not only declared.
+- **C5 Vulnerabilities and support** — no known-exploited or reachable serious advisory, no version out of support.
+- **C6 Execution at install** — install scripts, plugins, native code and downloaded binaries reviewed and explained.
+- **C7 Privacy and telemetry** — no undisclosed or unacceptable collection or network traffic.
 
-1. **Needed at all** — compared against the standard library, the platform and
-   a dependency we already have.
-2. **License** — MIT, Apache-2.0, BSD or ISC pass. Flag copyleft (GPL, AGPL;
-   LGPL with its linking terms), source-available (BSL, SSPL, Elastic), an open
-   core whose feature we need is paid, and any relicensing in the project's
-   history.
-3. **Maintained** — a release in the last 6 months, commits from more than one
-   person in the last year, not archived, deprecated or marked abandoned, issues
-   and pull requests answered.
-4. **Compatible** — our runtime and its version (Node, JDK, PHP, Go), the module
-   format (ESM or CJS), bundled TypeScript types, our framework's version and
-   the versions it manages, and edge or SSR runtimes where we deploy to them.
-5. **No unpatched serious advisory.**
+Ranking signals:
 
-Then ranked, in this order:
+- **C8 Integrity and publishing** — verifiable digests, signatures or provenance, hardened publishing; hard for actions, build plugins, binaries and images.
+- **C9 Maintenance** — able to respond when needed; explicit abandonment is a hard failure.
+- **C10 Governance** — who controls it and can publish, ownership changes, succession, funding.
+- **C11 Dependency graph** — what it pulls in transitively, at build time and at run time.
+- **C12 Defects** — relevant open bugs, regressions and how fast fixes ship.
+- **C13 Release discipline** — compatibility policy, changelog, immutable versions.
+- **C14 Adoption** — corroboration only; downloads and stars are gamed.
+- **C15 Security posture** — disclosure, remediation history, workflow and branch controls.
+- **C16 Footprint** — measured bundle, startup, memory and image cost in the real target.
+- **C17 Documentation and testability** — current docs, a testable API.
+- **C18 Exit cost** — kept behind a narrow boundary we own, cheap to replace.
 
-6. **Bugs** — open bugs against closed, their age, regressions in recent
-   releases, how fast fixes ship.
-7. **Security posture** — the advisory history and its fix times, the Scorecard,
-   signed releases or provenance, install scripts, the transitive dependency
-   count.
-8. **Adoption, as a trend** — downloads over a year, dependents, known users.
-   Stars last: they measure attention, not use.
-9. **Release discipline** — semver kept, a changelog, how often a minor version
-   breaks something.
-10. **Footprint** — bundle size in the browser, transitive dependencies, startup
-    cost on the JVM.
-11. **Who stands behind it** — a company, a foundation or one person, and its
-    funding.
-12. **Exit cost** — how much of our code would know about it, and what replacing
-    it would take.
+## Never trust alone
 
-The answer names the exact version to pin, with its release date.
+Stars, forks, badges; download counts; a vendor's comparison page; README claims;
+an aggregate Scorecard; a package name from a model; a mutable tag, branch or
+`@v4`; a provenance badge nobody verified; registry license metadata without the
+shipped license file; a clean scan of a graph you did not resolve.
+
+Two independent sources for: identity, a license that is not standard, a serious
+vulnerability, a support window (endoflife.date only corroborates the vendor), an
+ownership change, provenance, and performance — where a local measurement wins.
