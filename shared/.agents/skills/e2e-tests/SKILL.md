@@ -1,7 +1,7 @@
 ---
 name: e2e-tests
-description: Load before adding, changing, reviewing or speeding up a browser end-to-end suite — Playwright (Java or TypeScript), Cucumber scenarios over it, the CI job that runs it, or a failing or flaky e2e run. Carries my defaults (Chromium only, as fast as CI allows), where the app under test should run, test data and teardown, locators and waiting, what a failed run must leave behind, and how CI installs and caches the browser and its OS packages. Framework traps (Vaadin, Playwright Java, Cucumber, React hydration) are in pitfalls.md.
-trigger-keywords: e2e, end-to-end, playwright*, cucumber*, gherkin*, chromi*, install-deps, testEndToEnd, flaky*
+description: Load before adding, changing, reviewing or speeding up a browser end-to-end suite — Playwright (Java, TypeScript or PHP), Cucumber or Behat scenarios over it, the CI job that runs it, or a failing or flaky e2e run. Carries my defaults (Chromium only, as fast as CI allows), where the app under test should run, test data and teardown, locators and waiting, every step bound to code, what a failed run must leave behind, and how CI installs and caches the browser and its OS packages. Framework traps (Vaadin, Playwright Java, Cucumber, Behat, React hydration) are in pitfalls.md.
+trigger-keywords: e2e, end-to-end, playwright*, cucumber*, behat*, gherkin*, chromi*, install-deps, testEndToEnd, flaky*
 ---
 
 # Browser end-to-end tests
@@ -55,6 +55,7 @@ trigger-keywords: e2e, end-to-end, playwright*, cucumber*, gherkin*, chromi*, in
 ## Writing a test
 
 - **Cucumber when the suite is the spec:** Gherkin says the behaviour in the domain's words, Kotlin or TypeScript holds locators and waits. Step text and hooks are global — reuse a step or phrase it for its screen, no untagged `@Before`.
+- **Every step binds to code, and a step that does not fails the build.** The real run fails on a step with no definition, and a dry run that binds every step belongs in the checks before a push. Do not trust the runner's default here: Behat's lets an undefined step exit 0 (P18).
 - **Locators:** role or label first, then a test id, then CSS. A test id is kebab-case English, never translated, and comes from a constant shared by the production view and the step, so a rename breaks both at compile time. Add one only where role and label cannot do it.
 - **Routes come from the app's route catalog,** never a literal path in a test.
 - **Wait on the web-first assertion,** not a snapshot read. A value that needs a server round trip is polled with a deadline. Gate a click on an indicator that changes with the state being waited for. Assert presence before absence: an empty page passes every `isHidden`.
@@ -93,3 +94,4 @@ One section each in [pitfalls.md](pitfalls.md), never read whole:
 - P15 Init scripts: one that runs before `documentElement` exists fails silently.
 - P16 Lifecycle: JUnit's `TestWatcher` fires after teardown.
 - P17 CI shell: inline pipeline shell silenced three nightlies.
+- P18 Behat: an undefined step exits 0, and `--strict` cannot share the dry run that catches it.

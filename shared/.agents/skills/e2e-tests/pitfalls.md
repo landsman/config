@@ -156,3 +156,19 @@ choosing a webhook URL silenced three nightlies. Each lives in a script with a
 test next to it, run as a blocking check (see the shell-in-config rule). On Azure
 DevOps, `$(macros)` do not expand inside an extracted script: pass values through
 `env:`.
+
+## P18 Behat: an undefined step exits 0
+
+Without `--strict`, Behat reports a step no context defines as "undefined" and
+exits 0. A typo in a `.feature`, or a definition renamed under it, then tests
+nothing and CI stays green. Run the suite with `--strict`, and check in the fast
+lane that every step binds: `behat --dry-run` matches each step to its definition
+with no browser and no fixture, in under a second.
+
+Keep `--strict` off that dry run, and so out of the config file the dry run reads.
+Strict fails anything not explicitly passed, and a dry run skips every step, so it
+always exits 1. Fail on the word `undefined` in its output instead, and keep its
+exit code for a config or context that does not load. With more than one context,
+`--snippets-for='Ns\Context'` skips the prompt and prints the definition to add.
+Checked on Behat 4 with a throwaway step: the real run and the dry run both
+failed on it, and both passed without it.
