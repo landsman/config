@@ -176,7 +176,9 @@ failed on it, and both passed without it.
 ## P19 Cucumber-JVM: strict already, and the dry run is a Gradle task
 
 Unlike Behat (P18), Cucumber-JVM has had no `--strict` since 7.0: an undefined or
-ambiguous step fails its scenario, in the real run and in a dry run alike. So no
+ambiguous step fails its scenario, in the real run and in a dry run alike. Its
+strict counts a skipped step as passing (`Status.isOk()`), where Behat's fails it,
+so a dry run that skips every step still passes when all of them bind. So no
 grep. `cucumber.execution.dry-run=true` binds every step without hooks or a
 browser, and the task's exit code is the check.
 
