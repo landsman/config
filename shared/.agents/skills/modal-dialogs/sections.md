@@ -28,12 +28,20 @@ title and not on a header that also holds tabs. Space such a second row with
 `row-gap`, never with the title's margin, which counts as part of the title's
 row and drops the `×` below its middle.
 
-The template names its own `×` — its translated "Close" comes from the
-template, not from each dialog; a Latte `{embed}` sees only its arguments, so
-register a `t()` function on the engine rather than pass the label everywhere.
-The icon is a template of its own (`icons/close.latte`, a component), its SVG
-inline with `stroke="currentColor"`: an `<img src="close.svg">` is a separate
-document CSS cannot colour, and a `filter` only approximates one.
+The template names its own `×`: it calls the project's translator for "Close"
+itself, so no dialog has to pass the label and none can forget it.
+
+The icon is a file, `close.svg`, never SVG markup pasted into a template or a
+component, whatever the stack. An icon with colours of its own, a logo, is an
+`<img src>` on it. One in the text colour, like the `×`, is a CSS mask over the
+same file: an empty `<span class="icon icon-close" aria-hidden="true">` with
+`background: currentColor` and `mask: url(close.svg) center / contain no-repeat`,
+so it follows the scheme and the hover like a glyph, and the file's own colour
+does not matter. An `<img>` cannot: CSS does not reach into the file, and a
+`filter` only approximates a colour. Forced colours replace the background and
+the mask paints nothing, so set `forced-color-adjust: none; background:
+CanvasText` there. A worked example:
+[svg-icons](https://github.com/landsman/frontend-playground/tree/master/svg-icons).
 
 ## 3. bands
 
