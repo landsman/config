@@ -63,12 +63,16 @@ The end of every prompt, `<slug>` replaced:
       lost when the thread is exported.
     - End with `## Sources`: every URL used, each with the date it was read.
     - Nothing only in a chart; give the numbers.
+    - If the report would not fit in one answer, end at a section boundary with
+      `## Not covered`, listing the sections left, then `## Sources`.
 
 ## Taking it back
 
 I drag the file into the terminal, which pastes its path.
 
-1. **Read it whole.** It is the source, not a summary of one.
+1. **Read it whole, and check it ends with `## Sources`.** An answer that
+   stops mid-section hit Perplexity's output limit: ask for the rest with a
+   prompt that names the last complete section and repeats the contract.
 2. **Check what the conclusion rests on.** Open the two or three sources the
    recommendation depends on and confirm they say what is claimed: a research
    tool cites pages that say something else, and a number with no method is a
