@@ -176,10 +176,10 @@ failed on it, and both passed without it.
 ## P19 Cucumber-JVM: strict already, and the dry run is a Gradle task
 
 Unlike Behat (P18), Cucumber-JVM has had no `--strict` since 7.0: an undefined or
-ambiguous step fails its scenario, in the real run and in a dry run alike. Its
-strict counts a skipped step as passing (`Status.isOk()`), where Behat's fails it,
-so a dry run that skips every step still passes when all of them bind. So no
-grep. `cucumber.execution.dry-run=true` binds every step without hooks or a
+ambiguous step fails its scenario, in the real run and in a dry run alike. A dry
+run reports a step that binds as passed (`ExecutionMode.DRY_RUN`), where Behat
+reports it skipped and its strict fails that, so here strict costs the dry run
+nothing. So no grep. `cucumber.execution.dry-run=true` binds every step without hooks or a
 browser, and the task's exit code is the check.
 
 ```kotlin
@@ -195,7 +195,10 @@ tasks.register<Test>("e2eDryRun") {
     testLogging { events("failed"); exceptionFormat = TestExceptionFormat.FULL }
     doLast {
         val report = unused.get().asFile.readText().trim()
-        if (report.isNotEmpty()) throw GradleException("Step definitions no scenario uses:\n$report")
+        // 7.31+ writes this line when nothing is unused, older versions nothing
+        if (report.isNotEmpty() && report != "0 unused step definition(s)") {
+            throw GradleException("Step definitions no scenario uses:\n$report")
+        }
     }
 }
 ```
@@ -215,8 +218,9 @@ tasks.register<Test>("e2eDryRun") {
   leaves out are still bound. P3 applies: a filter or a plugin pinned on the
   `@Suite` outranks the task's.
 - **An unused definition fails too.** The `unused:` plugin only writes the list;
-  the `doLast` fails on it. A definition only a `@wip` scenario uses counts as
-  unused. Behat has no such report.
+  the `doLast` fails on it. Since 7.31 it writes `0 unused step definition(s)`
+  when there are none, so a plain `isNotEmpty()` fails every run. A definition
+  only a `@wip` scenario uses counts as unused. Behat has no such report.
 - **The test report shows every scenario as passed:** bound, not run.
 - **`exceptionFormat = FULL`,** or the snippet for the missing step stays out of
   the log.
@@ -225,4 +229,5 @@ Checked on Cucumber 7.18 in a work Kotlin suite: about 340 scenarios bound in
 1.6 s after the compile. With `@wip` let in, it failed on that scenario's six
 undefined steps, and a throwaway definition no scenario used failed it by name.
 A second suite, on cucumber-spring and Cucumber 7.34, runs it as that `JavaExec`
-with the default object factory.
+with the default object factory: 244 scenarios green, and a throwaway unused
+definition failed it by name.
