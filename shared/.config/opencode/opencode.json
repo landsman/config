@@ -48,6 +48,15 @@
       ],
       "enabled": true,
       "type": "local"
+    },
+    "adminer-desktop": {
+      "command": [
+        "sh",
+        "-c",
+        "b=$(command -v adminer-desktop || echo \"/Applications/Adminer Desktop.app/Contents/MacOS/adminer-desktop\"); [ -x \"$b\" ] || exit 0; exec \"$b\" -mcp"
+      ],
+      "enabled": true,
+      "type": "local"
     }
   },
   "permission": {
