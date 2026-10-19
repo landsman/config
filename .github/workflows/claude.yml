@@ -51,6 +51,12 @@ name: claude
 # own CLAUDE_CODE_OAUTH_TOKEN. Passed explicitly rather than `secrets: inherit`
 # — inherit is documented for callers in the same org or enterprise, and the
 # whole point of publishing this is that a caller might be neither.
+#
+# The Actions allowlist is the other thing no file in the caller can carry. A
+# repo that allows only selected actions has to list this one's too, or every
+# mention ends as a startup_failure in 0s, with no log and a run page blaming
+# the workflow file. bin/github/claude-mentions.sh <owner/repo> adds it, and
+# says when the secret is missing.
 on:
   workflow_call:
     secrets:
