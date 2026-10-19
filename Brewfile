@@ -122,6 +122,10 @@ brew "vite-plus"
 
 # Apple Silicon Monitor Top written in Go Lang
 brew "mactop" if OS.mac?
+# Apple's own container runtime, each container in its own lightweight VM.
+# Apple silicon and macOS 26 only. The first `container system start` offers
+# to fetch the Linux kernel it boots; `--enable-kernel-install` skips the ask.
+brew "container" if OS.mac?
 # App Store CLI — what the `mas` lines at the end install through
 brew "mas" if OS.mac?
 # Stripe CLI. Guarded because the tap's formula is `depends_on :macos` — the
