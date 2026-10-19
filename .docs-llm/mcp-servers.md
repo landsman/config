@@ -214,6 +214,24 @@ lets attachment tools read the host filesystem and upload it. It is off by
 default and should stay off — an injected prompt uploading `~/.ssh/id_ed25519`
 as a public release asset is the documented failure mode, not a hypothetical.
 
+## Adminer Desktop
+
+My own app, <https://github.com/landsman/adminer-desktop>. It hands an agent
+the database its open window is logged into, read-only, and nothing while the
+window is closed. Two switches live outside this file: **Settings → AI access**
+in the app, and a login as a role that can only read — the app's
+[MCP doc](https://github.com/landsman/adminer-desktop/blob/main/.docs/mcp.md)
+says why the login, not the read-only transaction, is the boundary.
+
+Guarded like Forgejo, on the binary alone. `command -v` finds the `.deb`'s
+`/usr/bin/adminer-desktop` on Linux, the fallback is the macOS bundle, and a
+machine with neither gets no server — which is what lets it sit in the shared
+list rather than beside pencil.
+
+The app's settings tab offers `claude mcp add adminer-desktop …`. That writes a
+user-scope copy that shadows this one, so skip it, or undo it with
+`claude mcp remove adminer-desktop -s user`.
+
 ## Common commands
 
 | Command                    | Purpose                                    |

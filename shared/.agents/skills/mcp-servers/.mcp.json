@@ -27,6 +27,14 @@
         "-c",
         "b=$(command -v forgejo-mcp || echo \"$HOME/go/bin/forgejo-mcp\"); [ -n \"$FORGEJO_ACCESS_TOKEN\" ] && [ -x \"$b\" ] || exit 0; exec \"$b\" --transport stdio --url https://git.insuit.cz"
       ]
+    },
+    "adminer-desktop": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-c",
+        "b=$(command -v adminer-desktop || echo \"/Applications/Adminer Desktop.app/Contents/MacOS/adminer-desktop\"); [ -x \"$b\" ] || exit 0; exec \"$b\" -mcp"
+      ]
     }
   }
 }
