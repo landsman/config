@@ -11,6 +11,9 @@
 # deps
 node_modules
 
+# bytecode - python leaves it beside a hook that was ever imported or compiled
+__pycache__/
+
 # secrets
 .env
 .env.local
