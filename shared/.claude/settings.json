@@ -1,9 +1,4 @@
 {
-  "attribution": {
-    "commit": "",
-    "pr": "",
-    "sessionUrl": false
-  },
   "permissions": {
     "allow": [
       "Edit(*)",
@@ -220,6 +215,11 @@
       }
     ]
   },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
   "statusLine": {
     "type": "command",
     "command": "p=$(ls -1d \"$HOME\"/.claude/plugins/cache/ponytail/ponytail/*/hooks/ponytail-statusline.sh 2>/dev/null | tail -1); [ -n \"$p\" ] && exec bash \"$p\""
@@ -318,10 +318,5 @@
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
-  "voiceEnabled": true,
-  "modelSettings": {
-    "claude-opus-5-5": {
-      "effortLevel": "xhigh"
-    }
-  }
+  "voiceEnabled": true
 }
