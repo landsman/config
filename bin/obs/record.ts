@@ -28,19 +28,30 @@ const wsConf = `${conf}/plugin_config/obs-websocket/config.json`;
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const obsPattern = "OBS.app/Contents/MacOS/OBS$";
 
-// Colour and indent only on a terminal: the saved path is also read by
-// scripts, $(…), and has to arrive bare.
-const paint = (tty: boolean | undefined, sgr: string, text: string) =>
-	tty ? `  \x1b[${sgr}m${text}\x1b[0m` : text;
+// Styled and indented only on a terminal: the saved path is also read by
+// scripts, $(…), and has to arrive bare. stdout and stderr are asked apart.
+const tty = { out: !!process.stdout.isTTY, err: !!process.stderr.isTTY };
+const style = (on: boolean, sgr: string) => (t: string) => (on ? `\x1b[${sgr}m${t}\x1b[0m` : t);
+const o = { bold: style(tty.out, "1"), dim: style(tty.out, "2"), red: style(tty.out, "1;31"), green: style(tty.out, "1;32") };
+const e = { bold: style(tty.err, "1"), dim: style(tty.err, "2"), red: style(tty.err, "1;31"), cyan: style(tty.err, "1;36") };
+const say = (...lines: string[]) => { for (const l of lines) console.log(tty.out ? `  ${l}` : l); };
 // process.stderr.write, not console.error: Bun colours that one red on its own.
-const warn = (text: string) => process.stderr.write(`${paint(process.stderr.isTTY, "31", text)}\n`);
-const say = (sgr: string, text: string) => console.log(paint(process.stdout.isTTY, sgr, text));
+const warn = (text: string) => process.stderr.write(`${tty.err ? "  " : ""}${e.red(`✗ ${text}`)}\n`);
+// A terminal link (OSC 8), so ⌘-click opens the file whatever the terminal makes of a bare path.
+const link = (path: string) =>
+	tty.out ? `\x1b]8;;file://${encodeURI(path)}\x1b\\${path}\x1b]8;;\x1b\\` : path;
 
 async function ask(question: string, hint: string): Promise<string> {
-	const tty = process.stderr.isTTY;
-	process.stderr.write(`${paint(tty, "1", question)} ${tty ? `\x1b[2m${hint}\x1b[0m` : hint} `);
+	process.stderr.write(`${tty.err ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `);
 	for await (const line of console) return line.trim();
 	return "";
+}
+
+// "12.3 MB · 4:05", for the line that says what was saved.
+async function describe(path: string): Promise<string> {
+	const mb = (statSync(path).size / 1e6).toFixed(1);
+	const s = Math.round(Number(await $`ffprobe -v error -show_entries format=duration -of csv=p=0 ${path}`.nothrow().text()) || 0);
+	return `${mb} MB · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 export function mode(answer = ""): Mode {
@@ -151,8 +162,8 @@ async function setup() {
 		writeFileSync(dst, readFileSync(src, "utf8").replaceAll("@RECORDINGS@", out));
 	}
 	enableWebsocket();
-	say("32", "OBS is set up.");
-	say("2", "On its first start macOS asks for Microphone and Screen Recording: allow both.");
+	say(`${o.green("✓")} ${o.bold("OBS is set up")}`,
+		o.dim("  On its first start macOS asks for Microphone and Screen Recording: allow both."));
 }
 
 async function start(answer?: string) {
@@ -195,19 +206,20 @@ async function start(answer?: string) {
 	}
 	await call("StartRecord");
 	close();
-	say("1;31", `● Recording ${m}`);
-	say("2", "Stop it with: make record-stop");
+	say(`${o.red("●")} ${o.bold(`Recording ${m}`)}`, o.dim("  Stop it with  make record-stop"));
 }
 
 async function stop(name?: string) {
-	name ??= await ask("Name the recording:", "[Enter = the time]");
+	name ??= await ask("Name the recording", "[Enter = the time]");
 	const { call, close } = await connect();
 	const { currentProfileName } = await call("GetProfileList");
 	const { outputPath } = await call("StopRecord");
 	close();
 	// StopRecord answers before the muxer has closed the file.
 	for (let i = 0; i < 30 && (await running("obs-ffmpeg-mux")); i++) await sleep(1);
-	say("1;32", await save(currentProfileName === "MeetVideo" ? "video" : "audio", outputPath, out, name));
+	const saved = await save(currentProfileName === "MeetVideo" ? "video" : "audio", outputPath, out, name);
+	if (!tty.out) return say(saved); // a script reading it gets the path alone
+	say(`${o.green("✓")} ${o.bold(`Saved ${basename(saved)}`)}  ${o.dim(await describe(saved))}`, `  ${link(saved)}`);
 }
 
 if (import.meta.main) {
