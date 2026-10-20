@@ -11,9 +11,11 @@
 // 3 = 1+2, 5 = 1+3.
 //
 // usage: record.ts setup               install OBS and set it up (quits OBS first)
-//        record.ts start [audio|video] asks which when not given, Enter = audio
+//        record.ts start [audio|video] asks which when not given (Enter = audio), then
+//                                      waits with a clock: Ctrl+C or q stops and saves
 //        record.ts stop [name]         stop, ask for a name when not given (Enter = the
-//                                      time), save to ~/Recordings, print the path
+//                                      time), save to ~/Recordings, print the path; for a
+//                                      recording whose terminal was closed
 import { $ } from "bun";
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
@@ -22,7 +24,7 @@ import { cli } from "@lib/cli";
 import { copyTree } from "@lib/files";
 import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
-import { ask, done, hint, link, live, o, say } from "@lib/term";
+import { ask, done, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
 import { connect, enable } from "./websocket";
 
@@ -109,8 +111,22 @@ async function start(answer?: string) {
 	}
 	await call("StartRecord");
 	close();
-	live(`Recording ${m}`);
-	hint("Stop it with  make record-stop");
+	if (!process.stdin.isTTY || !process.stdout.isTTY) {
+		live(`Recording ${m}`);
+		return hint("Stop it with  make record-stop");
+	}
+	// Waits here with a running clock; Ctrl+C or q stops and saves. Closing the
+	// terminal leaves OBS recording, for `make record-stop` to finish.
+	const t0 = Date.now();
+	const clock = () => {
+		const s = Math.floor((Date.now() - t0) / 1000);
+		return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+	};
+	process.stdout.write("\n");
+	hint("Ctrl+C stops and saves  ·  closing the terminal keeps it recording, for  make record-stop");
+	await untilKey(["\x03", "q"], () =>
+		process.stdout.write(`\x1b[2A\r\x1b[K  ${o.red("●")} ${o.bold(`Recording ${m}`)}  ${o.dim(clock())}\x1b[2B\r`));
+	await stop();
 }
 
 async function stop(name?: string) {

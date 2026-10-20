@@ -11,6 +11,8 @@
 //   await ask("Name it", "[Enter = the time]")
 //                                     ? Name it [Enter = the time] ›  (stderr)
 
+import { createInterface } from "node:readline";
+
 type Stream = { tty: boolean; write: (s: string) => void };
 
 export function createTerm(out: Stream, err: Stream) {
@@ -39,10 +41,39 @@ export function createTerm(out: Stream, err: Stream) {
 		/** A question on stderr, answered with one line of stdin; "" on Enter or no input. */
 		async ask(question: string, hint: string): Promise<string> {
 			err.write(`${err.tty ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `);
-			for await (const l of console) return l.trim();
-			return "";
+			// readline on process.stdin, the stream untilKey reads too: two readers of
+			// one stdin (Bun's `console` and process.stdin) lose each other's input.
+			const rl = createInterface({ input: process.stdin });
+			const answer = await new Promise<string>((resolve) => {
+				rl.once("line", resolve);
+				rl.once("close", () => resolve(""));
+			});
+			rl.close();
+			return answer.trim();
 		},
 	};
+}
+
+/** Waits for one of `keys` on a terminal, calling tick() now and every second.
+ *  Raw mode, so Ctrl+C ("\x03") arrives as a key rather than SIGINT: the
+ *  signal would also reach `make`, which then ends with "*** Interrupt". */
+export function untilKey(keys: string[], tick?: () => void): Promise<string> {
+	tick?.();
+	const timer = tick && setInterval(tick, 1000);
+	process.stdin.setRawMode(true);
+	process.stdin.resume();
+	return new Promise((resolve) => {
+		const onData = (b: Buffer) => {
+			const key = b.toString();
+			if (!keys.includes(key)) return;
+			clearInterval(timer);
+			process.stdin.off("data", onData);
+			process.stdin.setRawMode(false);
+			process.stdin.pause();
+			resolve(key);
+		};
+		process.stdin.on("data", onData);
+	});
 }
 
 // process.stderr.write, not console.error: Bun colours that one red on its own.

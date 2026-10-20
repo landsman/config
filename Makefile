@@ -743,10 +743,10 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 record-init: ## install OBS and set it up to record calls (quits OBS)
 	@$(BUN) bin/obs/record.ts setup
 
-record: ## start recording a call: asks audio or video, Enter = audio (MODE=video skips it)
+record: ## record a call until Ctrl+C, then name and save it: asks audio or video, Enter = audio (MODE=video skips it)
 	@$(BUN) bin/obs/record.ts start $(MODE)
 
-record-stop: ## stop recording, ask for a name (NAME=… skips it), save to ~/Recordings, print the path
+record-stop: ## stop a recording whose terminal was closed, name it (NAME=… skips it), save to ~/Recordings
 	@$(BUN) bin/obs/record.ts stop "$(NAME)"
 
 ##@ GIT config
