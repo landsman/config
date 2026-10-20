@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { fold, frontmatter, slug } from "./text";
+import { fold, frontmatter, slug } from "@lib/text";
 
 test("accents are dropped, spaces and symbols become one dash", () =>
 	expect(slug("  Porada s Šárkou: Q4 plán!  ")).toBe("porada-s-sarkou-q4-plan"));

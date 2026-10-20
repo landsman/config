@@ -2,7 +2,7 @@
 // command prints the script's own `// usage:` header; an error is one red line
 // and exit 1, not a stack trace.
 import { readFileSync } from "node:fs";
-import { warn } from "./term";
+import { warn } from "@lib/term";
 
 export async function cli(path: string, commands: Record<string, (arg?: string) => Promise<unknown>>) {
 	const [cmd, arg] = process.argv.slice(2);
