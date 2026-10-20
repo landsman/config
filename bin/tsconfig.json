@@ -1,0 +1,14 @@
+{
+  // For the Bun scripts under bin/: Bun reads this at run time, editors and
+  // `bun check` (make lint) for types, so `@lib/term` works in all three without
+  // a build step. The Bun types come from package.json.
+  "compilerOptions": {
+    "paths": { "@lib/*": ["./lib/bun/*"] },
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "strict": true,
+    "noEmit": true,
+    "types": ["bun"]
+  }
+}

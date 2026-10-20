@@ -28,6 +28,11 @@ OS_PKG     := $(shell test -d 'os/$(OS)' && echo '$(OS)')
 
 STOW_FLAGS := --no-folding -t "$$HOME"
 
+# Bun from PATH, or through mise (mise.toml pins it): make's shell sources no
+# rc file, so it has no mise shims on PATH.
+# `=`, not `:=`: on CI, qa-deps installs Bun after this file is read.
+BUN = $(if $(shell command -v bun),bun,mise x -- bun)
+
 .PHONY: help
 help: ## show this help
 	@# Two patterns: `##@ Group` opens a section, `## text` after a target
@@ -73,6 +78,10 @@ qa-deps:
 	if [ -z "$$CI" ]; then echo "qa needs yq - run: make apps, then mise install"; exit 1; \
 	elif command -v brew >/dev/null; then brew install yq; \
 	else sudo apt-get update && sudo apt-get install -y yq; fi
+	@# Bun, for the *.test.ts bin-test runs and the *.ts lint parses. CI gets it
+	@# from mise-action in ci.yml, at the version mise.toml pins.
+	@command -v bun >/dev/null || command -v mise >/dev/null || \
+		{ echo "qa needs bun - run: make apps, then mise install"; exit 1; }
 
 lint: ## parse every shell file without running it
 	@# -n is parse-only, so nothing here is sourced or executed. A typo in a
@@ -84,6 +93,12 @@ lint: ## parse every shell file without running it
 	@# tree that has no reason to hold one.
 	@for f in $$(git ls-files '*.py'); do echo "== $$f"; \
 		python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$$f" || exit 1; done
+	@# TypeScript gets a full type check, not just a parse: running a .ts, Bun
+	@# checks no types, `bun check` does (Bun 1.4.3+). The Bun types are
+	@# bin/package.json's one dev dependency, from the lockfile, scripts off.
+	@echo "== bin/**/*.ts (bun check)"; if command -v bun >/dev/null || command -v mise >/dev/null; then \
+		cd bin && $(BUN) install --frozen-lockfile --ignore-scripts >/dev/null && $(BUN) check --no-pretty; \
+	else echo "   SKIPPED (no bun)"; fi
 	@# The zsh file gets the zsh parser: bash accepts most of it and would miss
 	@# the rest (fpath arrays, autoload).
 	@# Skipped where there is no zsh, which is every Linux box here — the file is
@@ -99,7 +114,7 @@ lint: ## parse every shell file without running it
 	@if command -v pwsh >/dev/null; then for f in $$(git ls-files '*.ps1'); do echo "== $$f"; F="$$f" pwsh -NoProfile -Command '$$e = $$null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $$env:F), [ref]$$null, [ref]$$e); if ($$e) { $$e | ForEach-Object { "$$_" }; exit 1 }' || exit 1; done; \
 	else echo "== *.ps1  SKIPPED (no pwsh here - CI parses them)"; fi
 
-bin-test: ## run every *.test.sh — self-contained, no machine state touched
+bin-test: ## run every *.test.sh and *.test.ts — self-contained, no machine state touched
 	@# Found by git, not by a glob per directory: a test one level deeper, or in a
 	@# folder nobody added here, still runs. Run by path, so the shebang picks the
 	@# shell. `rc`, because a for loop exits with the status of its *last*
@@ -109,6 +124,9 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	@# The loop is the one in shared/.agents/rules/shell-scripts.md; change both.
 	@rc=0; for t in $$(git ls-files '*.test.sh'); do \
 		echo "== $$t"; "./$$t" || { echo "FAIL $$t"; rc=1; }; \
+	done; \
+	for t in $$(git ls-files '*.test.ts'); do \
+		echo "== $$t"; $(BUN) test "./$$t" || { echo "FAIL $$t"; rc=1; }; \
 	done; exit $$rc
 
 .PHONY: claude-settings-test
@@ -716,6 +734,21 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 	@launchctl bootstrap gui/$$(id -u) "$$HOME/Library/LaunchAgents/local.vnode-watch.plist" \
 		2>/dev/null && echo "user-level sampler back" \
 		|| echo "no user-level sampler to restore - run: make restow"
+
+##@ Call recording
+#
+# OBS records a call without touching its audio, see bin/obs/record.ts
+#
+
+.PHONY: record-init record record-stop
+record-init: ## install OBS and set it up to record calls (quits OBS)
+	@$(BUN) bin/obs/record.ts setup
+
+record: ## record a call until Ctrl+C, then name and save it: asks audio or video, Enter = audio (MODE=video skips it)
+	@$(BUN) bin/obs/record.ts start $(MODE)
+
+record-stop: ## stop a recording whose terminal was closed, name it (NAME=… skips it), save to ~/Recordings
+	@$(BUN) bin/obs/record.ts stop "$(NAME)"
 
 ##@ GIT config
 
