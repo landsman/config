@@ -5,7 +5,7 @@ import { afterAll, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { calls, entries } from "@lib/transcript";
+import { calls, content, entries, lastTurn } from "@lib/transcript";
 
 const dir = mkdtempSync(join(tmpdir(), "transcript-"));
 afterAll(() => rmSync(dir, { recursive: true }));
@@ -32,3 +32,16 @@ test("a subagent's entries, the harness's and broken lines are skipped", () =>
 		.toEqual([{ skill: "main" }]));
 
 test("no file is no entries", () => expect(calls(join(dir, "missing.jsonl"), "Skill")).toEqual([]));
+
+const prompt = (text: string) => JSON.stringify({ type: "user", message: { content: text } });
+const say = (text: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } });
+const toolResult = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", content: "ok" }] } });
+const reminder = JSON.stringify({ type: "user", isMeta: true, message: { content: [{ type: "text", text: "reminder" }] } });
+const texts = (path: string) => lastTurn(path).flatMap(content).map((b) => b.text ?? b.type);
+
+test("the last turn starts after the last prompt, tool results and reminders inside it", () =>
+	expect(texts(transcript(prompt("one"), say("a"), prompt("two"), say("b"), toolResult, reminder, say("c"))))
+		.toEqual(["b", "tool_result", "reminder", "c"]));
+test("the last turn of a file ending in a newline", () =>
+	expect(texts(transcript(prompt("one"), say("a"), ""))).toEqual(["a"]));
+test("no prompt at all is the whole file", () => expect(texts(transcript(say("a"), say("b")))).toEqual(["a", "b"]));

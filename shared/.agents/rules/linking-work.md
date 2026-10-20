@@ -28,7 +28,7 @@ stay beside it as detail.
 A path to source code is a reference into a repo I have open, `file:line`, and
 stays a path.
 
-In Claude Code a Stop hook (`bin/agents/send-files.py`) holds the turn once when
+In Claude Code a Stop hook (`bin/agents/send-files.ts`) holds the turn once when
 the reply names an existing file of that kind that was never sent.
 
 ## Where this does **not** apply
