@@ -115,6 +115,8 @@ brew "tree-sitter-cli"
 brew "ts_query_ls"
 # Extremely fast Python package installer and resolver, written in Rust
 brew "uv"
+# Speech to text on this machine — transcribes a call, see bin/obs/transcribe.ts
+brew "whisper.cpp"
 # Blazing fast terminal file manager written in Rust, based on async I/O
 brew "yazi"
 # Unified toolchain and entry point for web development

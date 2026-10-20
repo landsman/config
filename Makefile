@@ -740,15 +740,18 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 # OBS records a call without touching its audio, see bin/obs/record.ts
 #
 
-.PHONY: record-init record record-stop
-record-init: ## install OBS and set it up to record calls (quits OBS)
-	@$(BUN) bin/obs/record.ts setup
+.PHONY: record-init record record-stop record-transcribe
+record-init: ## install OBS and whisper.cpp, set them up to record and transcribe calls (quits OBS)
+	@$(BUN) bin/obs/record.ts setup && $(BUN) bin/obs/transcribe.ts setup
 
 record: ## record a call until Ctrl+C, then name and save it: asks audio or video, Enter = audio (MODE=video skips it)
 	@$(BUN) bin/obs/record.ts start $(MODE)
 
 record-stop: ## stop a recording whose terminal was closed, name it (NAME=… skips it), save to ~/Recordings
 	@$(BUN) bin/obs/record.ts stop "$(NAME)"
+
+record-transcribe: ## transcribe the latest recording, or FILE=…, into a .txt beside it, Me/Them (SPOKEN=cs, ICS=event.ics)
+	@$(BUN) bin/obs/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
 

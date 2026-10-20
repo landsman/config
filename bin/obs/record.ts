@@ -15,7 +15,8 @@
 //                                      waits with a clock: Ctrl+C or q stops and saves
 //        record.ts stop [name]         stop, ask for a name when not given (Enter = the
 //                                      time), save to ~/Recordings, print the path; for a
-//                                      recording whose terminal was closed
+//                                      recording whose terminal was closed; then
+//                                      offers to transcribe it, see transcribe.ts
 import { $ } from "bun";
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
@@ -26,7 +27,8 @@ import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
 import { ask, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
-import { connect, enable } from "./websocket";
+import { transcribe } from "@bin/obs/transcribe";
+import { connect, enable } from "@bin/obs/websocket";
 
 type Mode = "audio" | "video";
 
@@ -155,6 +157,12 @@ async function stop(name?: string) {
 	done(`Saved ${basename(saved)}`, await describe(saved));
 	say(`  ${link(saved)}`);
 	hint("⌘ + click to open");
+	gap();
+	if (!["y", "yes"].includes((await ask("Transcribe it?", "[y/N]")).toLowerCase())) return;
+	const txt = await transcribe(saved);
+	gap();
+	done(`Transcribed ${basename(txt)}`);
+	say(`  ${link(txt)}`);
 	gap();
 }
 
