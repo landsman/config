@@ -18,12 +18,12 @@ import { $ } from "bun";
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
-import { cli } from "../lib/ts/cli";
-import { copyTree } from "../lib/ts/files";
-import { describe } from "../lib/ts/media";
-import { retry, running, waitFor } from "../lib/ts/proc";
-import { ask, done, hint, link, live, say } from "../lib/ts/term";
-import { slug } from "../lib/ts/text";
+import { cli } from "../lib/bun/cli";
+import { copyTree } from "../lib/bun/files";
+import { describe } from "../lib/bun/media";
+import { retry, running, waitFor } from "../lib/bun/proc";
+import { ask, done, hint, link, live, say } from "../lib/bun/term";
+import { slug } from "../lib/bun/text";
 import { connect, enable } from "./websocket";
 
 type Mode = "audio" | "video";
