@@ -10,14 +10,14 @@
 // guesses it once per track from its first seconds.
 //
 // usage: transcribe.ts setup        install whisper.cpp, download its models (1.6 GB, once)
-//        transcribe.ts run [file]   the latest recording in ~/Recordings, or the one given:
-//                                   writes <recording>.txt beside it, prints the path
+//        transcribe.ts run [file]   the one given, or picked from ~/Recordings in television
+//                                   (type 202610 for October): writes <recording>.txt beside it
 import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { cli } from "@lib/cli";
-import { ask, done, gap, hint, link, live, say, warn } from "@lib/term";
+import { ask, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
@@ -40,7 +40,7 @@ const model = (m: keyof typeof files) => `${models}/${files[m].name}`;
 
 export type Segment = { from: number; text: string };
 
-/** One line per turn: [mm:ss] Who: text, consecutive segments of one speaker joined. */
+/** One line per turn: [mm:ss] Who: text, consecutive segments of one speaker joined up to a minute. */
 export function merge(tracks: { who: string; segments: Segment[] }[]): string {
 	const all = tracks
 		.flatMap(({ who, segments }) => segments.map((s) => ({ who, ...s, text: s.text.trim() })))
@@ -50,7 +50,8 @@ export function merge(tracks: { who: string; segments: Segment[] }[]): string {
 	const turns: typeof all = [];
 	for (const s of all) {
 		const last = turns.at(-1);
-		if (last?.who === s.who) last.text += ` ${s.text}`;
+		// A minute at most per line, or one voice talking is one line for the whole call.
+		if (last?.who === s.who && s.from - last.from < 60_000) last.text += ` ${s.text}`;
 		else turns.push({ ...s });
 	}
 	return turns.map((t) => `[${clock(t.from)}] ${t.who ? `${t.who}: ` : ""}${t.text}\n`).join("");
@@ -95,17 +96,29 @@ async function setup() {
 	done("whisper.cpp is set up", models);
 }
 
-function latest(): string {
-	const recordings = readdirSync(out)
+/** The recordings in ~/Recordings, the last one saved first. */
+function recordings(): string[] {
+	const all = readdirSync(out)
 		.filter((f) => /\.(m4a|mp4)$/.test(f))
 		.map((f) => join(out, f))
 		.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
-	if (!recordings[0]) throw new Error(`no recording in ${out}`);
-	return recordings[0];
+	if (!all.length) throw new Error(`no recording in ${out}`);
+	return all;
+}
+
+/** Picks a recording in television, newest first. A name opens with its date,
+ *  so typing 2026, 202610 or 20261020 filters by year, month or day. */
+async function choose(): Promise<string> {
+	if (!Bun.which("tv")) throw new Error("television is missing: brew install television, or give FILE=…");
+	const list = recordings().map((f) => basename(f)).join("\n");
+	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", "Recording to transcribe"], { stdin: new Blob([list]), stdout: "pipe", stderr: "inherit" });
+	const picked = (await new Response(tv.stdout).text()).trim();
+	if (!picked) throw new Error("no recording picked");
+	return join(out, picked);
 }
 
 /** Transcribes a recording into <recording>.txt and returns that path. */
-export async function transcribe(file = latest()): Promise<string> {
+export async function transcribe(file: string): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
 	if (!existsSync(model("speech")) || !existsSync(model("vad"))) await setup();
 	let ics = dropped(process.env.ICS ?? "");
@@ -123,18 +136,30 @@ export async function transcribe(file = latest()): Promise<string> {
 	try {
 		const heard = [];
 		for (const { who, track } of tracks) {
-			live(`Transcribing ${who || "the recording"}`);
+			const what = `Transcribing ${who || "the recording"}`;
+			live(what);
 			const wav = `${tmp}/${track}.wav`;
 			await $`ffmpeg -nostdin -loglevel error -i ${file} -map 0:a:${track} -ar 16000 -ac 1 -c:a pcm_s16le ${wav}`;
 			const prompt = names.length ? ["--prompt", `${names.join(", ")}.`] : [];
-			await $`whisper-cli -m ${model("speech")} --vad -vm ${model("vad")} -l ${process.env.SPOKEN || "auto"} ${prompt} -np -oj -of ${tmp}/${track} -f ${wav}`.quiet();
+			const whisper = Bun.spawn(["whisper-cli", "-m", model("speech"), "--vad", "-vm", model("vad"), "-l", process.env.SPOKEN || "auto",
+				...prompt, "-np", "-pp", "-oj", "-of", `${tmp}/${track}`, "-f", wav], { stdout: "ignore", stderr: "pipe" });
+			// -pp prints "progress = 40%" on stderr; it redraws the line above.
+			let log = "";
+			for await (const chunk of whisper.stderr.pipeThrough(new TextDecoderStream())) {
+				log = (log + chunk).slice(-2000);
+				const p = [...chunk.matchAll(/progress = +(\d+)%/g)].at(-1)?.[1];
+				if (p && process.stdout.isTTY) process.stdout.write(`\x1b[1A\r\x1b[K  ${o.red("●")} ${o.bold(what)}  ${o.dim(`${p}%`)}\n`);
+			}
+			if ((await whisper.exited) !== 0) throw new Error(`whisper failed:\n${log.trim()}`);
 			const json = JSON.parse(readFileSync(`${tmp}/${track}.json`, "utf8"));
 			heard.push({ who, segments: (json.transcription as { offsets: { from: number }; text: string }[]).map((s) => ({ from: s.offsets.from, text: s.text })) });
 		}
+		const text = merge(heard);
+		if (!text) throw new Error(`no speech in ${basename(file)}, nothing written: a muted mic, or the wrong input recorded?`);
 		// Never over an earlier one: it may have been corrected by hand.
 		let txt = file.replace(/\.[^.]*$/, ".txt");
 		for (let i = 2; existsSync(txt); i++) txt = file.replace(/\.[^.]*$/, `-${i}.txt`);
-		await Bun.write(txt, merge(heard));
+		await Bun.write(txt, text);
 		return txt;
 	} finally {
 		rmSync(tmp, { recursive: true });
@@ -143,11 +168,14 @@ export async function transcribe(file = latest()): Promise<string> {
 
 async function run(file?: string) {
 	gap();
+	// A script reading the path gets the newest without a question.
+	file ??= process.stdin.isTTY ? await choose() : recordings()[0];
 	const txt = await transcribe(file);
 	if (!process.stdout.isTTY) return say(txt);
 	gap();
 	done(`Transcribed ${txt.split("/").at(-1)}`);
 	say(`  ${link(txt)}`);
+	hint("⌘ + click to open");
 	gap();
 }
 
