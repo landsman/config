@@ -15,6 +15,6 @@ is not meant for pasting goes inline, in quotation marks.
 - Commentary about the draft goes outside the block, never inside it.
 - Links inside are full URLs; see [linking to work](linking-work.md).
 
-In Claude Code, a MessageDisplay hook (`bin/agents/quote-to-fence.py`) shows a
+In Claude Code, a MessageDisplay hook (`bin/agents/quote-to-fence.ts`) shows a
 blockquote that slipped through as a code block, so it copies clean anyway. It
 changes only the screen, never what the model wrote, so the rule still holds.
