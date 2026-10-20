@@ -1,5 +1,5 @@
 // What transcribe.ts would get wrong silently: the two tracks merged out of
-// order, a turn split on every segment, whisper's own notes read as speech,
+// order, a turn split on every segment or never, whisper's own notes read as speech,
 // and the names from a calendar event missed or mangled — folded lines, quoted
 // names, an attendee who is only an address, a typed ~.
 import { expect, test } from "bun:test";
@@ -14,6 +14,10 @@ test("tracks are merged by time, one line per turn", () =>
 
 test("whisper's notes and empty segments are dropped", () =>
 	expect(merge([{ who: "Me", segments: [{ from: 0, text: " [BLANK_AUDIO]" }, { from: 1, text: " (hudba)" }, { from: 2, text: " " }] }])).toBe(""));
+
+test("a long turn starts a new line every minute", () =>
+	expect(merge([{ who: "Them", segments: [{ from: 0, text: "A." }, { from: 59_000, text: "B." }, { from: 60_000, text: "C." }] }]))
+		.toBe("[00:00] Them: A. B.\n[01:00] Them: C.\n"));
 
 test("one unlabelled track has no speaker", () =>
 	expect(merge([{ who: "", segments: [{ from: 61_000, text: "Hello." }] }])).toBe("[01:01] Hello.\n"));

@@ -40,7 +40,7 @@ const model = (m: keyof typeof files) => `${models}/${files[m].name}`;
 
 export type Segment = { from: number; text: string };
 
-/** One line per turn: [mm:ss] Who: text, consecutive segments of one speaker joined. */
+/** One line per turn: [mm:ss] Who: text, consecutive segments of one speaker joined up to a minute. */
 export function merge(tracks: { who: string; segments: Segment[] }[]): string {
 	const all = tracks
 		.flatMap(({ who, segments }) => segments.map((s) => ({ who, ...s, text: s.text.trim() })))
@@ -50,7 +50,8 @@ export function merge(tracks: { who: string; segments: Segment[] }[]): string {
 	const turns: typeof all = [];
 	for (const s of all) {
 		const last = turns.at(-1);
-		if (last?.who === s.who) last.text += ` ${s.text}`;
+		// A minute at most per line, or one voice talking is one line for the whole call.
+		if (last?.who === s.who && s.from - last.from < 60_000) last.text += ` ${s.text}`;
 		else turns.push({ ...s });
 	}
 	return turns.map((t) => `[${clock(t.from)}] ${t.who ? `${t.who}: ` : ""}${t.text}\n`).join("");
@@ -153,10 +154,12 @@ export async function transcribe(file: string): Promise<string> {
 			const json = JSON.parse(readFileSync(`${tmp}/${track}.json`, "utf8"));
 			heard.push({ who, segments: (json.transcription as { offsets: { from: number }; text: string }[]).map((s) => ({ from: s.offsets.from, text: s.text })) });
 		}
+		const text = merge(heard);
+		if (!text) throw new Error(`no speech in ${basename(file)}, nothing written: a muted mic, or the wrong input recorded?`);
 		// Never over an earlier one: it may have been corrected by hand.
 		let txt = file.replace(/\.[^.]*$/, ".txt");
 		for (let i = 2; existsSync(txt); i++) txt = file.replace(/\.[^.]*$/, `-${i}.txt`);
-		await Bun.write(txt, merge(heard));
+		await Bun.write(txt, text);
 		return txt;
 	} finally {
 		rmSync(tmp, { recursive: true });
