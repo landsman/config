@@ -1,10 +1,11 @@
 // What transcribe.ts would get wrong silently: the two tracks merged out of
 // order, a turn split on every segment, whisper's own notes read as speech,
 // and the names from a calendar event missed or mangled — folded lines, quoted
-// names, an attendee who is only an address, a typed ~.
+// names, an attendee who is only an address, a typed ~ — and Enter at the
+// list of recordings not meaning the newest.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { attendees, dropped, merge } from "@bin/obs/transcribe";
+import { attendees, dropped, merge, pick } from "@bin/obs/transcribe";
 
 test("tracks are merged by time, one line per turn", () =>
 	expect(merge([
@@ -33,4 +34,11 @@ test("a dragged-in path loses its quotes and escapes", () => {
 	expect(dropped("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe("/Users/me/Downloads/Porada Q4.ics");
 	expect(dropped("'/Users/me/a b.ics'")).toBe("/Users/me/a b.ics");
 	expect(dropped("~/a.ics")).toBe(`${homedir()}/a.ics`);
+});
+
+test("Enter picks the newest, a number its line, anything else is refused", () => {
+	const list = ["/r/new.m4a", "/r/old.m4a"];
+	expect(pick("", list)).toBe("/r/new.m4a");
+	expect(pick("2", list)).toBe("/r/old.m4a");
+	for (const bad of ["0", "3", "x", "1.5"]) expect(() => pick(bad, list)).toThrow();
 });

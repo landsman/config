@@ -10,14 +10,15 @@
 // guesses it once per track from its first seconds.
 //
 // usage: transcribe.ts setup        install whisper.cpp, download its models (1.6 GB, once)
-//        transcribe.ts run [file]   the latest recording in ~/Recordings, or the one given:
-//                                   writes <recording>.txt beside it, prints the path
+//        transcribe.ts run [file]   the one given, or asks which of the last ones in ~/Recordings
+//                                   (Enter = the newest): writes <recording>.txt beside it
 import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { cli } from "@lib/cli";
-import { ask, done, gap, hint, link, live, say, warn } from "@lib/term";
+import { describe } from "@lib/media";
+import { ask, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
@@ -95,17 +96,36 @@ async function setup() {
 	done("whisper.cpp is set up", models);
 }
 
-function latest(): string {
-	const recordings = readdirSync(out)
+/** The recordings in ~/Recordings, the last one saved first. */
+function recordings(): string[] {
+	const all = readdirSync(out)
 		.filter((f) => /\.(m4a|mp4)$/.test(f))
 		.map((f) => join(out, f))
 		.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
-	if (!recordings[0]) throw new Error(`no recording in ${out}`);
-	return recordings[0];
+	if (!all.length) throw new Error(`no recording in ${out}`);
+	return all;
+}
+
+/** Lists the last nine recordings and asks which one; Enter = the newest. */
+async function choose(): Promise<string> {
+	const list = recordings().slice(0, 9);
+	for (const [i, f] of list.entries()) {
+		const had = existsSync(f.replace(/\.[^.]*$/, ".txt")) ? o.dim("  · transcribed") : "";
+		say(`${o.bold(String(i + 1))}  ${basename(f)}  ${o.dim(await describe(f))}${had}`);
+	}
+	gap();
+	return pick(await ask("Which recording?", "[Enter = 1]"), list);
+}
+
+export function pick(answer: string, list: string[]): string {
+	if (answer === "") return list[0];
+	const n = Number(answer);
+	if (!Number.isInteger(n) || n < 1 || n > list.length) throw new Error(`a number from 1 to ${list.length}, not '${answer}'`);
+	return list[n - 1];
 }
 
 /** Transcribes a recording into <recording>.txt and returns that path. */
-export async function transcribe(file = latest()): Promise<string> {
+export async function transcribe(file: string): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
 	if (!existsSync(model("speech")) || !existsSync(model("vad"))) await setup();
 	let ics = dropped(process.env.ICS ?? "");
@@ -143,6 +163,8 @@ export async function transcribe(file = latest()): Promise<string> {
 
 async function run(file?: string) {
 	gap();
+	// A script reading the path gets the newest without a question.
+	file ??= process.stdin.isTTY ? await choose() : recordings()[0];
 	const txt = await transcribe(file);
 	if (!process.stdout.isTTY) return say(txt);
 	gap();

@@ -750,7 +750,7 @@ record: ## record a call until Ctrl+C, then name and save it: asks audio or vide
 record-stop: ## stop a recording whose terminal was closed, name it (NAME=… skips it), save to ~/Recordings
 	@$(BUN) bin/obs/record.ts stop "$(NAME)"
 
-record-transcribe: ## transcribe the latest recording, or FILE=…, into a .txt beside it, Me/Them (SPOKEN=cs, ICS=event.ics)
+record-transcribe: ## transcribe a recording, asks which (Enter = the newest), or FILE=…, into a .txt beside it, Me/Them (SPOKEN=cs, ICS=event.ics)
 	@$(BUN) bin/obs/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
