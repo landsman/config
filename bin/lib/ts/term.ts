@@ -3,7 +3,7 @@
 // stream is asked apart, so `p=$(make -s …)` gets a bare stdout while the
 // questions on stderr still look right.
 //
-//   import { ask, done, hint, link, live, say, warn } from "../lib/term";
+//   import { ask, done, hint, link, live, say, warn } from "../lib/ts/term";
 //   live("Recording audio");          ● Recording audio
 //   hint("Stop it with  make stop");    Stop it with  make stop       (dimmed)
 //   done("Saved x.m4a", "1.2 MB");    ✓ Saved x.m4a  1.2 MB
