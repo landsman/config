@@ -10,15 +10,14 @@
 // guesses it once per track from its first seconds.
 //
 // usage: transcribe.ts setup        install whisper.cpp, download its models (1.6 GB, once)
-//        transcribe.ts run [file]   the one given, or asks which of the last ones in ~/Recordings
-//                                   (Enter = the newest): writes <recording>.txt beside it
+//        transcribe.ts run [file]   the one given, or picked from ~/Recordings in television
+//                                   (type 202610 for October): writes <recording>.txt beside it
 import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { cli } from "@lib/cli";
-import { describe } from "@lib/media";
-import { ask, done, gap, hint, link, live, o, say, warn } from "@lib/term";
+import { ask, done, gap, hint, link, live, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
@@ -106,22 +105,15 @@ function recordings(): string[] {
 	return all;
 }
 
-/** Lists the last nine recordings and asks which one; Enter = the newest. */
+/** Picks a recording in television, newest first. A name opens with its date,
+ *  so typing 2026, 202610 or 20261020 filters by year, month or day. */
 async function choose(): Promise<string> {
-	const list = recordings().slice(0, 9);
-	for (const [i, f] of list.entries()) {
-		const had = existsSync(f.replace(/\.[^.]*$/, ".txt")) ? o.dim("  · transcribed") : "";
-		say(`${o.bold(String(i + 1))}  ${basename(f)}  ${o.dim(await describe(f))}${had}`);
-	}
-	gap();
-	return pick(await ask("Which recording?", "[Enter = 1]"), list);
-}
-
-export function pick(answer: string, list: string[]): string {
-	if (answer === "") return list[0];
-	const n = Number(answer);
-	if (!Number.isInteger(n) || n < 1 || n > list.length) throw new Error(`a number from 1 to ${list.length}, not '${answer}'`);
-	return list[n - 1];
+	if (!Bun.which("tv")) throw new Error("television is missing: brew install television, or give FILE=…");
+	const list = recordings().map((f) => basename(f)).join("\n");
+	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", "Recording to transcribe"], { stdin: new Blob([list]), stdout: "pipe", stderr: "inherit" });
+	const picked = (await new Response(tv.stdout).text()).trim();
+	if (!picked) throw new Error("no recording picked");
+	return join(out, picked);
 }
 
 /** Transcribes a recording into <recording>.txt and returns that path. */
