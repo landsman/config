@@ -22,7 +22,7 @@ import { cli } from "@lib/cli";
 import { copyTree } from "@lib/files";
 import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
-import { ask, done, hint, link, live, say } from "@lib/term";
+import { ask, done, hint, link, live, o, say } from "@lib/term";
 import { slug } from "@lib/text";
 import { connect, enable } from "./websocket";
 
@@ -124,7 +124,7 @@ async function stop(name?: string) {
 	const saved = await save(currentProfileName === "MeetVideo" ? "video" : "audio", outputPath, out, name);
 	if (!process.stdout.isTTY) return say(saved); // a script reading it gets the path alone
 	done(`Saved ${basename(saved)}`, await describe(saved));
-	say(`  ${link(saved)}`);
+	say(`  ${link(saved)}  ${o.dim("⌘ + click to open")}`);
 }
 
 if (import.meta.main) await cli(import.meta.path, { setup, start, stop });
