@@ -729,8 +729,8 @@ record-setup: ## install OBS and set it up to record calls (quits OBS)
 record-init: ## start recording a call: asks audio or video, Enter = audio (MODE=video skips it)
 	./bin/obs/record.sh start $(MODE)
 
-record-stop: ## stop recording, save it to ~/Recordings and print the path
-	@./bin/obs/record.sh stop
+record-stop: ## stop recording, ask for a name (NAME=… skips it), save to ~/Recordings, print the path
+	@./bin/obs/record.sh stop "$(NAME)"
 
 ##@ GIT config
 

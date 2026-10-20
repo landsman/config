@@ -12,9 +12,12 @@
 #
 # usage: record.sh setup                  install OBS and set it up (quits OBS first)
 #        record.sh start [audio|video]    asks which when not given, Enter = audio
-#        record.sh stop                   stop, save to ~/Recordings, print the path
+#        record.sh stop [name]            stop, ask for a name when not given (Enter = the
+#                                         time), save to ~/Recordings, print the path
 #        record.sh mode <answer>          the answer to "audio or video?", as audio|video
-#        record.sh save <mode> <raw> <dir> convert OBS's raw file into <dir>, print the path
+#        record.sh slug <name>            a name as it goes into the file name
+#        record.sh save <mode> <raw> <dir> [name]  convert OBS's raw file into
+#                                         <dir>/YYYYMMDD-<name>.m4a|mp4, print the path
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -32,11 +35,23 @@ mode() {
 	esac
 }
 
+# "Porada s Šárkou" -> porada-s-sarkou. Python, as macOS's iconv mangles the
+# accents ("S'ar'aou").
+slug() {
+	python3 -c 'import re, sys, unicodedata
+s = unicodedata.normalize("NFKD", sys.argv[1]).encode("ascii", "ignore").decode().lower()
+print(re.sub(r"[^a-z0-9]+", "-", s).strip("-"))' "$1"
+}
+
 save() {
-	local m=$1 raw=$2 dir=$3 dst
+	local m=$1 raw=$2 dir=$3 name stamp base ext=m4a dst i=2
 	local -a map=(-map 0:a)
-	dst="$dir/$(basename "${raw%.*}")"
-	if [ "$m" = video ]; then dst+=.mp4 && map=(-map 0); else dst+=.m4a; fi
+	stamp=$(basename "${raw%.*}") # 2026-10-20_12-16-26, config/'s FilenameFormatting
+	name=$(slug "${4:-}")
+	base="${stamp:0:4}${stamp:5:2}${stamp:8:2}-${name:-${stamp:11}}"
+	if [ "$m" = video ]; then ext=mp4 && map=(-map 0); fi
+	dst="$dir/$base.$ext"
+	while [ -e "$dst" ]; do dst="$dir/$base-$i.$ext" && i=$((i + 1)); done
 	mkdir -p "$dir"
 	ffmpeg -nostdin -loglevel error -y -i "$raw" "${map[@]}" -c copy "$dst" ||
 		{ echo "saving failed, the recording is still at $raw" >&2 && return 1; }
@@ -97,19 +112,21 @@ start() {
 }
 
 stop() {
-	local p raw
+	local p raw name=${1:-}
+	if [ -z "$name" ]; then read -rp "Name the recording (Enter = the time): " name || true; fi
 	p=$(ws GetProfileList '{}' currentProfileName)
 	raw=$(ws StopRecord '{}' outputPath)
 	# StopRecord answers before the muxer has closed the file.
 	for _ in $(seq 30); do pgrep -q obs-ffmpeg-mux || break; sleep 1; done
-	if [ "$p" = "MeetVideo" ]; then save video "$raw" "$out"; else save audio "$raw" "$out"; fi
+	if [ "$p" = "MeetVideo" ]; then save video "$raw" "$out" "$name"; else save audio "$raw" "$out" "$name"; fi
 }
 
 case "${1:-}" in
 setup) setup ;;
 start) start "${2:-}" ;;
-stop) stop ;;
+stop) stop "${2:-}" ;;
 mode) mode "${2:-}" ;;
-save) save "$2" "$3" "$4" ;;
+slug) slug "$2" ;;
+save) save "$2" "$3" "$4" "${5:-}" ;;
 *) sed -n 's/^# usage: /usage: /p; s/^#        /       /p' "$0" >&2 && exit 2 ;;
 esac
