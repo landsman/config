@@ -1,7 +1,7 @@
 {
   // For the Bun scripts under bin/: Bun reads this at run time, editors and
-  // `make lint` (tsc, from package.json) for types, so `@lib/term` works in all
-  // three without a build step.
+  // `bun check` (make lint) for types, so `@lib/term` works in all three without
+  // a build step. The Bun types come from package.json.
   "compilerOptions": {
     "paths": { "@lib/*": ["./lib/bun/*"] },
     "module": "Preserve",

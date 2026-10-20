@@ -93,11 +93,11 @@ lint: ## parse every shell file without running it
 	@# tree that has no reason to hold one.
 	@for f in $$(git ls-files '*.py'); do echo "== $$f"; \
 		python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$$f" || exit 1; done
-	@# TypeScript gets a full type check, not just a parse: Bun runs .ts without
-	@# checking a single type. tsc and the Bun types are bin/package.json's dev
-	@# dependencies, installed from the lockfile with their scripts off.
-	@echo "== bin/**/*.ts (tsc)"; if command -v bun >/dev/null || command -v mise >/dev/null; then \
-		cd bin && $(BUN) install --frozen-lockfile --ignore-scripts >/dev/null && ./node_modules/.bin/tsc -p .; \
+	@# TypeScript gets a full type check, not just a parse: running a .ts, Bun
+	@# checks no types, `bun check` does (Bun 1.4.3+). The Bun types are
+	@# bin/package.json's one dev dependency, from the lockfile, scripts off.
+	@echo "== bin/**/*.ts (bun check)"; if command -v bun >/dev/null || command -v mise >/dev/null; then \
+		cd bin && $(BUN) install --frozen-lockfile --ignore-scripts >/dev/null && $(BUN) check --no-pretty; \
 	else echo "   SKIPPED (no bun)"; fi
 	@# The zsh file gets the zsh parser: bash accepts most of it and would miss
 	@# the rest (fpath arrays, autoload).
