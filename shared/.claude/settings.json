@@ -189,7 +189,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/skill-reminder.py\""
+            "command": "\"$HOME/projects/landsman/config/bin/agents/skill-reminder.ts\""
           }
         ]
       }

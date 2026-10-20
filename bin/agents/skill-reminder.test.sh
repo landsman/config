@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
-# Self-check for ./skill-reminder.py: a throwaway $HOME with two skills, prompts
+# Self-check for ./skill-reminder.ts: a throwaway $HOME with two skills, prompts
 # piped in the way Claude Code sends them.
 set -eu
 
-hook="$(cd "$(dirname "$0")" && pwd)/skill-reminder.py"
+hook="$(cd "$(dirname "$0")" && pwd)/skill-reminder.ts"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+# The hook alone gets the throwaway HOME: a mise shim (jq, bun) reads its
+# config from $HOME and refuses to run under one it does not trust.
+bun=$(mise which bun 2>/dev/null || command -v bun)
 fails=0
-export HOME="$tmp"
 unset CLAUDE_PROJECT_DIR
 
 check() { # check <name> <expected substring, or "" for silence> <prompt> [transcript]
 	local out
-	out=$(jq -n --arg p "$3" --arg t "${4:-}" '{prompt: $p, transcript_path: $t}' | python3 "$hook")
+	out=$(jq -n --arg p "$3" --arg t "${4:-}" '{prompt: $p, transcript_path: $t}' | HOME="$tmp" "$bun" "$hook")
 	if { [ -z "$2" ] && [ -z "$out" ]; } || { [ -n "$2" ] && [[ "$out" == *"$2"* ]]; }; then
 		echo "ok   $1"
 	else
@@ -36,7 +38,7 @@ printf -- '---\nname: forgejo\ntrigger-keywords: git.insuit.cz\n---\n' > "$tmp/.
 check "a host in a pasted link" "matches the forgejo skill" "zapracuj https://git.insuit.cz/o/r/pulls/7"
 check "unrelated prompt is silent" "" "hello"
 
-printf '%s\n' '{"message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"postgres"}}]}}' > "$tmp/t.jsonl"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"postgres"}}]}}' > "$tmp/t.jsonl"
 check "a skill loaded this session is not repeated" "" "add an index" "$tmp/t.jsonl"
 
 mkdir -p "$tmp/p/.claude/skills/local"
