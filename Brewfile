@@ -177,6 +177,9 @@ if OS.mac?
 	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so
 	# the heap this repo wants is applied by `make jetbrains` afterwards.
 	cask "jetbrains-toolbox"
+	# Remaps keys per app — makes ⌘ + forward delete trash a file in Finder, see
+	# os/macos/.config/karabiner. Needs its driver and Input Monitoring approved once.
+	cask "karabiner-elements"
 	# Office suite — opens the .doc, .docx and .xlsx associations
 	cask "libreoffice"
 	# macOS App for monitoring power usage and charging status

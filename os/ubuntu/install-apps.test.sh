@@ -293,5 +293,16 @@ esac
 rm -rf "$ROOT"
 
 echo
+echo "== photon studio, listed first among many"
+setup
+# A real `flatpak list` keeps writing after the Photon line. A reader that quits
+# on the first match kills it with SIGPIPE, and pipefail turns that into
+# "missing" — so an installed Photon got installed again, on CI now and then.
+out="$(run "$ALL" deadbeef org.telegram.desktop "studio.tenzen.Photon $(seq -s ' ' 1 20000)")"
+check "succeeds" "$?" "0"
+if [ -f "$ROOT/flatpak-installed" ]; then fail "installs nothing"; else ok "installs nothing"; fi
+rm -rf "$ROOT"
+
+echo
 if [ "$FAILED" -eq 0 ]; then echo "all passed"; else echo "failures"; fi
 exit "$FAILED"

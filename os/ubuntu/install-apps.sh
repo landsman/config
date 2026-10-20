@@ -103,9 +103,10 @@ as_user() {
 # scope, not dpkg and not root's flatpak. grep on the id because the bundle
 # publishes no stable application id to match exactly, and nothing else here is
 # called photon; a machine with no flatpak yet prints nothing, which reads as
-# missing — correct.
+# missing — correct. Not `grep -q`: it exits on the first match, flatpak dies of
+# SIGPIPE, and under pipefail an installed Photon reads as missing.
 photon_installed() {
-	as_user flatpak list --columns=application 2>/dev/null | grep -qi photon
+	as_user flatpak list --columns=application 2>/dev/null | grep -i photon >/dev/null
 }
 
 MISSING=()
