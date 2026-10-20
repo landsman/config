@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Self-check for ./quote-to-fence.py: MessageDisplay batches piped in the way
+# Self-check for ./quote-to-fence.ts: MessageDisplay batches piped in the way
 # Claude Code sends them, one message split over several calls, the calls run
 # concurrently as 2.1.296 does. Each case joins what would be shown.
 set -eu
 
-hook="$(cd "$(dirname "$0")" && pwd)/quote-to-fence.py"
+hook="$(cd "$(dirname "$0")" && pwd)/quote-to-fence.ts"
+# The binary itself: make runs this under a bash that mise has not put bun on PATH for.
+bun=$(mise which bun 2>/dev/null || command -v bun)
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 export TMPDIR="$tmp"
@@ -16,7 +18,7 @@ show() { # show <message id> <batch>... ; prints the joined display, batches sta
 	for delta in "$@"; do
 		jq -n --arg m "$id" --arg d "$delta" --argjson i "$i" --argjson f "$([ "$i" -eq $((n - 1)) ] && echo true || echo false)" \
 			'{message_id: $m, index: $i, final: $f, delta: $d}' |
-			python3 "$hook" > "$tmp/out.$i" &
+			"$bun" "$hook" > "$tmp/out.$i" &
 		printf '%s' "$delta" > "$tmp/in.$i"
 		i=$((i + 1))
 	done
@@ -56,9 +58,9 @@ check "plain text is left alone" $'a > b\n    > indented code\n' \
 
 # A batch that never reports (crashed, killed) must not stall the rest of the message for long.
 start=$(date +%s)
-out=$(jq -n '{message_id: "m9", index: 3, final: false, delta: "> late\n"}' | python3 "$hook")
+out=$(jq -n '{message_id: "m9", index: 3, final: false, delta: "> late\n"}' | "$bun" "$hook")
 took=$(($(date +%s) - start))
-next=$(jq -n '{message_id: "m9", index: 4, final: true, delta: "> later\n"}' | python3 "$hook")
+next=$(jq -n '{message_id: "m9", index: 4, final: true, delta: "> later\n"}' | "$bun" "$hook")
 if [ -z "$out" ] && [ -z "$next" ] && [ "$took" -le 7 ]; then echo "ok   a lost batch passes the rest through, once"; else
 	echo "FAIL a lost batch passes the rest through, once (took ${took}s, out=$out next=$next)"; fails=$((fails + 1))
 fi
