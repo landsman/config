@@ -14,3 +14,7 @@ idiomatic_version_file_enable_tools = ["rust"]
 
 [tools]
 rust = "stable"
+# The Claude Code hooks in bin/agents/ are Bun scripts and run in whatever repo
+# the session is in. Without a global version the bun shim refuses there, the
+# same as cargo's; the same version as the repo's own mise.toml.
+bun = "1.4.3"

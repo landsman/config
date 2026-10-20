@@ -4,7 +4,7 @@ import { expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { copyTree } from "./files";
+import { copyTree } from "@lib/files";
 
 test("copies the layout, fills placeholders, leaves a kept file alone", () => {
 	const t = mkdtempSync(join(tmpdir(), "files-"));

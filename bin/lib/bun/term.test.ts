@@ -1,7 +1,7 @@
 // What term.ts would get wrong silently: a colour code or the indent leaking
 // into output a script reads, which breaks every `p=$(…)` built on it.
 import { expect, test } from "bun:test";
-import { createTerm } from "./term";
+import { createTerm } from "@lib/term";
 
 const capture = (tty: boolean) => {
 	const lines: string[] = [];
