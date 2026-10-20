@@ -27,11 +27,19 @@ obs_pattern="OBS.app/Contents/MacOS/OBS$"
 
 ws() { python3 "$here/obsws.py" "$@"; }
 
+# Colour and indent only on a terminal: the saved path is also read by
+# scripts, $(…), and has to arrive bare.
+paint() { if [ -t "$1" ]; then printf '\033[%sm%s\033[0m' "$2" "$3"; else printf %s "$3"; fi; }
+pad() { if [ -t "$1" ]; then printf '  '; fi; }
+say() { pad 1 && paint 1 "$1" "$2" && echo; } # say <sgr> <text>
+fail() { { pad 2 && paint 2 31 "$1" && echo; } >&2 && return 1; }
+ask() { read -rp "$(pad 2)$(paint 2 1 "$1") $(paint 2 2 "$2") " "$3" || true; } # ask <question> <hint> <var>
+
 mode() {
 	case "${1:-}" in
 	"" | a | audio) echo audio ;;
 	v | video) echo video ;;
-	*) echo "audio or video, not '$1'" >&2 && return 1 ;;
+	*) fail "audio or video, not '$1'" ;;
 	esac
 }
 
@@ -54,20 +62,20 @@ save() {
 	while [ -e "$dst" ]; do dst="$dir/$base-$i.$ext" && i=$((i + 1)); done
 	mkdir -p "$dir"
 	ffmpeg -nostdin -loglevel error -y -i "$raw" "${map[@]}" -c copy "$dst" ||
-		{ echo "saving failed, the recording is still at $raw" >&2 && return 1; }
+		fail "saving failed, the recording is still at $raw"
 	rm "$raw"
-	echo "$dst"
+	say "1;32" "$dst"
 }
 
 setup() {
 	[ -d /Applications/OBS.app ] || brew install --cask obs
 	if pgrep -qf "$obs_pattern"; then
-		! pgrep -q obs-ffmpeg-mux || { echo "OBS is recording, stop it first" >&2 && return 1; }
+		! pgrep -q obs-ffmpeg-mux || fail "OBS is recording, stop it first"
 		# OBS rewrites its config on quit, so it has to be closed while this writes.
 		osascript -e 'tell application "OBS" to quit' >/dev/null 2>&1 || true
 		for _ in $(seq 20); do pgrep -qf "$obs_pattern" || break; sleep 1; done
 		! pgrep -qf "$obs_pattern" ||
-			{ echo "OBS did not quit, a window in it may be open: close it, quit OBS, run this again" >&2 && return 1; }
+			fail "OBS did not quit, a window in it may be open: close it, quit OBS, run this again"
 	fi
 	mkdir -p "$out/.obs"
 	# config/ mirrors OBS's own folder. Copied, not stowed: OBS replaces a
@@ -78,7 +86,8 @@ setup() {
 		sed "s|@RECORDINGS@|$out|g" "$here/config/$f" >"$conf/$f"
 	done
 	ws enable
-	echo "OBS is set up. On its first start macOS asks for Microphone and Screen Recording: allow both."
+	say 32 "OBS is set up."
+	say 2 "On its first start macOS asks for Microphone and Screen Recording: allow both."
 }
 
 # The answer comes from OBS itself, so a setting changed by hand in its window wins.
@@ -88,12 +97,12 @@ use() { # use <Get…List request> <current… field> <Set… request> <name fie
 
 start() {
 	local m=${1:-} display
-	if [ -z "$m" ]; then read -rp "Record audio or video? [audio] " m || true; fi
+	if [ -z "$m" ]; then ask "Record audio or video?" "[Enter = audio]" m; fi
 	m=$(mode "$m")
 	[ -e "$conf/basic/profiles/MeetVideo/basic.ini" ] || setup
 	pgrep -qf "$obs_pattern" || open -g -a OBS
 	for _ in $(seq 30); do ws GetVersion >/dev/null 2>&1 && break; sleep 1; done
-	ws GetVersion >/dev/null || { echo "OBS does not answer: is a dialog open in its window?" >&2 && return 1; }
+	ws GetVersion >/dev/null || fail "OBS does not answer: is a dialog open in its window?"
 
 	use GetSceneCollectionList currentSceneCollectionName SetCurrentSceneCollection sceneCollectionName "MeetCall"
 	if [ "$m" = video ]; then
@@ -108,12 +117,13 @@ start() {
 		ws SetCurrentProgramScene '{"sceneName": "Audio"}' >/dev/null
 	fi
 	ws StartRecord >/dev/null
-	echo "Recording $m. Stop it with: make record-stop"
+	say "1;31" "● Recording $m"
+	say 2 "Stop it with: make record-stop"
 }
 
 stop() {
 	local p raw name=${1:-}
-	if [ -z "$name" ]; then read -rp "Name the recording (Enter = the time): " name || true; fi
+	if [ -z "$name" ]; then ask "Name the recording:" "[Enter = the time]" name; fi
 	p=$(ws GetProfileList '{}' currentProfileName)
 	raw=$(ws StopRecord '{}' outputPath)
 	# StopRecord answers before the muxer has closed the file.

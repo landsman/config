@@ -724,10 +724,10 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 
 .PHONY: record-init record record-stop
 record-init: ## install OBS and set it up to record calls (quits OBS)
-	./bin/obs/record.sh setup
+	@./bin/obs/record.sh setup
 
 record: ## start recording a call: asks audio or video, Enter = audio (MODE=video skips it)
-	./bin/obs/record.sh start $(MODE)
+	@./bin/obs/record.sh start $(MODE)
 
 record-stop: ## stop recording, ask for a name (NAME=… skips it), save to ~/Recordings, print the path
 	@./bin/obs/record.sh stop "$(NAME)"
