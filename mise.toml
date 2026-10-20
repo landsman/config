@@ -15,4 +15,6 @@
 # the OPML wrongly while still writing valid XML, which is the failure nothing
 # downstream notices.
 [tools]
+# Runs bin/obs/obsws.ts: TypeScript with no build step, a WebSocket client built in.
+bun = "1.4.2"
 yq = "4.53.6"

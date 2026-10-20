@@ -84,6 +84,11 @@ lint: ## parse every shell file without running it
 	@# tree that has no reason to hold one.
 	@for f in $$(git ls-files '*.py'); do echo "== $$f"; \
 		python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$$f" || exit 1; done
+	@# TypeScript runs on Bun, whose transpiler parses without bundling or writing.
+	@# Through mise first, as make's shell has no mise on PATH; skipped without Bun.
+	@for f in $$(git ls-files '*.ts'); do echo "== $$f"; \
+		if command -v mise >/dev/null; then mise x -- bun build --no-bundle "$$f" >/dev/null || exit 1; \
+		elif command -v bun >/dev/null; then bun build --no-bundle "$$f" >/dev/null || exit 1; else echo "   SKIPPED (no bun)"; fi; done
 	@# The zsh file gets the zsh parser: bash accepts most of it and would miss
 	@# the rest (fpath arrays, autoload).
 	@# Skipped where there is no zsh, which is every Linux box here — the file is

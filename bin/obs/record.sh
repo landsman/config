@@ -5,7 +5,7 @@
 # The whole Mac rather than one app, so it works whatever the call runs in;
 # mute notifications during a call, they get recorded too.
 #
-# OBS is driven over its built-in websocket (obsws.py); its profiles and
+# OBS is driven over its built-in websocket (obsws.ts, on Bun); its profiles and
 # scenes are files in config/. Tracks: 1 = both mixed, 2 = the call, 3 = my mic;
 # a player plays the first. In the scenes, "mixers" is a bitmask of the tracks
 # a source feeds: 3 = 1+2, 5 = 1+3.
@@ -25,7 +25,10 @@ conf="$HOME/Library/Application Support/obs-studio"
 out="${RECORDINGS_DIR:-$HOME/Recordings}"
 obs_pattern="OBS.app/Contents/MacOS/OBS$"
 
-ws() { python3 "$here/obsws.py" "$@"; }
+# On PATH when the shell has mise activated, through mise when it has not:
+# `make` runs a shell that sources no rc file. See bin/rss/add.sh.
+if command -v bun >/dev/null; then bun=(bun); else bun=(mise x -- bun); fi
+ws() { "${bun[@]}" "$here/obsws.ts" "$@"; }
 
 # Colour and indent only on a terminal: the saved path is also read by
 # scripts, $(…), and has to arrive bare.
