@@ -5,10 +5,10 @@
 # The whole Mac rather than one app, so it works whatever the call runs in;
 # mute notifications during a call, they get recorded too.
 #
-# OBS is driven over its built-in websocket (obsws.py). Tracks: 1 = both mixed,
-# 2 = the call, 3 = my mic; a player plays the first. Audio mode still records
-# a black 640x360 frame at 50 kbps, OBS cannot record without video, and drops
-# it when saving.
+# OBS is driven over its built-in websocket (obsws.py); its profiles and
+# scenes are files in config/. Tracks: 1 = both mixed, 2 = the call, 3 = my mic;
+# a player plays the first. In the scenes, "mixers" is a bitmask of the tracks
+# a source feeds: 3 = 1+2, 5 = 1+3.
 #
 # usage: record.sh setup                  install OBS and set it up (quits OBS first)
 #        record.sh start [audio|video]    asks which when not given, Enter = audio
@@ -44,44 +44,6 @@ save() {
 	echo "$dst"
 }
 
-# profile <dir> <name> <width> <height> <fps> <encoder> <encoder settings json>
-profile() {
-	mkdir -p "$conf/basic/profiles/$1"
-	cat >"$conf/basic/profiles/$1/basic.ini" <<EOF
-[General]
-Name=$2
-
-[Output]
-Mode=Advanced
-
-[AdvOut]
-RecType=Standard
-RecFilePath=$out/.obs
-RecFormat2=mkv
-RecEncoder=$6
-RecTracks=7
-Track1Bitrate=192
-Track2Bitrate=192
-Track3Bitrate=192
-Track1Name=Mix
-Track2Name=Call
-Track3Name=Me
-
-[Video]
-BaseCX=$3
-BaseCY=$4
-OutputCX=$3
-OutputCY=$4
-FPSType=0
-FPSCommon=$5
-
-[Audio]
-SampleRate=48000
-ChannelSetup=Stereo
-EOF
-	echo "$7" >"$conf/basic/profiles/$1/recordEncoder.json"
-}
-
 setup() {
 	[ -d /Applications/OBS.app ] || brew install --cask obs
 	if pgrep -qf "$obs_pattern"; then
@@ -92,48 +54,15 @@ setup() {
 		! pgrep -qf "$obs_pattern" ||
 			{ echo "OBS did not quit, a window in it may be open: close it, quit OBS, run this again" >&2 && return 1; }
 	fi
-	mkdir -p "$conf/basic/scenes" "$out/.obs"
-
-	profile MeetAudio "Meet audio" 640 360 10 obs_x264 '{"rate_control": "CBR", "bitrate": 50}'
-	profile MeetVideo "Meet video" 1920 1080 30 \
-		com.apple.videotoolbox.videoencoder.ave.avc '{"rate_control": "ABR", "bitrate": 4000}'
-
-	# mixers is a bitmask of the tracks a source feeds: 3 = 1+2, 5 = 1+3.
-	# bounds_type 2 scales the screen to fit 1920x1080, whatever the display is.
-	cat >"$conf/basic/scenes/MeetCall.json" <<EOF
-{
-  "name": "Meet call",
-  "current_scene": "Audio",
-  "current_program_scene": "Audio",
-  "scene_order": [{"name": "Audio"}, {"name": "Screen"}],
-  "sources": [
-    {"id": "scene", "versioned_id": "scene", "name": "Audio",
-     "settings": {"items": [], "id_counter": 0}},
-    {"id": "scene", "versioned_id": "scene", "name": "Screen",
-     "settings": {"id_counter": 1, "items": [
-       {"name": "Display", "id": 1, "visible": true, "align": 5,
-        "pos": {"x": 0.0, "y": 0.0}, "scale": {"x": 1.0, "y": 1.0},
-        "bounds_type": 2, "bounds_align": 0, "bounds": {"x": 1920.0, "y": 1080.0}}]}},
-    {"id": "screen_capture", "versioned_id": "screen_capture", "name": "Display",
-     "settings": {"type": 0, "show_cursor": true}}
-  ],
-  "AuxAudioDevice1": {"id": "sck_audio_capture", "versioned_id": "sck_audio_capture",
-    "name": "Call (Mac audio)", "mixers": 3, "volume": 1.0,
-    "settings": {"type": 0}},
-  "AuxAudioDevice2": {"id": "coreaudio_input_capture", "versioned_id": "coreaudio_input_capture",
-    "name": "Mic", "mixers": 5, "volume": 1.0,
-    "settings": {"device_id": "default"}}
-}
-EOF
-	ws enable
-
-	# Skip the first-run wizard, on a fresh install only: rewriting these drops
-	# what OBS stored there since, and it shows the permissions dialog again.
-	# OBS 31+ reads user.ini, older versions global.ini.
-	for f in user.ini global.ini; do
-		[ -e "$conf/$f" ] && continue
-		printf '[General]\nFirstRun=true\n\n[Basic]\nProfile=Meet audio\nProfileDir=MeetAudio\nSceneCollection=Meet call\nSceneCollectionFile=MeetCall\n' >"$conf/$f"
+	mkdir -p "$out/.obs"
+	# config/ mirrors OBS's own folder. Copied, not stowed: OBS replaces a
+	# symlink with a file when it saves. user.ini only on a fresh install.
+	(cd "$here/config" && find . -type f) | while read -r f; do
+		[ "$f" = ./user.ini ] && [ -e "$conf/user.ini" ] && continue
+		mkdir -p "$(dirname "$conf/$f")"
+		sed "s|@RECORDINGS@|$out|g" "$here/config/$f" >"$conf/$f"
 	done
+	ws enable
 	echo "OBS is set up. On its first start macOS asks for Microphone and Screen Recording: allow both."
 }
 
@@ -143,7 +72,7 @@ use() { # use <Get…List request> <current… field> <Set… request> <name fie
 }
 
 start() {
-	local m=${1:-}
+	local m=${1:-} display
 	if [ -z "$m" ]; then read -rp "Record audio or video? [audio] " m || true; fi
 	m=$(mode "$m")
 	[ -e "$conf/basic/profiles/MeetVideo/basic.ini" ] || setup
@@ -154,6 +83,11 @@ start() {
 	use GetSceneCollectionList currentSceneCollectionName SetCurrentSceneCollection sceneCollectionName "Meet call"
 	if [ "$m" = video ]; then
 		use GetProfileList currentProfileName SetCurrentProfile profileName "Meet video"
+		# The display's id differs per Mac, so config/ cannot carry it. Read from
+		# macOS: asking OBS for its display list crashes it (32.2).
+		display=$(osascript -l JavaScript -e 'ObjC.import("CoreGraphics"); ObjC.import("ColorSync");
+			ObjC.castRefToObject($.CFUUIDCreateString(null, $.CGDisplayCreateUUIDFromDisplayID($.CGMainDisplayID()))).js')
+		ws SetInputSettings "{\"inputName\": \"Display\", \"inputSettings\": {\"display_uuid\": \"$display\"}}" >/dev/null
 		ws SetCurrentProgramScene '{"sceneName": "Screen"}' >/dev/null
 	else
 		use GetProfileList currentProfileName SetCurrentProfile profileName "Meet audio"
