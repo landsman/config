@@ -3,28 +3,35 @@
         {
             "name": "Default profile",
             "selected": true,
-            "virtual_hid_keyboard": { "keyboard_type_v2": "ansi" },
             "complex_modifications": {
                 "rules": [
                     {
-                        "description": "Finder: ⌘ + forward delete moves to Trash, like ⌘ + backspace",
+                        "description": "Finder: ⌘ + forward delete moves to Trash, like ⌘ + backspace (on a laptop, fn + ⌘ + delete too)",
                         "manipulators": [
                             {
                                 "type": "basic",
                                 "from": {
                                     "key_code": "delete_forward",
-                                    "modifiers": { "mandatory": ["command"] }
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "command"
+                                        ]
+                                    }
                                 },
                                 "to": [
                                     {
                                         "key_code": "delete_or_backspace",
-                                        "modifiers": ["command"]
+                                        "modifiers": [
+                                            "command"
+                                        ]
                                     }
                                 ],
                                 "conditions": [
                                     {
                                         "type": "frontmost_application_if",
-                                        "bundle_identifiers": ["^com\\.apple\\.finder$"]
+                                        "bundle_identifiers": [
+                                            "^com\\.apple\\.finder$"
+                                        ]
                                     }
                                 ]
                             }

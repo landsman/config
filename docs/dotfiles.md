@@ -35,3 +35,8 @@ renaming it over the target, which replaces the symlink with a regular file — 
 `make restow` re-links it, and now backs the detached file up first rather than
 failing — so commit the drift *before* running it if you meant to keep it,
 otherwise it is a `.bak.<timestamp>` you have to go find.
+
+**Karabiner-Elements rewrites `karabiner.json` the same way** on every save from its
+own window, so `os/macos/.config/karabiner/karabiner.json` detaches just like
+`dolphinrc`. Edit the repo copy by hand; after a change in the GUI, copy the file
+back into the repo and `make restow`.
