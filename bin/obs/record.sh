@@ -85,8 +85,7 @@ start() {
 		use GetProfileList currentProfileName SetCurrentProfile profileName "Meet video"
 		# The display's id differs per Mac, so config/ cannot carry it. Read from
 		# macOS: asking OBS for its display list crashes it (32.2).
-		display=$(osascript -l JavaScript -e 'ObjC.import("CoreGraphics"); ObjC.import("ColorSync");
-			ObjC.castRefToObject($.CFUUIDCreateString(null, $.CGDisplayCreateUUIDFromDisplayID($.CGMainDisplayID()))).js')
+		display=$(osascript -l JavaScript "$here/display.js")
 		ws SetInputSettings "{\"inputName\": \"Display\", \"inputSettings\": {\"display_uuid\": \"$display\"}}" >/dev/null
 		ws SetCurrentProgramScene '{"sceneName": "Screen"}' >/dev/null
 	else
