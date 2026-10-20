@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# OBS set up to record a call in Chrome (Google Meet) without touching its audio:
-# Chrome's output is tapped through ScreenCaptureKit and the mic is read as it
-# is, so Meet keeps its own devices and nobody hears a difference.
+# OBS set up to record a call (Google Meet) without touching its audio: what
+# the Mac plays is tapped through ScreenCaptureKit and the mic is read as it is,
+# so Meet keeps its own devices and nobody hears a difference. The whole Mac,
+# not Chrome alone: capturing Chrome by app recorded silence in a test, likely
+# because its audio comes from helper processes. Mute notifications in a call.
 #
 # Tracks: 1 = both mixed, 2 = the call, 3 = my mic. Video is a 640x360 black
 # frame at 10 fps — OBS always records one, this keeps it near zero bytes.
@@ -58,8 +60,8 @@ cat >"$conf/basic/scenes/MeetCall.json" <<EOF
      "settings": {"items": [], "id_counter": 0}}
   ],
   "AuxAudioDevice1": {"id": "sck_audio_capture", "versioned_id": "sck_audio_capture",
-    "name": "Meet (Chrome)", "mixers": 3, "volume": 1.0,
-    "settings": {"type": 1, "application": "com.google.Chrome"}},
+    "name": "Call (Mac audio)", "mixers": 3, "volume": 1.0,
+    "settings": {"type": 0}},
   "AuxAudioDevice2": {"id": "coreaudio_input_capture", "versioned_id": "coreaudio_input_capture",
     "name": "Mic", "mixers": 5, "volume": 1.0,
     "settings": {"device_id": "default"}}
