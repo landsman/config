@@ -7,9 +7,10 @@
 //
 // The participants of a calendar event (.ics) go into whisper's prompt, which
 // is what spells their names right. SPOKEN=cs sets the language; auto-detect
-// guesses it once per track from its first seconds.
+// guesses it once per track from its first seconds. MODEL=quick|precise skips
+// the question which model.
 //
-// usage: transcribe.ts setup        install whisper.cpp, download its models (1.6 GB, once)
+// usage: transcribe.ts setup        install whisper.cpp, download its models (4.7 GB, once)
 //        transcribe.ts run [file]   the one given, or picked from ~/Recordings in television
 //                                   (type 202610 for October): writes <recording>.txt beside it
 import { $ } from "bun";
@@ -23,10 +24,17 @@ const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
 // Pinned by checksum: a model is code whisper runs over every call.
 const files = {
-	speech: {
+	// Turbo is large-v3 with 4 decoder layers instead of 32: several times
+	// faster, and it loses the most on languages other than English.
+	quick: {
 		name: "ggml-large-v3-turbo.bin",
 		url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
 		sha256: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
+	},
+	precise: {
+		name: "ggml-large-v3.bin",
+		url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
+		sha256: "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2",
 	},
 	// Silence goes to whisper as nothing at all; fed to it, it makes up
 	// sentences ("Titulky vytvořil…"), and a muted mic is mostly silence.
@@ -37,6 +45,14 @@ const files = {
 	},
 };
 const model = (m: keyof typeof files) => `${models}/${files[m].name}`;
+
+export type Speed = "quick" | "precise";
+
+export function speed(answer = ""): Speed {
+	if (["", "q", "quick"].includes(answer)) return "quick";
+	if (["p", "precise"].includes(answer)) return "precise";
+	throw new Error(`quick or precise, not '${answer}'`);
+}
 
 export type Segment = { from: number; text: string };
 
@@ -82,7 +98,7 @@ async function sha256(path: string) {
 
 async function setup() {
 	if (!Bun.which("whisper-cli")) await $`brew install whisper.cpp`;
-	for (const m of ["speech", "vad"] as const) {
+	for (const m of ["quick", "precise", "vad"] as const) {
 		const { url, sha256: sum } = files[m], dst = model(m);
 		if (existsSync(dst)) continue;
 		live(`Downloading ${files[m].name}`);
@@ -120,7 +136,8 @@ async function choose(): Promise<string> {
 /** Transcribes a recording into <recording>.txt and returns that path. */
 export async function transcribe(file: string): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
-	if (!existsSync(model("speech")) || !existsSync(model("vad"))) await setup();
+	const s = speed(process.env.MODEL ?? (process.stdin.isTTY ? await ask("Quick or precise?", "[Enter = quick, p = precise: better Czech, about 3× slower]") : ""));
+	if (!existsSync(model(s)) || !existsSync(model("vad"))) await setup();
 	let ics = dropped(process.env.ICS ?? "");
 	if (!ics && process.stdin.isTTY) ics = dropped(await ask("Calendar event (.ics), drag it here", "[Enter = none]"));
 	// A mistyped path costs the names, not the transcript.
@@ -141,7 +158,7 @@ export async function transcribe(file: string): Promise<string> {
 			const wav = `${tmp}/${track}.wav`;
 			await $`ffmpeg -nostdin -loglevel error -i ${file} -map 0:a:${track} -ar 16000 -ac 1 -c:a pcm_s16le ${wav}`;
 			const prompt = names.length ? ["--prompt", `${names.join(", ")}.`] : [];
-			const whisper = Bun.spawn(["whisper-cli", "-m", model("speech"), "--vad", "-vm", model("vad"), "-l", process.env.SPOKEN || "auto",
+			const whisper = Bun.spawn(["whisper-cli", "-m", model(s), "--vad", "-vm", model("vad"), "-l", process.env.SPOKEN || "auto",
 				...prompt, "-np", "-pp", "-oj", "-of", `${tmp}/${track}`, "-f", wav], { stdout: "ignore", stderr: "pipe" });
 			// -pp prints "progress = 40%" on stderr; it redraws the line above.
 			let log = "";

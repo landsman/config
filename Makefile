@@ -741,7 +741,7 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 #
 
 .PHONY: record-init record record-stop record-transcribe
-record-init: ## install OBS and whisper.cpp, set them up to record and transcribe calls (quits OBS)
+record-init: ## install OBS and whisper.cpp with its models (4.7 GB), set them up to record and transcribe calls (quits OBS)
 	@$(BUN) bin/obs/record.ts setup && $(BUN) bin/obs/transcribe.ts setup
 
 record: ## record a call until Ctrl+C, then name and save it: asks audio or video, Enter = audio (MODE=video skips it)
@@ -750,7 +750,7 @@ record: ## record a call until Ctrl+C, then name and save it: asks audio or vide
 record-stop: ## stop a recording whose terminal was closed, name it (NAME=… skips it), save to ~/Recordings
 	@$(BUN) bin/obs/record.ts stop "$(NAME)"
 
-record-transcribe: ## transcribe a recording picked in television (type 202610 for October), or FILE=…, into a .txt beside it, Me/Them (SPOKEN=cs, ICS=event.ics)
+record-transcribe: ## transcribe a recording picked in television (type 202610 for October), or FILE=…, into a .txt beside it, Me/Them (MODEL=precise, SPOKEN=cs, ICS=event.ics)
 	@$(BUN) bin/obs/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
