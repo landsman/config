@@ -44,3 +44,16 @@ updates:
       default-days: 7
     commit-message:
       prefix: deps
+
+  # tsc and the Bun types, bin/package.json: the type check `make lint` runs over
+  # the Bun scripts. Dev-only, nothing of it runs when a script does. A bump of
+  # @types/bun is worth taking together with the bun pin in mise.toml, which
+  # Dependabot does not see.
+  - package-ecosystem: bun
+    directory: /bin
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: deps

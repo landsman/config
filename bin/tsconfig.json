@@ -1,13 +1,14 @@
 {
-  // For the Bun scripts under bin/: Bun reads this at run time, editors for
-  // completion, so `@lib/term` works in both without a build step.
+  // For the Bun scripts under bin/: Bun reads this at run time, editors and
+  // `make lint` (tsc, from package.json) for types, so `@lib/term` works in all
+  // three without a build step.
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": { "@lib/*": ["lib/bun/*"] },
+    "paths": { "@lib/*": ["./lib/bun/*"] },
     "module": "Preserve",
     "moduleResolution": "bundler",
     "target": "ESNext",
     "strict": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["bun"]
   }
 }
