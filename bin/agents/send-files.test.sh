@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Self-check for ./send-files.py: Stop hook input piped in the way Claude Code
+# Self-check for ./send-files.ts: Stop hook input piped in the way Claude Code
 # sends it, against small transcripts written here. What it would get wrong
 # silently: letting a named screenshot through unsent, holding a turn for a file
 # already sent or one that does not exist, or holding the same turn twice.
 set -euo pipefail
 
-hook="$(cd "$(dirname "$0")" && pwd)/send-files.py"
+hook="$(cd "$(dirname "$0")" && pwd)/send-files.ts"
+# The binary itself: make runs this under a bash that mise has not put bun on PATH for.
+bun=$(mise which bun 2>/dev/null || command -v bun)
 t=$(mktemp -d)
 trap 'rm -rf "$t"' EXIT
 touch "$t/shot.png" "$t/Main.kt"
@@ -20,7 +22,7 @@ check() { # check <behaviour> <block|pass> <stop_hook_active> ; transcript lines
 	local name=$1 want=$2 active=$3 got
 	cat > "$t/transcript.jsonl"
 	got=$(jq -n --arg p "$t/transcript.jsonl" --argjson a "$active" '{transcript_path: $p, stop_hook_active: $a}' |
-		python3 "$hook" | jq -r '.decision // empty')
+		"$bun" "$hook" | jq -r '.decision // empty')
 	got=${got:-pass}
 	if [ "$got" = "$want" ]; then echo "ok   $name"; else
 		echo "FAIL $name (want $want, got $got)"; fails=$((fails + 1))
