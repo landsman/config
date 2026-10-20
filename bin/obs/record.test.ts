@@ -6,7 +6,7 @@ import { afterAll, beforeEach, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mode, save } from "./record";
+import { mode, save } from "@bin/obs/record";
 
 const t = mkdtempSync(join(tmpdir(), "record-"));
 const raw = join(t, "2026-10-20_12-16-26.mkv");
