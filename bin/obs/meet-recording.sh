@@ -81,8 +81,10 @@ cat >"$conf/basic/scenes/MeetCall.json" <<EOF
 EOF
 
 # Make it the active one and skip the first-run wizard. OBS 31+ reads user.ini,
-# older versions global.ini; a running OBS overwrites both on quit.
+# older versions global.ini. Only on a fresh install: rewriting them drops what
+# OBS stored there since, and it shows the permissions dialog again.
 for f in user.ini global.ini; do
+	[ -e "$conf/$f" ] && continue
 	cat >"$conf/$f" <<EOF
 [General]
 FirstRun=true
