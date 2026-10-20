@@ -1,9 +1,10 @@
 // Waiting on other programs, for the scripts under bin/.
 import { $ } from "bun";
 
-/** Whether a process whose command line matches the pattern (pgrep -f) is running. */
+/** Whether a process whose command line matches the pattern (pgrep -f) is running.
+ *  No -q: procps on Linux rejects it with exit 2, read here as "not running". */
 export const running = async (pattern: string) =>
-	(await $`pgrep -qf ${pattern}`.nothrow().quiet()).exitCode === 0;
+	(await $`pgrep -f ${pattern}`.nothrow().quiet()).exitCode === 0;
 
 /** Checks once a second until ok() holds, at most `seconds`; says whether it did. */
 export async function waitFor(ok: () => Promise<boolean>, seconds: number): Promise<boolean> {
