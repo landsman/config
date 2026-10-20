@@ -6,10 +6,20 @@
 # because its audio comes from helper processes. Mute notifications in a call.
 #
 # Tracks: 1 = both mixed, 2 = the call, 3 = my mic. Video is a 640x360 black
-# frame at 10 fps — OBS always records one, this keeps it near zero bytes.
+# frame at 10 fps and 50 kbps — OBS always records one; at its default 6 Mbps
+# an 8-minute call took 365 MB.
 #
-# usage: meet-recording.sh   writes the "Meet call" profile and scene collection
+# usage: meet-recording.sh          writes the "Meet call" profile and scene collection
+#        meet-recording.sh export F splits recording F into "F call/them/me.m4a",
+#                                   copied as recorded, no re-encoding
 set -eu
+
+if [ "${1:-}" = export ]; then
+	b="${2%.*}"
+	ffmpeg -nostdin -loglevel error -y -i "$2" \
+		-map 0:a:0 -c copy "$b call.m4a" -map 0:a:1 -c copy "$b them.m4a" -map 0:a:2 -c copy "$b me.m4a"
+	exit
+fi
 
 conf="$HOME/Library/Application Support/obs-studio"
 name="Meet call"
@@ -47,6 +57,8 @@ FPSCommon=10
 SampleRate=48000
 ChannelSetup=Stereo
 EOF
+
+echo '{"rate_control": "CBR", "bitrate": 50}' >"$conf/basic/profiles/MeetCall/recordEncoder.json"
 
 # mixers is a bitmask of the tracks a source feeds: 3 = 1+2, 5 = 1+3.
 cat >"$conf/basic/scenes/MeetCall.json" <<EOF
