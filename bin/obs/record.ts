@@ -24,7 +24,7 @@ import { cli } from "@lib/cli";
 import { copyTree } from "@lib/files";
 import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
-import { ask, done, hint, link, live, o, say, untilKey } from "@lib/term";
+import { ask, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
 import { connect, enable } from "./websocket";
 
@@ -64,15 +64,19 @@ export async function save(m: Mode, raw: string, dir: string, name: string): Pro
 	return dst;
 }
 
+/** Quits OBS and waits until it is gone; refuses while it records. */
+async function quit() {
+	if (!(await running(obsPattern))) return;
+	if (await running("obs-ffmpeg-mux")) throw new Error("OBS is recording, stop it first");
+	await $`osascript -e ${'tell application "OBS" to quit'}`.nothrow().quiet();
+	if (!(await waitFor(async () => !(await running(obsPattern)), 20)))
+		throw new Error("OBS did not quit, a window in it may be open: close it, quit OBS, run this again");
+}
+
 async function setup() {
 	if (!existsSync("/Applications/OBS.app")) await $`brew install --cask obs`;
-	if (await running(obsPattern)) {
-		if (await running("obs-ffmpeg-mux")) throw new Error("OBS is recording, stop it first");
-		// OBS rewrites its config on quit, so it has to be closed while this writes.
-		await $`osascript -e ${'tell application "OBS" to quit'}`.nothrow().quiet();
-		if (!(await waitFor(async () => !(await running(obsPattern)), 20)))
-			throw new Error("OBS did not quit, a window in it may be open: close it, quit OBS, run this again");
-	}
+	// OBS rewrites its config on quit, so it has to be closed while this writes.
+	await quit();
 	mkdirSync(`${out}/.obs`, { recursive: true });
 	// config/ mirrors OBS's own folder. Copied, not stowed: OBS replaces a
 	// symlink with a file when it saves. user.ini only on a fresh install.
@@ -83,9 +87,11 @@ async function setup() {
 }
 
 async function start(answer?: string) {
+	gap();
 	const m = mode(answer ?? (await ask("Record audio or video?", "[Enter = audio]")));
 	if (!existsSync(`${conf}/basic/profiles/MeetVideo/basic.ini`)) await setup();
-	if (!(await running(obsPattern))) await $`open -g -a OBS`;
+	// -j: started hidden, it only has to record; stop() quits it again.
+	if (!(await running(obsPattern))) await $`open -g -j -a OBS`;
 	const { call, close } = await retry(connect, 30).catch(() => {
 		throw new Error("OBS does not answer: is a dialog open in its window?");
 	});
@@ -112,8 +118,10 @@ async function start(answer?: string) {
 	await call("StartRecord");
 	close();
 	if (!process.stdin.isTTY || !process.stdout.isTTY) {
+		gap();
 		live(`Recording ${m}`);
-		return hint("Stop it with  make record-stop");
+		hint("Stop it with  make record-stop");
+		return gap();
 	}
 	// Waits here with a running clock; Ctrl+C or q stops and saves. Closing the
 	// terminal leaves OBS recording, for `make record-stop` to finish.
@@ -122,14 +130,17 @@ async function start(answer?: string) {
 		const s = Math.floor((Date.now() - t0) / 1000);
 		return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 	};
-	process.stdout.write("\n");
-	hint("Ctrl+C stops and saves  ·  closing the terminal keeps it recording, for  make record-stop");
+	gap();
+	process.stdout.write("\n"); // the clock's line, drawn by tick below
+	hint("Ctrl+C stops and saves");
+	hint("Closing the terminal keeps it recording; finish it with  make record-stop");
 	await untilKey(["\x03", "q"], () =>
-		process.stdout.write(`\x1b[2A\r\x1b[K  ${o.red("●")} ${o.bold(`Recording ${m}`)}  ${o.dim(clock())}\x1b[2B\r`));
+		process.stdout.write(`\x1b[3A\r\x1b[K  ${o.red("●")} ${o.bold(`Recording ${m}`)}  ${o.dim(clock())}\x1b[3B\r`));
 	await stop();
 }
 
 async function stop(name?: string) {
+	gap();
 	name ??= await ask("Name the recording", "[Enter = the time]");
 	const { call, close } = await connect();
 	const { currentProfileName } = await call("GetProfileList");
@@ -137,10 +148,14 @@ async function stop(name?: string) {
 	close();
 	// StopRecord answers before the muxer has closed the file.
 	await waitFor(async () => !(await running("obs-ffmpeg-mux")), 30);
+	await quit().catch(() => {}); // a window left open in it only keeps it running
 	const saved = await save(currentProfileName === "MeetVideo" ? "video" : "audio", outputPath, out, name);
 	if (!process.stdout.isTTY) return say(saved); // a script reading it gets the path alone
+	gap();
 	done(`Saved ${basename(saved)}`, await describe(saved));
-	say(`  ${link(saved)}  ${o.dim("⌘ + click to open")}`);
+	say(`  ${link(saved)}`);
+	hint("⌘ + click to open");
+	gap();
 }
 
 if (import.meta.main) await cli(import.meta.path, { setup, start, stop });

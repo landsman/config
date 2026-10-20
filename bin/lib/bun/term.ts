@@ -32,6 +32,8 @@ export function createTerm(out: Stream, err: Stream) {
 		done: (title: string, detail = "") => line(out, `${o.green("✓")} ${o.bold(title)}${detail && `  ${o.dim(detail)}`}`),
 		/** Something is running now: ● title. */
 		live: (title: string) => line(out, `${o.red("●")} ${o.bold(title)}`),
+		/** An empty line between steps, on a terminal only. */
+		gap: () => out.tty && out.write("\n"),
 		/** A dimmed note under the line before it. */
 		hint: (text: string) => line(out, o.dim(`  ${text}`)),
 		/** An error, on stderr: ✗ text. */
@@ -77,7 +79,7 @@ export function untilKey(keys: string[], tick?: () => void): Promise<string> {
 }
 
 // process.stderr.write, not console.error: Bun colours that one red on its own.
-export const { o, say, done, live, hint, warn, link, ask } = createTerm(
+export const { o, say, gap, done, live, hint, warn, link, ask } = createTerm(
 	{ tty: !!process.stdout.isTTY, write: (s) => process.stdout.write(s) },
 	{ tty: !!process.stderr.isTTY, write: (s) => process.stderr.write(s) },
 );
