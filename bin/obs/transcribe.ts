@@ -17,7 +17,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync,
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { cli } from "@lib/cli";
-import { ask, done, gap, hint, link, live, say, warn } from "@lib/term";
+import { ask, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
@@ -135,11 +135,21 @@ export async function transcribe(file: string): Promise<string> {
 	try {
 		const heard = [];
 		for (const { who, track } of tracks) {
-			live(`Transcribing ${who || "the recording"}`);
+			const what = `Transcribing ${who || "the recording"}`;
+			live(what);
 			const wav = `${tmp}/${track}.wav`;
 			await $`ffmpeg -nostdin -loglevel error -i ${file} -map 0:a:${track} -ar 16000 -ac 1 -c:a pcm_s16le ${wav}`;
 			const prompt = names.length ? ["--prompt", `${names.join(", ")}.`] : [];
-			await $`whisper-cli -m ${model("speech")} --vad -vm ${model("vad")} -l ${process.env.SPOKEN || "auto"} ${prompt} -np -oj -of ${tmp}/${track} -f ${wav}`.quiet();
+			const whisper = Bun.spawn(["whisper-cli", "-m", model("speech"), "--vad", "-vm", model("vad"), "-l", process.env.SPOKEN || "auto",
+				...prompt, "-np", "-pp", "-oj", "-of", `${tmp}/${track}`, "-f", wav], { stdout: "ignore", stderr: "pipe" });
+			// -pp prints "progress = 40%" on stderr; it redraws the line above.
+			let log = "";
+			for await (const chunk of whisper.stderr.pipeThrough(new TextDecoderStream())) {
+				log = (log + chunk).slice(-2000);
+				const p = [...chunk.matchAll(/progress = +(\d+)%/g)].at(-1)?.[1];
+				if (p && process.stdout.isTTY) process.stdout.write(`\x1b[1A\r\x1b[K  ${o.red("●")} ${o.bold(what)}  ${o.dim(`${p}%`)}\n`);
+			}
+			if ((await whisper.exited) !== 0) throw new Error(`whisper failed:\n${log.trim()}`);
 			const json = JSON.parse(readFileSync(`${tmp}/${track}.json`, "utf8"));
 			heard.push({ who, segments: (json.transcription as { offsets: { from: number }; text: string }[]).map((s) => ({ from: s.offsets.from, text: s.text })) });
 		}
