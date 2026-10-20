@@ -28,6 +28,11 @@ OS_PKG     := $(shell test -d 'os/$(OS)' && echo '$(OS)')
 
 STOW_FLAGS := --no-folding -t "$$HOME"
 
+# Bun from PATH, or through mise (mise.toml pins it): make's shell sources no
+# rc file, so it has no mise shims on PATH.
+# `=`, not `:=`: on CI, qa-deps installs Bun after this file is read.
+BUN = $(if $(shell command -v bun),bun,mise x -- bun)
+
 .PHONY: help
 help: ## show this help
 	@# Two patterns: `##@ Group` opens a section, `## text` after a target
@@ -73,6 +78,10 @@ qa-deps:
 	if [ -z "$$CI" ]; then echo "qa needs yq - run: make apps, then mise install"; exit 1; \
 	elif command -v brew >/dev/null; then brew install yq; \
 	else sudo apt-get update && sudo apt-get install -y yq; fi
+	@# Bun, the same way, for the *.test.ts bin-test runs and the *.ts lint parses.
+	@if command -v bun >/dev/null || command -v mise >/dev/null; then exit 0; fi; \
+	if [ -z "$$CI" ]; then echo "qa needs bun - run: make apps, then mise install"; exit 1; \
+	else brew install oven-sh/bun/bun; fi
 
 lint: ## parse every shell file without running it
 	@# -n is parse-only, so nothing here is sourced or executed. A typo in a
@@ -104,7 +113,7 @@ lint: ## parse every shell file without running it
 	@if command -v pwsh >/dev/null; then for f in $$(git ls-files '*.ps1'); do echo "== $$f"; F="$$f" pwsh -NoProfile -Command '$$e = $$null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $$env:F), [ref]$$null, [ref]$$e); if ($$e) { $$e | ForEach-Object { "$$_" }; exit 1 }' || exit 1; done; \
 	else echo "== *.ps1  SKIPPED (no pwsh here - CI parses them)"; fi
 
-bin-test: ## run every *.test.sh — self-contained, no machine state touched
+bin-test: ## run every *.test.sh and *.test.ts — self-contained, no machine state touched
 	@# Found by git, not by a glob per directory: a test one level deeper, or in a
 	@# folder nobody added here, still runs. Run by path, so the shebang picks the
 	@# shell. `rc`, because a for loop exits with the status of its *last*
@@ -114,6 +123,9 @@ bin-test: ## run every *.test.sh — self-contained, no machine state touched
 	@# The loop is the one in shared/.agents/rules/shell-scripts.md; change both.
 	@rc=0; for t in $$(git ls-files '*.test.sh'); do \
 		echo "== $$t"; "./$$t" || { echo "FAIL $$t"; rc=1; }; \
+	done; \
+	for t in $$(git ls-files '*.test.ts'); do \
+		echo "== $$t"; $(BUN) test "./$$t" || { echo "FAIL $$t"; rc=1; }; \
 	done; exit $$rc
 
 .PHONY: claude-settings-test
@@ -724,18 +736,18 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 
 ##@ Call recording
 #
-# OBS records a call without touching its audio, see bin/obs/record.sh
+# OBS records a call without touching its audio, see bin/obs/record.ts
 #
 
 .PHONY: record-init record record-stop
 record-init: ## install OBS and set it up to record calls (quits OBS)
-	@./bin/obs/record.sh setup
+	@$(BUN) bin/obs/record.ts setup
 
 record: ## start recording a call: asks audio or video, Enter = audio (MODE=video skips it)
-	@./bin/obs/record.sh start $(MODE)
+	@$(BUN) bin/obs/record.ts start $(MODE)
 
 record-stop: ## stop recording, ask for a name (NAME=… skips it), save to ~/Recordings, print the path
-	@./bin/obs/record.sh stop "$(NAME)"
+	@$(BUN) bin/obs/record.ts stop "$(NAME)"
 
 ##@ GIT config
 
