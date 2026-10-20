@@ -21,6 +21,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+      # Every tool mise.toml pins (bun, yq), at the pinned version, on both
+      # runners: the same versions as on the laptops, one place to bump them.
+      - uses: jdx/mise-action@v5
       - run: make qa
 
   # Its own job, not a matrix step: semgrep reads the files, not the machine, so

@@ -78,12 +78,10 @@ qa-deps:
 	if [ -z "$$CI" ]; then echo "qa needs yq - run: make apps, then mise install"; exit 1; \
 	elif command -v brew >/dev/null; then brew install yq; \
 	else sudo apt-get update && sudo apt-get install -y yq; fi
-	@# Bun, for the *.test.ts bin-test runs and the *.ts lint parses. Through
-	@# npm, not brew: the Ubuntu runner has no brew, and npm takes the exact
-	@# version mise.toml pins.
-	@if command -v bun >/dev/null || command -v mise >/dev/null; then exit 0; fi; \
-	if [ -z "$$CI" ]; then echo "qa needs bun - run: make apps, then mise install"; exit 1; \
-	else npm install -g "bun@$$(sed -n 's/^bun = "\(.*\)"/\1/p' mise.toml)"; fi
+	@# Bun, for the *.test.ts bin-test runs and the *.ts lint parses. CI gets it
+	@# from mise-action in ci.yml, at the version mise.toml pins.
+	@command -v bun >/dev/null || command -v mise >/dev/null || \
+		{ echo "qa needs bun - run: make apps, then mise install"; exit 1; }
 
 lint: ## parse every shell file without running it
 	@# -n is parse-only, so nothing here is sourced or executed. A typo in a
