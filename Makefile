@@ -722,11 +722,11 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 # OBS records a call without touching its audio, see bin/obs/record.sh
 #
 
-.PHONY: record-setup record-start record-stop
+.PHONY: record-setup record-init record-stop
 record-setup: ## install OBS and set it up to record calls (quits OBS)
 	./bin/obs/record.sh setup
 
-record-start: ## start recording a call: asks audio or video, Enter = audio (MODE=video skips it)
+record-init: ## start recording a call: asks audio or video, Enter = audio (MODE=video skips it)
 	./bin/obs/record.sh start $(MODE)
 
 record-stop: ## stop recording, save it to ~/Recordings and print the path
