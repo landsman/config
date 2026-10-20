@@ -172,6 +172,7 @@ async function run(file?: string) {
 	gap();
 	done(`Transcribed ${txt.split("/").at(-1)}`);
 	say(`  ${link(txt)}`);
+	hint("⌘ + click to open");
 	gap();
 }
 

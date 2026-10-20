@@ -164,6 +164,7 @@ async function stop(name?: string) {
 	gap();
 	done(`Transcribed ${basename(txt)}`);
 	say(`  ${link(txt)}`);
+	hint("⌘ + click to open");
 	gap();
 }
 
