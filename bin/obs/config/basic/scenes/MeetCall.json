@@ -1,5 +1,5 @@
 {
-  "name": "Meet call",
+  "name": "MeetCall",
   "current_scene": "Audio",
   "current_program_scene": "Audio",
   "scene_order": [{"name": "Audio"}, {"name": "Screen"}],

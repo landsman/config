@@ -80,16 +80,16 @@ start() {
 	for _ in $(seq 30); do ws GetVersion >/dev/null 2>&1 && break; sleep 1; done
 	ws GetVersion >/dev/null || { echo "OBS does not answer: is a dialog open in its window?" >&2 && return 1; }
 
-	use GetSceneCollectionList currentSceneCollectionName SetCurrentSceneCollection sceneCollectionName "Meet call"
+	use GetSceneCollectionList currentSceneCollectionName SetCurrentSceneCollection sceneCollectionName "MeetCall"
 	if [ "$m" = video ]; then
-		use GetProfileList currentProfileName SetCurrentProfile profileName "Meet video"
+		use GetProfileList currentProfileName SetCurrentProfile profileName "MeetVideo"
 		# The display's id differs per Mac, so config/ cannot carry it. Read from
 		# macOS: asking OBS for its display list crashes it (32.2).
 		display=$(osascript -l JavaScript "$here/display.js")
 		ws SetInputSettings "{\"inputName\": \"Display\", \"inputSettings\": {\"display_uuid\": \"$display\"}}" >/dev/null
 		ws SetCurrentProgramScene '{"sceneName": "Screen"}' >/dev/null
 	else
-		use GetProfileList currentProfileName SetCurrentProfile profileName "Meet audio"
+		use GetProfileList currentProfileName SetCurrentProfile profileName "MeetAudio"
 		ws SetCurrentProgramScene '{"sceneName": "Audio"}' >/dev/null
 	fi
 	ws StartRecord >/dev/null
@@ -102,7 +102,7 @@ stop() {
 	raw=$(ws StopRecord '{}' outputPath)
 	# StopRecord answers before the muxer has closed the file.
 	for _ in $(seq 30); do pgrep -q obs-ffmpeg-mux || break; sleep 1; done
-	if [ "$p" = "Meet video" ]; then save video "$raw" "$out"; else save audio "$raw" "$out"; fi
+	if [ "$p" = "MeetVideo" ]; then save video "$raw" "$out"; else save audio "$raw" "$out"; fi
 }
 
 case "${1:-}" in
