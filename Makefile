@@ -717,6 +717,21 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 		2>/dev/null && echo "user-level sampler back" \
 		|| echo "no user-level sampler to restore - run: make restow"
 
+##@ Call recording
+#
+# OBS records a call without touching its audio, see bin/obs/record.sh
+#
+
+.PHONY: record-setup record-start record-stop
+record-setup: ## install OBS and set it up to record calls (quits OBS)
+	./bin/obs/record.sh setup
+
+record-start: ## start recording a call: asks audio or video, Enter = audio (MODE=video skips it)
+	./bin/obs/record.sh start $(MODE)
+
+record-stop: ## stop recording, save it to ~/Recordings and print the path
+	@./bin/obs/record.sh stop
+
 ##@ GIT config
 
 .PHONY: git git-config-test git-config-format

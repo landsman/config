@@ -185,7 +185,7 @@ if OS.mac?
 	cask "microsoft-teams"
 	# Screen zoom and annotation for presentations — Sysinternals ZoomIt
 	cask "microsoft/sysinternalstap/zoomit"
-	# Screen and audio recorder — records a Meet call, see bin/obs/meet-recording.sh
+	# Screen and audio recorder — records a call, see bin/obs/record.sh
 	cask "obs"
 	# Desktop client for Perplexity AI
 	cask "perplexity"
