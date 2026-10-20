@@ -72,7 +72,9 @@ overwritten.
 
 `settings.json` is shared as is. Claude Code on Windows runs its shell commands,
 the status line included, through Git Bash, which `bootstrap.ps1` installs
-first. The two MCP servers in the `mcp-servers` skill that start through `sh`,
+first. Its hooks in `bin/agents/` are Bun scripts started by their shebang:
+`apps.txt` installs Bun, and `.gitattributes` keeps them LF, since a CRLF
+checkout would make the shebang look for `bun\r`. The two MCP servers in the `mcp-servers` skill that start through `sh`,
 Azure DevOps and Forgejo, are the known gap: `sh` is not on the Windows `PATH`,
 so they fail to connect there. The rest of the session is unaffected. Forgejo
 has a Windows path of its own, described below. Azure DevOps is still the gap.

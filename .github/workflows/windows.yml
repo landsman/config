@@ -1,14 +1,18 @@
 name: windows
 
-# Its own workflow so it can be filtered by path: nothing else in the repo
-# reaches a Windows machine. apply.ps1 reads os/windows and links shared/, and a
-# Brewfile or bin/ change has no way to break it. A job-level filter does not
-# exist in Actions, which is why this is not a job in ci.yml.
+# Its own workflow so it can be filtered by path: little else in the repo
+# reaches a Windows machine. apply.ps1 reads os/windows and links shared/, whose
+# Claude Code settings run the hooks in bin/agents/ there; a Brewfile change has
+# no way to break it. A job-level filter does not exist in Actions, which is why
+# this is not a job in ci.yml.
 on:
   pull_request:
     paths:
       - os/windows/**
       - shared/**
+      - bin/agents/**
+      - bin/lib/bun/**
+      - .gitattributes
       - .github/workflows/windows.yml
       # Rules and skills under shared/ are prose; editing one cannot break apply.ps1.
       - '!**.md'
@@ -31,3 +35,9 @@ jobs:
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File os\windows\apply.ps1
       - name: Skills are reachable where Claude Code looks
         run: if (-not (Test-Path "$HOME\.claude\skills\commit-messages\SKILL.md")) { throw 'not linked' }
+      # As Claude Code runs them: Git Bash, through the shebang. The PATH is
+      # reread because winget wrote bun's onto the machine, not into this job.
+      - name: The hooks run under Git Bash
+        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          & "$env:ProgramFiles\Git\bin\bash.exe" -c 'for h in bin/agents/*.ts; do [[ $h == *.test.ts ]] && continue; echo "== $h"; echo "{}" | "$h" || exit 1; done'
