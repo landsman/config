@@ -158,6 +158,7 @@ async function stop(name?: string) {
 	say(`  ${link(saved)}`);
 	hint("⌘ + click to open");
 	gap();
+	if (!process.stdin.isTTY) return;
 	if (!["y", "yes"].includes((await ask("Transcribe it?", "[y/N]")).toLowerCase())) return;
 	const txt = await transcribe(saved);
 	gap();

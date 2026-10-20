@@ -17,7 +17,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync,
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { cli } from "@lib/cli";
-import { ask, done, gap, hint, link, live, say } from "@lib/term";
+import { ask, done, gap, hint, link, live, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
@@ -69,8 +69,9 @@ export function attendees(ics: string): string[] {
 	return [...new Set(names)].filter((n) => !n.includes("@"));
 }
 
-/** A path dragged into a terminal arrives quoted or with escaped spaces. */
-export const dropped = (s: string) => s.trim().replace(/^'(.*)'$/, "$1").replace(/^"(.*)"$/, "$1").replace(/\\(.)/g, "$1");
+/** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
+export const dropped = (s: string) =>
+	s.trim().replace(/^'(.*)'$/, "$1").replace(/^"(.*)"$/, "$1").replace(/\\(.)/g, "$1").replace(/^~(?=\/)/, homedir());
 
 async function sha256(path: string) {
 	const h = new Bun.CryptoHasher("sha256");
@@ -107,9 +108,11 @@ function latest(): string {
 export async function transcribe(file = latest()): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
 	if (!existsSync(model("speech")) || !existsSync(model("vad"))) await setup();
-	let ics = process.env.ICS ?? "";
+	let ics = dropped(process.env.ICS ?? "");
 	if (!ics && process.stdin.isTTY) ics = dropped(await ask("Calendar event (.ics), drag it here", "[Enter = none]"));
-	const names = ics ? attendees(readFileSync(ics, "utf8")) : [];
+	// A mistyped path costs the names, not the transcript.
+	if (ics && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
+	const names = ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : [];
 	if (names.length) hint(`Names: ${names.join(", ")}`);
 
 	// OBS tracks 1 = both mixed, 2 = the call, 3 = me, so audio streams 0, 1, 2.
@@ -126,9 +129,11 @@ export async function transcribe(file = latest()): Promise<string> {
 			const prompt = names.length ? ["--prompt", `${names.join(", ")}.`] : [];
 			await $`whisper-cli -m ${model("speech")} --vad -vm ${model("vad")} -l ${process.env.SPOKEN || "auto"} ${prompt} -np -oj -of ${tmp}/${track} -f ${wav}`.quiet();
 			const json = JSON.parse(readFileSync(`${tmp}/${track}.json`, "utf8"));
-			heard.push({ who, segments: json.transcription.map((s: any) => ({ from: s.offsets.from, text: s.text })) });
+			heard.push({ who, segments: (json.transcription as { offsets: { from: number }; text: string }[]).map((s) => ({ from: s.offsets.from, text: s.text })) });
 		}
-		const txt = file.replace(/\.[^.]*$/, ".txt");
+		// Never over an earlier one: it may have been corrected by hand.
+		let txt = file.replace(/\.[^.]*$/, ".txt");
+		for (let i = 2; existsSync(txt); i++) txt = file.replace(/\.[^.]*$/, `-${i}.txt`);
 		await Bun.write(txt, merge(heard));
 		return txt;
 	} finally {
