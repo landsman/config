@@ -3,9 +3,10 @@ Every rule lives in [`rules/`](rules/), one file each. This file is the index.
 A rule there loads unconditionally unless it declares `paths:` frontmatter,
 which scopes it to the files it is about. A rule earns that scoping only when
 its trigger is a file path *and* breaking it shows up in a diff — GitHub Actions,
-Forgejo Actions, Makefiles, shell scripts and writing for agents are the five so
-far. The rest override a default I would otherwise fall back to, so they have to
-be in context before the mistake, not after.
+Forgejo Actions, Makefiles, shell scripts, writing for agents and the order
+inside a source file are the six so far. The rest override a default I would
+otherwise fall back to, so they have to be in context before the mistake, not
+after.
 
 | Rule | Applies when |
 |------|--------------|
@@ -28,6 +29,7 @@ be in context before the mistake, not after.
 | [Writing for agents](rules/writing-for-agents.md) | writing a rule, a skill or a reference an agent loads: a short list, details opened one at a time — scoped; read it before creating one |
 | [Shell in a config file](rules/shell-in-config.md) | shell goes inside a YAML or a Makefile |
 | [Shell scripts](rules/shell-scripts.md) | writing a `.sh` file or its `.test.sh`, and the target that runs them — scoped; read it before creating one |
+| [Order inside a source file](rules/source-file-order.md) | writing a `.ts`, `.tsx` or `.kt` file: the main thing first, details below, types beside their owner — scoped; read it before creating one |
 | [The database is the source of truth](rules/source-of-truth.md) | state is about to live outside the database — memory, a session, a cache, a queue — or two writers race |
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Deep research](rules/deep-research.md) | a research needs many sources, a new dependency included — it goes to Perplexity as a prompt, unless I say to do it myself |
