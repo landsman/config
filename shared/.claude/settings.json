@@ -190,6 +190,10 @@
           {
             "type": "command",
             "command": "\"$HOME/projects/landsman/config/bin/agents/skill-reminder.ts\""
+          },
+          {
+            "type": "command",
+            "command": "printf '{\"systemMessage\":\"sent %s\"}' \"$(date '+%-I:%M %p')\""
           }
         ]
       }
