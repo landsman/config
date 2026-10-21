@@ -86,8 +86,10 @@ reach a browser three ways, and only `--browser-url` reaches this one:
 
 - **Its own launch** is a Chrome with a profile of its own, never signed in, which is
   the same problem as the Playwright MCP.
-- **`--autoConnect`** asks for permission in a dialog on every connection, and
-  attaches to the channel's default profile, not to `~/.chrome-ai-e2e`.
+- **`--autoConnect`** (Chrome 144+) reads the port from `DevToolsActivePort` in
+  the data directory given by `--user-data-dir`, so it can reach this instance too.
+  But remote debugging has to be switched on in `chrome://inspect`, and Chrome asks
+  in a dialog before letting the server in.
 - **`--browser-url http://127.0.0.1:9222`** attaches to the port that `ai-e2e.sh`
   opens, with no dialog. Chrome opens such a port only on a data directory that is
   not the default, and binds it to localhost.
