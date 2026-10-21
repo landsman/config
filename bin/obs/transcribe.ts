@@ -7,7 +7,8 @@
 //
 // The participants of a calendar event go into whisper's prompt, which is what
 // spells their names right: an .ics file, or an event dragged out of Apple
-// Calendar (apple-calendar.ts). SPOKEN=cs sets the language; auto-detect
+// Calendar (apple-calendar.ts). One known only by address is named in
+// contacts.ts. SPOKEN=cs sets the language; auto-detect
 // guesses it once per track from its first seconds. MODEL=quick|precise skips
 // the question which model.
 //
@@ -20,6 +21,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync,
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { appleCalendarAttendees, appleEventId } from "@bin/obs/apple-calendar";
+import { realNames } from "@bin/obs/contacts";
 import { cli } from "@lib/cli";
 import { ask, askUntil, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
@@ -82,13 +84,11 @@ const clock = (ms: number) => {
 	return h ? `${h}:${mmss}` : mmss;
 };
 
-/** The names of the people on a calendar event: its organizer and attendees. */
+/** The people on a calendar event, its organizer and attendees: a name, or an address when it has none. */
 export function attendees(ics: string): string[] {
 	const unfolded = ics.replace(/\r?\n[ \t]/g, ""); // a long line goes on after a newline and a space
-	return named([...unfolded.matchAll(/^(?:ATTENDEE|ORGANIZER)[^:\n]*?;CN=("?)([^";:\n]+)\1/gm)].map((m) => m[2].trim()));
+	return [...new Set([...unfolded.matchAll(/^(?:ATTENDEE|ORGANIZER)[^:\n]*?;CN=("?)([^";:\n]+)\1/gm)].map((m) => m[2].trim()))];
 }
-
-const named = (names: string[]) => [...new Set(names)].filter((n) => !n.includes("@"));
 
 /** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
 export const dropped = (s: string) =>
@@ -146,9 +146,10 @@ export async function transcribe(file: string): Promise<string> {
 	if (!ics && process.stdin.isTTY) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
 	// A mistyped path costs the names, not the transcript.
 	const apple = appleEventId(ics);
-	const names = apple ? named(appleCalendarAttendees(apple)) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : [];
-	if (apple && !names.length) warn("no names on that event in Calendar, going on without them");
+	const people = apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : [];
+	if (apple && !people.length) warn("no such event in Calendar, going on without names");
 	else if (ics && !apple && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
+	const names = await realNames(people);
 	if (names.length) hint(`Names: ${names.join(", ")}`);
 
 	// OBS tracks 1 = both mixed, 2 = the call, 3 = me, so audio streams 0, 1, 2.
