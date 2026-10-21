@@ -4,7 +4,7 @@ A rule there loads unconditionally unless it declares `paths:` frontmatter,
 which scopes it to the files it is about. A rule earns that scoping only when
 its trigger is a file path *and* breaking it shows up in a diff — GitHub Actions,
 Forgejo Actions, Makefiles, shell scripts, writing for agents, the order inside
-a source file, TypeScript imports and ts-pattern are the eight so far. The rest override a
+a source file, TypeScript imports, ts-pattern and SVG icons are the nine so far. The rest override a
 default I would otherwise fall back to, so they have to be in context before
 the mistake, not after.
 
@@ -32,6 +32,7 @@ the mistake, not after.
 | [Order inside a source file](rules/source-file-order.md) | writing a `.ts`, `.tsx` or `.kt` file: the main thing first, details below, types beside their owner — scoped; read it before creating one |
 | [Imports in TypeScript](rules/ts-imports.md) | an import leaves its folder: a `#alias` from `package.json`, never `../` — scoped; read it before creating a `.ts` or `.tsx` file |
 | [Branching in TypeScript](rules/ts-pattern.md) | a branch on the shape of one value: a ts-pattern `match` ending in `.exhaustive()`, not a `switch` — scoped; read it before writing a `switch` in a `.ts` or `.tsx` file |
+| [SVG icons are files](rules/svg-icons.md) | an icon goes into a component or a template: an `.svg` file, recoloured by a CSS mask, never inline markup — scoped; read it before drawing an icon |
 | [The database is the source of truth](rules/source-of-truth.md) | state is about to live outside the database — memory, a session, a cache, a queue — or two writers race |
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Deep research](rules/deep-research.md) | a research needs many sources, a new dependency included — it goes to Perplexity as a prompt, unless I say to do it myself |
