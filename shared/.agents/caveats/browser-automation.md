@@ -79,6 +79,31 @@ finding it restored after a relaunch.
   when more than one is listed, so with the extension disabled in my own browser the
   choice stops being a question. Suggest that once if I keep being asked.
 
+## Why the DevTools MCP goes through a port
+
+[chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) can
+reach a browser three ways, and only `--browser-url` reaches this one:
+
+- **Its own launch** is a Chrome with a profile of its own, never signed in, which is
+  the same problem as the Playwright MCP.
+- **`--autoConnect`** (Chrome 144+) reads the port from `DevToolsActivePort` in
+  the data directory given by `--user-data-dir`, so it can reach this instance too.
+  But remote debugging has to be switched on in `chrome://inspect`, and Chrome asks
+  in a dialog before letting the server in.
+- **`--browser-url http://127.0.0.1:9222`** attaches to the port that `ai-e2e.sh`
+  opens, with no dialog. Chrome opens such a port only on a data directory that is
+  not the default, and binds it to localhost.
+
+The price is that the port has no authentication: any process on this machine can
+drive the instance, including whatever is signed in there. That is acceptable only
+because the instance holds nothing but what I signed into for testing.
+
+The server runs with `--no-usage-statistics`, which stops usage reports to Google,
+and `--no-performance-crux`, which stops it sending trace URLs to the CrUX API. The
+version is pinned, because the server sees everything in the browser.
+1.11.0 was checked on 2026-10-21 against a headless Canary 158: 32 tools, and a
+trace of example.com.
+
 ## Not the profile in git
 
 Backing `~/.chrome-ai-e2e` up into this repo was considered and dropped. It is a

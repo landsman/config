@@ -57,6 +57,15 @@
       ],
       "enabled": true,
       "type": "local"
+    },
+    "chrome-devtools": {
+      "command": [
+        "sh",
+        "-c",
+        "exec npx -y chrome-devtools-mcp@1.11.0 --browser-url http://127.0.0.1:9222 --no-usage-statistics --no-performance-crux"
+      ],
+      "enabled": true,
+      "type": "local"
     }
   },
   "permission": {
