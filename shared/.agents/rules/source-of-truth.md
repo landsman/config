@@ -33,7 +33,7 @@ database was the record.
   and carries the tenant in its key — row-level security does not reach it.
 - **Money is integer minor units with a currency.**
 
-**Before designing any of these, open `contended-writes.md` in the `postgres`
+**Before designing any of these, open `contended-writes.md` in the `be-postgres`
 skill** — the auction worked through in SQL, the isolation level it depends on,
 the idempotency key's rules, one clock for a deadline, the outbox relay, Spring's
 transaction events and the cache race.

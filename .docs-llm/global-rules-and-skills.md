@@ -88,7 +88,7 @@ Actions is the case that forced it: the rule is worth scoping, because most of i
 applies while a `.forgejo/workflows/` file is open — but the sentence that starts
 the work is "port these workflows to Forgejo", spoken in a repo where no such
 file exists yet. A skill description sits in context every session for the price
-of one line, so the `forgejo-workflows` skill carries the procedure and points at
+of one line, so the `git-forgejo-workflows` skill carries the procedure and points at
 the rule for the facts, the same division `commit-messages` already uses. The
 index row still earns its place; a skill is discovered when the model looks for
 one, and the row is what is simply *there*.
