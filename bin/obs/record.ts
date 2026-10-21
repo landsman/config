@@ -27,7 +27,7 @@ import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
 import { ask, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
-import { transcribe } from "@bin/obs/transcribe";
+import { toBrain, transcribe } from "@bin/obs/transcribe";
 import { connect, enable } from "@bin/obs/websocket";
 
 type Mode = "audio" | "video";
@@ -166,6 +166,7 @@ async function stop(name?: string) {
 	say(`  ${link(txt)}`);
 	hint("⌘ + click to open");
 	gap();
+	await toBrain(txt);
 }
 
 if (import.meta.main) await cli(import.meta.path, { setup, start, stop });

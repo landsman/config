@@ -12,7 +12,8 @@
 //
 // usage: transcribe.ts setup        install whisper.cpp, download its models (4.7 GB, once)
 //        transcribe.ts run [file]   the one given, or picked from ~/Recordings in television
-//                                   (type 202610 for October): writes <recording>.txt beside it
+//                                   (type 202610 for October): writes <recording>.txt beside it,
+//                                   then offers to open Claude on it to file the call in the brain
 import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -194,6 +195,24 @@ async function run(file?: string) {
 	say(`  ${link(txt)}`);
 	hint("⌘ + click to open");
 	gap();
+	await toBrain(txt);
 }
+
+/** Opens Claude on a fresh transcript, to file the call in the brain and say what came of it. BRAIN=n skips the question. */
+export async function toBrain(txt: string) {
+	if (!process.stdin.isTTY) return;
+	if (!Bun.which("claude")) return warn("claude is missing, the transcript stays out of the brain");
+	const answer = process.env.BRAIN ?? (await ask("File it in the brain with Claude?", "[Enter = yes, n = no]"));
+	if (["n", "no"].includes(answer.toLowerCase())) return;
+	// Interactive, not claude -p: its writes to the brain need approving, and its questions an answer.
+	await Bun.spawn(["claude", handover(txt)], { cwd: `${homedir()}/projects/landsman/brain`, stdio: ["inherit", "inherit", "inherit"] }).exited;
+}
+
+export const handover = (txt: string) =>
+	`Here is a machine transcript of my call: ${txt}. "Me" is me, "Them" is the other side. ` +
+	"It mis-hears names, products and numbers, so take it as the gist and mark what you had to guess. " +
+	"Who the call was with and what it is about is in the file name and in the brain; if neither says, ask me. " +
+	"File it in the brain: the transcript verbatim as the raw source, and in the wiki what we talked about, " +
+	"what we agreed on and who does what. Then give me the same here, in Czech.";
 
 if (import.meta.main) await cli(import.meta.path, { setup, run });
