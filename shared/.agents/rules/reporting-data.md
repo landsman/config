@@ -35,3 +35,18 @@ What the difference looks like in practice — same finding, reported twice:
 
 The second version of each is barely longer, and it is the one that gets
 corrected in a minute instead of quietly steering the next day's work.
+
+## An optimisation is kept only when its number moved
+
+A change made for speed is a hypothesis until it is measured again the way the
+baseline was: same command, same input, same warm or cold state.
+
+- **Neutral is a revert.** A gain inside the run-to-run spread is a different
+  sample, not a win, and the code it added is maintained forever for nothing.
+- **One change per measurement.** Three fixes landed together give one number
+  nobody can attribute.
+- **Correctness gates the metric.** A win that needed a test changed, skipped or
+  deleted is a regression.
+- **The reverted attempts go into the PR body** — idea, before → after, why it
+  went. Git keeps no trace of them, so otherwise the same dead idea gets tried
+  again.
