@@ -25,7 +25,7 @@ import { cli } from "@lib/cli";
 import { copyTree } from "@lib/files";
 import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
-import { ask, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
+import { ask, askUntil, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
 import { toBrain, transcribe } from "@bin/obs/transcribe";
 import { connect, enable } from "@bin/obs/websocket";
@@ -90,7 +90,7 @@ async function setup() {
 
 async function start(answer?: string) {
 	gap();
-	const m = mode(answer ?? (await ask("Record audio or video?", "[Enter = audio]")));
+	const m = answer === undefined ? await askUntil("Record audio or video?", "[Enter or a = audio, v = video]", mode) : mode(answer);
 	if (!existsSync(`${conf}/basic/profiles/MeetVideo/basic.ini`)) await setup();
 	// -j: started hidden, it only has to record; stop() quits it again.
 	if (!(await running(obsPattern))) await $`open -g -j -a OBS`;

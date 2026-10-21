@@ -22,6 +22,31 @@ export function createTerm(out: Stream, err: Stream) {
 	};
 	const o = style(out), e = style(err);
 	const line = (s: Stream, text: string) => s.write(`${s.tty ? "  " : ""}${text}\n`);
+	/** An error, on stderr: ✗ text. */
+	const warn = (text: string) => line(err, e.red(`✗ ${text}`));
+	/** A question on stderr, answered with one line of stdin; "" on Enter or no input. */
+	async function ask(question: string, hint: string): Promise<string> {
+		err.write(`${err.tty ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `);
+		// readline on process.stdin, the stream untilKey reads too: two readers of
+		// one stdin (Bun's `console` and process.stdin) lose each other's input.
+		const rl = createInterface({ input: process.stdin });
+		const answer = await new Promise<string>((resolve) => {
+			rl.once("line", resolve);
+			rl.once("close", () => resolve(""));
+		});
+		rl.close();
+		return answer.trim();
+	}
+	/** ask() until parse() takes the answer: a typo gets the question again, not a crash. */
+	async function askUntil<T>(question: string, hint: string, parse: (answer: string) => T): Promise<T> {
+		for (;;) {
+			try {
+				return parse(await ask(question, hint));
+			} catch (err) {
+				warn((err as Error).message);
+			}
+		}
+	}
 
 	return {
 		/** Styling for text that goes to stdout. */
@@ -36,23 +61,11 @@ export function createTerm(out: Stream, err: Stream) {
 		gap: () => out.tty && out.write("\n"),
 		/** A dimmed note under the line before it. */
 		hint: (text: string) => line(out, o.dim(`  ${text}`)),
-		/** An error, on stderr: ✗ text. */
-		warn: (text: string) => line(err, e.red(`✗ ${text}`)),
+		warn,
 		/** A path as a terminal link (OSC 8), so ⌘-click opens it whatever the terminal makes of a bare path. */
 		link: (path: string) => (out.tty ? `\x1b]8;;file://${encodeURI(path)}\x1b\\${path}\x1b]8;;\x1b\\` : path),
-		/** A question on stderr, answered with one line of stdin; "" on Enter or no input. */
-		async ask(question: string, hint: string): Promise<string> {
-			err.write(`${err.tty ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `);
-			// readline on process.stdin, the stream untilKey reads too: two readers of
-			// one stdin (Bun's `console` and process.stdin) lose each other's input.
-			const rl = createInterface({ input: process.stdin });
-			const answer = await new Promise<string>((resolve) => {
-				rl.once("line", resolve);
-				rl.once("close", () => resolve(""));
-			});
-			rl.close();
-			return answer.trim();
-		},
+		ask,
+		askUntil,
 	};
 }
 
@@ -79,7 +92,7 @@ export function untilKey(keys: string[], tick?: () => void): Promise<string> {
 }
 
 // process.stderr.write, not console.error: Bun colours that one red on its own.
-export const { o, say, gap, done, live, hint, warn, link, ask } = createTerm(
+export const { o, say, gap, done, live, hint, warn, link, ask, askUntil } = createTerm(
 	{ tty: !!process.stdout.isTTY, write: (s) => process.stdout.write(s) },
 	{ tty: !!process.stderr.isTTY, write: (s) => process.stderr.write(s) },
 );

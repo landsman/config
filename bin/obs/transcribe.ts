@@ -21,7 +21,7 @@ import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { appleCalendarAttendees, appleEventId } from "@bin/obs/apple-calendar";
 import { cli } from "@lib/cli";
-import { ask, done, gap, hint, link, live, o, say, warn } from "@lib/term";
+import { ask, askUntil, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
@@ -140,7 +140,7 @@ async function choose(): Promise<string> {
 /** Transcribes a recording into <recording>.txt and returns that path. */
 export async function transcribe(file: string): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
-	const s = speed(process.env.MODEL ?? (process.stdin.isTTY ? await ask("Quick or precise?", "[Enter = quick, p = precise: better Czech, about 3× slower]") : ""));
+	const s = process.env.MODEL || !process.stdin.isTTY ? speed(process.env.MODEL) : await askUntil("Quick or precise?", "[Enter or q = quick, p = precise: better Czech, about 3× slower]", speed);
 	if (!existsSync(model(s)) || !existsSync(model("vad"))) await setup();
 	let ics = dropped(process.env.ICS ?? "");
 	if (!ics && process.stdin.isTTY) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
