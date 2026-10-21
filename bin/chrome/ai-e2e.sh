@@ -12,7 +12,9 @@ dir="$HOME/.chrome-ai-e2e"
 case "${1:-}" in
 start)
 	if pgrep -f "user-data-dir=$dir" >/dev/null; then echo running; exit 0; fi
-	flags=(--user-data-dir="$dir" --restore-last-session)
+	# The port is what the chrome-devtools MCP server attaches to; Chrome only
+	# opens one on a data directory that is not the default.
+	flags=(--user-data-dir="$dir" --restore-last-session --remote-debugging-port=9222)
 	if [ "$(uname)" = Darwin ]; then
 		# The built-in display as "left top width height", empty without a
 		# second screen, so the window never opens on the one I work on.

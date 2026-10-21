@@ -57,5 +57,11 @@ Every sign-out costs me a round trip, so treat it as a cost and not a detail.
 Not the Playwright MCP either: it opens a window of its own that takes focus, with a
 profile that is never signed in.
 
+**The `chrome-devtools` MCP server drives the same instance,** through its debugging
+port, for what Claude in Chrome cannot do: a performance trace, Lighthouse, network
+requests with their bodies, a heap snapshot. Its pages are tabs in the instance, so
+close the ones it opened (`close_page`). It works only while the instance is
+running, so start it first. It is never pointed anywhere else.
+
 My own browser is right only when the task is about it, such as something only my
 signed-in session can reach, or when I say to use it. Otherwise ask before touching it.

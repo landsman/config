@@ -35,6 +35,14 @@
         "-c",
         "b=$(command -v adminer-desktop || echo \"/Applications/Adminer Desktop.app/Contents/MacOS/adminer-desktop\"); [ -x \"$b\" ] || exit 0; exec \"$b\" -mcp"
       ]
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-c",
+        "exec npx -y chrome-devtools-mcp@1.11.0 --browser-url http://127.0.0.1:9222 --no-usage-statistics --no-performance-crux"
+      ]
     }
   }
 }
