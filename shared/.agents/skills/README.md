@@ -1,0 +1,60 @@
+# Skills
+
+One folder per skill, flat: Codex and Claude Code look exactly one level deep
+for `<name>/SKILL.md`, so a skill in a subfolder never loads. The grouping lives
+here instead, and a skill may sit in more than one area. `make skills-index-test`
+fails when a skill has no row.
+
+## UI and UX
+
+| Skill | For |
+|-------|-----|
+| [calm-ui](calm-ui/SKILL.md) | what a UI does around an action: one loading state, no toasts, Enter submits |
+| [modal-dialogs](modal-dialogs/SKILL.md) | the one modal design every project shares |
+| [optical-centre](optical-centre/SKILL.md) | a lone block in a large empty area, placed above the middle |
+| [mobile-first](mobile-first/SKILL.md) | layout with the phone as the base case |
+| [react](react/SKILL.md) | where the logic of a component goes, and its tests |
+
+## Backend and data
+
+| Skill | For |
+|-------|-----|
+| [spring-boot](spring-boot/SKILL.md) | Boot 3 against Boot 4, transactions, error handling |
+| [orm](orm/SKILL.md) | Hibernate, JPA and Doctrine: N+1, fetch plans, batches |
+| [postgres](postgres/SKILL.md) | tables, indexes, upserts, contended writes, live migrations |
+| [liquibase](liquibase/SKILL.md) | changelogs and what makes a changeset immutable |
+| [caching](caching/SKILL.md) | when a cache is justified, keys, invalidation |
+
+## Testing
+
+| Skill | For |
+|-------|-----|
+| [e2e-tests](e2e-tests/SKILL.md) | browser end-to-end suites and the CI job that runs them |
+
+## Git, forges and CI
+
+| Skill | For |
+|-------|-----|
+| [commit-messages](commit-messages/SKILL.md) | commit subjects and PR titles |
+| [forgejo](forgejo/SKILL.md) | anything on git.insuit.cz |
+| [forgejo-workflows](forgejo-workflows/SKILL.md) | writing or porting a Forgejo Actions workflow |
+
+## Dependencies and research
+
+| Skill | For |
+|-------|-----|
+| [dependencies](dependencies/SKILL.md) | choosing a new dependency, checking its vulnerabilities |
+| [perplexity-research](perplexity-research/SKILL.md) | a deep-research prompt, and taking its answer back |
+| [brain](brain/SKILL.md) | reading from and writing to the long-term notes |
+
+## Writing
+
+| Skill | For |
+|-------|-----|
+| [terse-prose](terse-prose/SKILL.md) | comments, PR bodies, error messages cut to their core |
+| [bro](bro/SKILL.md) | the last answer again, in plain language |
+
+## Not a skill
+
+`mcp-servers/` is a Claude Code plugin (`.claude-plugin/`, `.mcp.json`) that
+sits here; no loader reads it as a skill.

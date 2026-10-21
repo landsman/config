@@ -51,7 +51,7 @@ help: ## show this help
 #
 
 .PHONY: qa qa-deps lint bin-test
-qa: qa-deps lint git-config-test apps-test stow-test bin-test claude-settings-test opencode-config-test ## run all checks — this is what CI runs
+qa: qa-deps lint git-config-test apps-test stow-test bin-test claude-settings-test opencode-config-test skills-index-test ## run all checks — this is what CI runs
 
 qa-deps:
 	@# What the checks need, written down next to the checks, so ci.yml is just
@@ -149,6 +149,14 @@ claude-settings-test: ## check the stowed Claude settings parse and stay machine
 	@grep -n '"autoMode"' shared/.claude/settings.json \
 		&& { echo "^ per-project onboarding state, and it names the checkout - move it to ~/.claude/settings.local.json"; exit 1; } \
 		|| true
+
+.PHONY: skills-index-test
+skills-index-test: ## check every skill has a row in the skills index
+	@# The folders stay flat for the loaders, so the index is the only grouping;
+	@# a skill added without a row there is one nobody finds by browsing.
+	@rc=0; for s in shared/.agents/skills/*/SKILL.md; do n=$${s%/SKILL.md}; n=$${n##*/}; \
+		grep -qF "]($$n/SKILL.md)" shared/.agents/skills/README.md || { echo "no row for $$n in shared/.agents/skills/README.md"; rc=1; }; \
+	done; exit $$rc
 
 .PHONY: opencode-config-test
 opencode-config-test: ## check the stowed opencode config parses and stays machine-independent
