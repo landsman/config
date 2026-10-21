@@ -28,4 +28,4 @@ first one onto it.
 
 Open only the item you are working on — `sections.md` is not read whole:
 
-    awk '/^## 4\. /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/modal-dialogs/sections.md
+    awk '/^## 4\. /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/ui-modal-dialogs/sections.md

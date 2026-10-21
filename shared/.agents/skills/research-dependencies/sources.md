@@ -2,7 +2,7 @@
 
 **Not to be read whole.** Open your ecosystem, and `Cross-ecosystem` with it:
 
-    awk '/^## npm/{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/sources.md
+    awk '/^## npm/{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/research-dependencies/sources.md
 
 **Read the API, not the page.** Page marks were measured on 2026-10-16 with a
 plain HTTP client, which is what a web-fetch tool is: ✅ the page carries its

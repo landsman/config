@@ -451,6 +451,11 @@ relink: ## link what is new in the repo, never moving a file aside - what each s
 	@# is `make restow`, run by someone watching its output.
 	@command -v stow >/dev/null || { echo "stow not installed - run: make apps"; exit 1; }
 	stow $(STOW_FLAGS) -R shared
+	@# -R relinks what the package holds now, never what it held: a renamed skill
+	@# leaves its old folder behind, a dangling link inside. ponytail: ~/.agents
+	@# only, where renames happen; widen it when another package renames a file.
+	@find "$$HOME/.agents" -type l ! -exec test -e {} \; -lname '*/shared/.agents/*' -print -delete
+	@find "$$HOME/.agents" -mindepth 2 -type d -empty -delete
 	@if [ -n '$(DEVICE_PKG)' ]; then stow $(STOW_FLAGS) -R -d devices $(DEVICE_PKG); fi
 	@if [ -n '$(OS_PKG)' ]; then stow $(STOW_FLAGS) -R -d os $(OS_PKG); fi
 

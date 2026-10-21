@@ -2,7 +2,7 @@
 
 **Not to be read whole.** Open the section you need:
 
-    awk '/^## V4 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/vulnerabilities.md
+    awk '/^## V4 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/research-dependencies/vulnerabilities.md
 
 Compiled from a research of 2026-10-16 (the brain's *Checking a dependency's
 vulnerabilities* page), checked against its key sources that day. Commands are in

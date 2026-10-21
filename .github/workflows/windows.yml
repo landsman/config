@@ -34,7 +34,7 @@ jobs:
           Repair-WinGetPackageManager -AllUsers -Force
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File os\windows\apply.ps1
       - name: Skills are reachable where Claude Code looks
-        run: if (-not (Test-Path "$HOME\.claude\skills\commit-messages\SKILL.md")) { throw 'not linked' }
+        run: if (-not (Test-Path "$HOME\.claude\skills\git-commit-messages\SKILL.md")) { throw 'not linked' }
       # As Claude Code runs them: Git Bash, through the shebang. The PATH is
       # reread because winget wrote bun's onto the machine, not into this job.
       - name: The hooks run under Git Bash

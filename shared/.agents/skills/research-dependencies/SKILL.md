@@ -14,9 +14,9 @@ what applies).
 Three files hold the detail. **None is read whole**; open the one section you are
 working on:
 
-    awk '/^## C9 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/criteria.md
-    awk '/^## V4 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/vulnerabilities.md
-    awk '/^## npm/{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/sources.md
+    awk '/^## C9 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/research-dependencies/criteria.md
+    awk '/^## V4 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/research-dependencies/vulnerabilities.md
+    awk '/^## npm/{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/research-dependencies/sources.md
 
 `vulnerabilities.md`:
 

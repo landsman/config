@@ -23,7 +23,7 @@ Schmitt's [A Simple Guide to Calm UI](https://maxschmitt.me/posts/calm).
 4. **A modal whose height can change is pinned by its top.** Centred, an error
    line appearing moves the submit button under the cursor. For a native
    `<dialog>`: `margin-block: 10dvh auto`, so it grows only downward. This
-   overrides the [optical centre](../optical-centre/SKILL.md) for such a
+   overrides the [optical centre](../ui-optical-centre/SKILL.md) for such a
    dialog; a panel that never changes height may still sit there.
 5. **Enter submits.** A real `<form>` with a submit handler
    (`<form onSubmit={save}>` in React) and a `type="submit"` button, never
@@ -32,7 +32,7 @@ Schmitt's [A Simple Guide to Calm UI](https://maxschmitt.me/posts/calm).
    (`autofocus` on it).
 
 The rest of a dialog — its template, buttons, closing and accessibility — is
-in the [modal-dialogs](../modal-dialogs/SKILL.md) skill.
+in the [modal-dialogs](../ui-modal-dialogs/SKILL.md) skill.
 
 A toast still has a place for what has no spot on screen: an event nobody
 triggered (a background sync failed, a new message arrived) or an undo for an

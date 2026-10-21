@@ -56,6 +56,12 @@ form moves to a skill, the way `commit-messages` does it.
 Measure before deciding: `wc -w` on what loads at the trigger, against what is
 on disk.
 
+**A skill's folder starts with its area, its `name:` does not** — `ui-calm/`
+holds `name: calm-ui`. The prefix sorts a listing; the name is the `/command`
+and what rules call the skill. The Agent Skills spec wants the two equal, but
+neither Claude Code nor Codex checks it (Codex `parser.rs`, read 2026-10-21),
+so do not "fix" it.
+
 **In the config repo, a new file is not live until it is linked.** Stow links
 `shared/.agents/` file by file, so a rule or a skill merged without it reaches
 no harness. The session-start hook links it on `main`, but only the session

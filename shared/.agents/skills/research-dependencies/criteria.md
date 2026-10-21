@@ -2,7 +2,7 @@
 
 **Not to be read whole.** Open the criterion you are checking:
 
-    awk '/^## C9 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/dependencies/criteria.md
+    awk '/^## C9 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/research-dependencies/criteria.md
 
 Compiled from a research of 2026-10-16 (the brain's *Choosing a dependency*
 page), sources read that day. C1–C7 are hard filters; C8–C19 rank.

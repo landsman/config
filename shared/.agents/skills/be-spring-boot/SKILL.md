@@ -10,7 +10,7 @@ trigger-keywords: spring boot, spring-boot, springboot, @SpringBootTest, @MockBe
 
 Boot 3 and Boot 4 are both in use, and code written for the wrong one either fails to compile or compiles against an API that is on its way out. Before writing anything, read the version the project actually builds with:
 
-    ~/.agents/skills/spring-boot/boot-version.sh <project-dir>
+    ~/.agents/skills/be-spring-boot/boot-version.sh <project-dir>
 
 It reads Maven (parent or BOM, `${property}` resolved) and Gradle (plugin, BOM, version catalog, `gradle.properties`) without running the build, and prints each declaration with its file. Exit 1 means no clean version is declared in the repo — a corporate parent, a convention plugin, or a build file it cannot read. Then ask the build, which resolves it (about a second on a small project, longer on a large one):
 

@@ -50,4 +50,4 @@ Horizontal centring stays exact — the eye is not biased left or right.
 
 A dialog whose height changes while it is open — an error line appearing —
 is pinned by its top instead, so its buttons stay under the cursor; see
-[calm-ui](../calm-ui/SKILL.md).
+[calm-ui](../ui-calm/SKILL.md).
