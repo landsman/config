@@ -12,6 +12,13 @@ on:
       - shared/**
       - bin/agents/**
       - bin/lib/bun/**
+      # Used only by the call recording in bin/obs, which is macOS-only. A hook
+      # that starts importing one fails bin/agents/windows-paths.test.ts.
+      - '!bin/lib/bun/cli*.ts'
+      - '!bin/lib/bun/files*.ts'
+      - '!bin/lib/bun/media*.ts'
+      - '!bin/lib/bun/proc*.ts'
+      - '!bin/lib/bun/term*.ts'
       - .gitattributes
       - .github/workflows/windows.yml
       # Rules and skills under shared/ are prose; editing one cannot break apply.ps1.

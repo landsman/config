@@ -1,7 +1,7 @@
 // What transcribe.ts would get wrong silently: the two tracks merged out of
 // order, a turn split on every segment or never, whisper's own notes read as speech,
 // and the names from a calendar event missed or mangled — folded lines, quoted
-// names, an attendee who is only an address, a typed ~ — and Enter not
+// names, a name listed twice, a typed ~ — and Enter not
 // meaning the quick model.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
@@ -23,7 +23,7 @@ test("a long turn starts a new line every minute", () =>
 test("one unlabelled track has no speaker", () =>
 	expect(merge([{ who: "", segments: [{ from: 61_000, text: "Hello." }] }])).toBe("[01:01] Hello.\n"));
 
-test("names come from the organizer and attendees, folded and quoted, no bare addresses", () =>
+test("names come from the organizer and attendees, folded and quoted, once each", () =>
 	expect(attendees([
 		"BEGIN:VEVENT",
 		"ORGANIZER;CN=Jana Nováková:mailto:jana@example.com",
@@ -32,7 +32,7 @@ test("names come from the organizer and attendees, folded and quoted, no bare ad
 		"ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=Jana Nováková:mailto:jana@example.com",
 		"ATTENDEE;CN=someone@example.com:mailto:someone@example.com",
 		"END:VEVENT",
-	].join("\r\n"))).toEqual(["Jana Nováková", "Petr Dvořák"]));
+	].join("\r\n"))).toEqual(["Jana Nováková", "Petr Dvořák", "someone@example.com"]));
 
 test("a dragged-in path loses its quotes and escapes", () => {
 	expect(dropped("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe("/Users/me/Downloads/Porada Q4.ics");
