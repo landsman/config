@@ -5,8 +5,9 @@
 // need no guessing. Who is who inside Them does not come out of this, it would
 // take a diarization model. Headphones on the call, or my mic hears Them too.
 //
-// The participants of a calendar event (.ics) go into whisper's prompt, which
-// is what spells their names right. SPOKEN=cs sets the language; auto-detect
+// The participants of a calendar event go into whisper's prompt, which is what
+// spells their names right: an .ics file or an event dragged out of Calendar,
+// see calendar.ts. SPOKEN=cs sets the language; auto-detect
 // guesses it once per track from its first seconds. MODEL=quick|precise skips
 // the question which model.
 //
@@ -18,6 +19,7 @@ import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { participants } from "@bin/obs/calendar";
 import { cli } from "@lib/cli";
 import { ask, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
@@ -80,13 +82,6 @@ const clock = (ms: number) => {
 	return h ? `${h}:${mmss}` : mmss;
 };
 
-/** The names of the people on a calendar event: its organizer and attendees. */
-export function attendees(ics: string): string[] {
-	const unfolded = ics.replace(/\r?\n[ \t]/g, ""); // a long line goes on after a newline and a space
-	const names = [...unfolded.matchAll(/^(?:ATTENDEE|ORGANIZER)[^:\n]*?;CN=("?)([^";:\n]+)\1/gm)].map((m) => m[2].trim());
-	return [...new Set(names)].filter((n) => !n.includes("@"));
-}
-
 /** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
 export const dropped = (s: string) =>
 	s.trim().replace(/^'(.*)'$/, "$1").replace(/^"(.*)"$/, "$1").replace(/\\(.)/g, "$1").replace(/^~(?=\/)/, homedir());
@@ -139,11 +134,9 @@ export async function transcribe(file: string): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
 	const s = speed(process.env.MODEL ?? (process.stdin.isTTY ? await ask("Quick or precise?", "[Enter = quick, p = precise: better Czech, about 3× slower]") : ""));
 	if (!existsSync(model(s)) || !existsSync(model("vad"))) await setup();
-	let ics = dropped(process.env.ICS ?? "");
-	if (!ics && process.stdin.isTTY) ics = dropped(await ask("Calendar event (.ics), drag it here", "[Enter = none]"));
-	// A mistyped path costs the names, not the transcript.
-	if (ics && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
-	const names = ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : [];
+	let event = dropped(process.env.ICS ?? "");
+	if (!event && process.stdin.isTTY) event = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
+	const names = participants(event);
 	if (names.length) hint(`Names: ${names.join(", ")}`);
 
 	// OBS tracks 1 = both mixed, 2 = the call, 3 = me, so audio streams 0, 1, 2.
