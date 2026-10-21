@@ -1,11 +1,12 @@
 // What apple-calendar.ts would get wrong silently: the UUID misread out of the
-// link, or the names of another event, or none, read out of the database.
+// link, the names of another event, or none, read out of the database — or
+// Apple changing the schema of Calendar, which the code reads as "no names".
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appleCalendarAttendees, appleEventId } from "@bin/obs/apple-calendar";
+import { appleCalendarAttendees, appleEventId, attendeesSql, calendarDb } from "@bin/obs/apple-calendar";
 import { dropped } from "@bin/obs/transcribe";
 
 test("an event dragged out of Calendar is a link to its UUID", () => {
@@ -27,4 +28,15 @@ test("its names come from Calendar's database, that event's only, in order", asy
 	expect(appleCalendarAttendees("A", path)).toEqual(["Petr Dvořák", "Jana Nováková"]);
 	expect(appleCalendarAttendees("missing", path)).toEqual([]);
 	expect(appleCalendarAttendees("A", "/nonexistent.sqlitedb")).toEqual([]);
+});
+
+// Only on a Mac with Calendar, and read-only: preparing the query checks every
+// table and column it names against the real schema without reading a row.
+test.skipIf(!existsSync(calendarDb))("the query still fits the schema of Calendar on this Mac", () => {
+	const db = new Database(calendarDb, { readonly: true });
+	try {
+		expect(() => db.query(attendeesSql)).not.toThrow();
+	} finally {
+		db.close();
+	}
 });

@@ -15,7 +15,7 @@ import { createInterface } from "node:readline";
 
 type Stream = { tty: boolean; write: (s: string) => void };
 
-export function createTerm(out: Stream, err: Stream) {
+export function createTerm(out: Stream, err: Stream, readLine = stdinLine) {
 	const style = (s: Stream) => {
 		const sgr = (code: string) => (t: string) => (s.tty ? `\x1b[${code}m${t}\x1b[0m` : t);
 		return { bold: sgr("1"), dim: sgr("2"), red: sgr("1;31"), green: sgr("1;32"), cyan: sgr("1;36") };
@@ -27,15 +27,7 @@ export function createTerm(out: Stream, err: Stream) {
 	/** A question on stderr, answered with one line of stdin; "" on Enter or no input. */
 	async function ask(question: string, hint: string): Promise<string> {
 		err.write(`${err.tty ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `);
-		// readline on process.stdin, the stream untilKey reads too: two readers of
-		// one stdin (Bun's `console` and process.stdin) lose each other's input.
-		const rl = createInterface({ input: process.stdin });
-		const answer = await new Promise<string>((resolve) => {
-			rl.once("line", resolve);
-			rl.once("close", () => resolve(""));
-		});
-		rl.close();
-		return answer.trim();
+		return (await readLine()).trim();
 	}
 	/** ask() until parse() takes the answer: a typo gets the question again, not a crash. */
 	async function askUntil<T>(question: string, hint: string, parse: (answer: string) => T): Promise<T> {
@@ -67,6 +59,18 @@ export function createTerm(out: Stream, err: Stream) {
 		ask,
 		askUntil,
 	};
+}
+
+/** One line of stdin, "" when it ends. readline on process.stdin, the stream untilKey
+ *  reads too: two readers of one stdin (Bun's `console` and process.stdin) lose each other's input. */
+async function stdinLine(): Promise<string> {
+	const rl = createInterface({ input: process.stdin });
+	const answer = await new Promise<string>((resolve) => {
+		rl.once("line", resolve);
+		rl.once("close", () => resolve(""));
+	});
+	rl.close();
+	return answer;
 }
 
 /** Waits for one of `keys` on a terminal, calling tick() now and every second.

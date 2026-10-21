@@ -35,3 +35,17 @@ test("stdout and stderr are judged apart", () => {
 	expect(out.lines[0]).toBe("✓ ok\n");
 	expect(err.lines[0]).toBe("  \x1b[1;31m✗ no\x1b[0m\n");
 });
+
+test("askUntil asks again after an answer parse refuses, saying why", async () => {
+	const answers = ["test-icalc", " p "], err = capture(false);
+	const t = createTerm(capture(false).stream, err.stream, async () => answers.shift() ?? "");
+	const parse = (a: string) => {
+		if (a !== "p") throw new Error(`quick or precise, not '${a}'`);
+		return "precise";
+	};
+	expect(await t.askUntil("Quick or precise?", "[Enter = quick]", parse)).toBe("precise");
+	expect(err.lines).toEqual([
+		"? Quick or precise? [Enter = quick] › ", "✗ quick or precise, not 'test-icalc'\n",
+		"? Quick or precise? [Enter = quick] › ",
+	]);
+});
