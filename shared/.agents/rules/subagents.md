@@ -22,6 +22,9 @@ result it never produced.
   the same system. It already knows the schema, the working query and the dead
   ends; a fresh one finds them again. Start fresh only for unrelated work, for a
   reviewer that has to come in cold, or near the old one's context limit.
+- **A cold reviewer gets the artifact and the contract, never your
+  conclusion**, or it validates the conclusion. The `doubt-review` skill has
+  the prompt and how to sort what comes back.
 - **Hand it the skill and the files, not a retelling.** The prompt names the
   skill to load before the first command, and points at a plan or a log by its
   path instead of pasting it in.

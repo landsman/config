@@ -32,6 +32,12 @@ skills-index-test` fails when a skill has no row.
 |-------|-----|
 | [e2e-tests](test-e2e/SKILL.md) | browser end-to-end suites and the CI job that runs them |
 
+## Review
+
+| Skill | For |
+|-------|-----|
+| [doubt-review](review-doubt/SKILL.md) | a cold subagent tries to disprove a claim before anything rests on it |
+
 ## Git, forges and CI
 
 | Skill | For |
