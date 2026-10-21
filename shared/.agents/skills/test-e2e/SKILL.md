@@ -50,6 +50,7 @@ trigger-keywords: e2e, end-to-end, playwright*, cucumber*, behat*, gherkin*, chr
 - **A per-user setting the suite changes gets a throwaway user,** not a reset hook: cleanup needs a working app at exactly the moment it is not.
 - **Fixtures through builders over the real code** — no SQL, no hardcoded password hashes, no dev seed user.
 - **One browser per run, a fresh `BrowserContext` per scenario.** A second user in one scenario is a second context.
+- **A login reused through `storageState` only by scenarios that leave the user as they found it.** Log in once per run, before the first scenario, and save one file per user or role (`build/auth/<role>.json`). The file is gitignored and never committed. Each context loads it, and nothing writes it back. A scenario that logs out, changes the password or revokes sessions logs in on its own. With a server-side session (Spring Security, Vaadin), logout invalidates the HTTP session, and with it the file's cookie for every scenario after. Parallel workers that change their user's data each get an account of their own, and on Vaadin they need one anyway, because one session's requests wait on one lock. `sessionStorage` is not saved.
 - **Parallel when nothing is shared.** A server-side UI on one shared database runs serially by design; making it parallel is a redesign, not a flag.
 
 ## Writing a test
