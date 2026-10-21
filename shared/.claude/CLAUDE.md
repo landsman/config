@@ -11,7 +11,7 @@ the mistake, not after.
 | Rule | Applies when |
 |------|--------------|
 | [Where the repos live](rules/where-repos-live.md) | finding a repo on disk, and which ones may be named in public |
-| [Reporting data and metrics](rules/reporting-data.md) | a number gets reported — a query, a benchmark, a count |
+| [Reporting data and metrics](rules/reporting-data.md) | a number gets reported — a query, a benchmark, a count — or an optimisation is kept on one |
 | [Localisation](rules/localisation.md) | user-facing text gets written — a label, an error, an email |
 | [Attribution](rules/attribution.md) | anything leaves the machine or gets committed |
 | [Commit messages](rules/commit-messages.md) | writing a commit or a PR title |
