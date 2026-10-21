@@ -147,7 +147,7 @@ Sources: [transaction-bound events](https://docs.spring.io/spring-framework/refe
   commit**, reopening exactly that race. Wrap the manager in
   `TransactionAwareCacheManagerProxy`, or evict `AFTER_COMMIT`.
 
-The `be-caching` skill carries the rest — keys, stampedes, local versus shared.
+The `caching` skill carries the rest — keys, stampedes, local versus shared.
 
 ## Sources
 

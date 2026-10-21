@@ -1,5 +1,5 @@
 ---
-name: git-commit-messages
+name: commit-messages
 description: Load before writing a commit message or a pull-request title — including before running `git commit`, `gh pr create`, `gh pr edit --title` or `glab mr create`. The always-loaded commit-messages rule carries the shape and the type table; this skill carries what a subject has to say, why PR titles are in scope, breaking changes, and where the convention departs from Conventional Commits and commitlint.
 trigger-keywords: commit*, komit*, pull request, PR title, merge request, MR title
 ---

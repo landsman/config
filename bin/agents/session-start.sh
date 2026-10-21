@@ -111,5 +111,5 @@ f="$HOME/projects/landsman/brain/wiki/index.md"
 # ponytail: titles alone overflow the cap too, near 300 pages; split the index by category then.
 idx=$(sed -nE '/^## /p; /^- /{s/ — .*//; s/^(- \[[^]]*\]\([^)]*\)).*/\1/; p;}' "$f")
 [ "${#idx}" -lt $((8000 - ${#msg})) ] || idx=$(sed -nE '/^## /p; /^- /{s/ — .*//; s/^- \[([^]]*)\].*/- \1/; p;}' "$f")
-echo "Brain index, titles only - $f says what each page holds. Check it before researching; load the research-brain skill to read or write it."
+echo "Brain index, titles only - $f says what each page holds. Check it before researching; load the brain skill to read or write it."
 echo "$idx"

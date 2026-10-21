@@ -1,5 +1,5 @@
 ---
-name: ui-mobile-first
+name: mobile-first
 description: Load before writing or reviewing the layout of a web page or component — CSS, a media query, a viewport unit, anything pinned to an edge, a tap target, a form field, a dialog — and when something looks wrong on a phone. Carries the phone as the base case, the browser chrome that covers the page, viewport units, safe areas, touch and input, and how to test what an emulator cannot show.
 trigger-keywords: mobil*, phone*, iphon*, ios, safari, telefon*, responsiv*, responziv*, viewport*, svh, dvh, 100vh, 100svh, 100dvh, safe-area, dotyk*
 ---
@@ -154,7 +154,7 @@ Then, while it is open the page behind should not scroll:
 the page behind a non-modal `show()`. Give the dialog's own scroller
 `overscroll-behavior: contain` so reaching its end does not drag the page.
 How the dialog itself is built — the template, its bands and buttons, the fade —
-is the `ui-modal-dialogs` skill.
+is the `modal-dialogs` skill.
 
 ## 13. testing
 

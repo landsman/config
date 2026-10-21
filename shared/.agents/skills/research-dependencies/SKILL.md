@@ -1,5 +1,5 @@
 ---
-name: research-dependencies
+name: dependencies
 description: Load before adding, proposing or reviewing a new dependency — an npm, Gradle or Maven, Composer, Go, PyPI or Homebrew package, a plugin, a GitHub or Forgejo action, a container base image or a tool — when checking a dependency's or a lockfile's vulnerabilities, and when writing a research prompt about either. Carries the procedure (identity first, hard filters, then ranking), nineteen criteria with how to measure each, vulnerability triage (which advisory source wins, KEV, EPSS, reachability, VEX exceptions, malicious packages, remediation speed), the sources and commands per ecosystem with the API an agent can read, and what never to trust alone. Not for bumping a version already in use.
 trigger-keywords: dependenc*, závislost*, knihovn*, library, libraries, vulnerabilit*, zranitelnost*, cve
 ---
@@ -8,7 +8,7 @@ trigger-keywords: dependenc*, závislost*, knihovn*, library, libraries, vulnera
 
 A dependency is code inside the product's trust boundary, not a convenience. The
 same procedure holds whoever does the research — you, a subagent, or Perplexity
-from a prompt (`research-perplexity` skill; it cannot read these files, so paste
+from a prompt (`perplexity-research` skill; it cannot read these files, so paste
 what applies).
 
 Three files hold the detail. **None is read whole**; open the one section you are

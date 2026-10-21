@@ -1,5 +1,5 @@
 ---
-name: research-perplexity
+name: perplexity-research
 description: Load before writing a deep-research prompt for Perplexity — picking a new dependency (npm, Gradle or Maven, Composer, Go, PyPI, Homebrew), comparing tools, a market, the state of a standard — and when I hand back what Perplexity returned, a downloaded Markdown file. Carries what the prompt must contain, what must stay out of it, the output contract that makes the result easy to bring back, and how to take it back — read it, check its sources, file it in the brain.
 trigger-keywords: perplexity, deep research, rešerš*, průzkum*
 ---
@@ -30,7 +30,7 @@ prompt is the whole integration.
 
 - **The question and the criteria, ranked** — which decide, in what order, and
   which are hard filters.
-- **Picking a dependency** — load the `research-dependencies` skill too, and paste the
+- **Picking a dependency** — load the `dependencies` skill too, and paste the
   sources (their API column included) and the criteria that apply.
 - **Candidates to start from**, marked as not exhaustive, plus the baseline:
   doing nothing, or building it ourselves.
@@ -77,6 +77,6 @@ I drag the file into the terminal, which pastes its path.
    recommendation depends on and confirm they say what is claimed: a research
    tool cites pages that say something else, and a number with no method is a
    claim. Say what you checked and what did not hold.
-3. **File it in the brain** (`research-brain` skill): the file into `raw/` as it arrived,
+3. **File it in the brain** (`brain` skill): the file into `raw/` as it arrived,
    the finding compiled into `wiki/`, with what your check found.
 4. **Then act on it** — the plan, the issue or the code it was for.

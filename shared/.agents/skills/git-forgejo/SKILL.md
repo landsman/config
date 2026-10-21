@@ -1,5 +1,5 @@
 ---
-name: git-forgejo
+name: forgejo
 description: Load before opening a git.insuit.cz link or touching a pull request, issue, review comment, file or CI run on that Forgejo — before any curl, WebFetch or MCP call to it.
 trigger-keywords: git.insuit.cz, forgejo*
 ---

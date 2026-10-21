@@ -2,7 +2,7 @@
 
 My long-term memory lives in `~/projects/landsman/brain`, a private repo:
 `raw/` for sources as they arrived, `wiki/` for pages compiled from them.
-The how is in the `research-brain` skill; load it before touching the repo.
+The how is in the `brain` skill; load it before touching the repo.
 
 - **Before researching something, look there first** — `wiki/index.md`, then
   `grep -ril <term> ~/projects/landsman/brain/wiki`. A finding I already paid

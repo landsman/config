@@ -1,5 +1,5 @@
 ---
-name: be-spring-boot
+name: spring-boot
 description: Load before writing, reviewing or upgrading Spring Boot code — a dependency or starter, a test with MockMvc or a mocked bean, Jackson customisation, a retry, nullability annotations, an HTTP client interface, a `@Transactional` boundary or after-commit listener, an error handler. Carries how to tell Boot 3 from Boot 4 before writing anything, the API that moved between them (in boot-4.md), and the transaction and error-handling traps that hold on every version.
 trigger-keywords: spring boot, spring-boot, springboot, @SpringBootTest, @MockBean, @MockitoBean, @Retryable, @TransactionalEventListener, jackson, jspecify, problemdetail*
 ---
@@ -38,7 +38,7 @@ When the version is 4.x, or the task is an upgrade to it, read it before writing
 - **The proxy is skipped** by a call on `this` and by a private method — for `@Transactional`, `@Retryable` and `@Cacheable` alike.
 - **Checked exceptions commit** unless `rollbackFor` says otherwise.
 - **`readOnly = true` is a hint**, not write protection and not routing to a replica.
-- **`AFTER_COMMIT` is not delivery.** The listener is skipped when no transaction is active, a crash after the commit loses the event, and a database write from inside it needs `REQUIRES_NEW`. Required delivery is an outbox — see the `be-postgres` skill.
+- **`AFTER_COMMIT` is not delivery.** The listener is skipped when no transaction is active, a crash after the commit loses the event, and a database write from inside it needs `REQUIRES_NEW`. Required delivery is an outbox — see the `postgres` skill.
 
 ## Errors — every version
 

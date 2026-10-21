@@ -1,5 +1,5 @@
 ---
-name: ui-react
+name: react
 description: Load before writing or changing a React component or hook — before a handler, a gesture, a timer, a filter, a validation, a fetch or any other logic goes into a component body or its JSX. Carries where the logic goes (a hook, with its decision as a pure function), what gets which test, and when inline is enough.
 trigger-keywords: react, reactu, jsx, tsx, useEffect, useState
 ---

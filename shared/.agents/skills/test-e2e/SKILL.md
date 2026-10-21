@@ -1,5 +1,5 @@
 ---
-name: test-e2e
+name: e2e-tests
 description: Load before adding, changing, reviewing or speeding up a browser end-to-end suite — Playwright (Java, TypeScript or PHP), Cucumber or Behat scenarios over it, the CI job that runs it, or a failing or flaky e2e run. Carries my defaults (Chromium only, as fast as CI allows), where the app under test should run, test data and teardown, locators and waiting, every step bound to code, what a failed run must leave behind, and how CI installs and caches the browser and its OS packages. Framework traps (Vaadin, Playwright Java, Cucumber, Behat, React hydration) are in pitfalls.md.
 trigger-keywords: e2e, end-to-end, playwright*, cucumber*, behat*, gherkin*, chromi*, install-deps, testEndToEnd, flaky*
 ---
@@ -13,7 +13,7 @@ trigger-keywords: e2e, end-to-end, playwright*, cucumber*, behat*, gherkin*, chr
 - **One browser.** `playwright install chromium`, never a bare `install`. In a headless CI job `install --only-shell chromium`: it skips the full Chromium build, 393 MB on disk next to the headless shell's 261, which only a headed run or `channel: 'chromium'` uses. Playwright Java runs a bare `install` on every `Playwright.create()`, all three browsers plus ffmpeg: install Chromium in its own task and set `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` on the test task, which depends on it.
 - **One Playwright version per repo.** Two suites (a Java app and a TypeScript site) pin the same version and are bumped in one Renovate group, so they share one browser directory and one package list.
 - **Headless in CI, headed locally on request** — a `make e2e-head` with slow-mo and one worker, never the default.
-- **Phone first.** Default viewport 390×844, a second pass at 1280×720; reuse those two sizes. A desktop default hides phone bugs: every assertion passes at 1280 against broken phone code. The phone viewport still has no address bar, notch or keyboard; the ui-mobile-first skill's item 13 says what to assert instead.
+- **Phone first.** Default viewport 390×844, a second pass at 1280×720; reuse those two sizes. A desktop default hides phone bugs: every assertion passes at 1280 against broken phone code. The phone viewport still has no address bar, notch or keyboard; the mobile-first skill's item 13 says what to assert instead.
 
 ## CI: install and cache
 

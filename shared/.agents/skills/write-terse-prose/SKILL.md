@@ -1,5 +1,5 @@
 ---
-name: write-terse-prose
+name: terse-prose
 description: Load before writing a code comment, a config comment, a PR or MR description, an issue, an error message, release notes, or a reply that explains a change. Carries how to cut an explanation down to its core so it is shorter and explains more.
 trigger-keywords: code comment*, komentář*, PR description, PR body, popis PR, error message, hlášk*, release notes
 ---

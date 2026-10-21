@@ -67,6 +67,6 @@ that URL in a public doc or a commit message is the thing that rule forbids.
 ## Reading one I handed you
 
 A link to my own work is behind a login: read it with the signed-in tool its
-skill names (`git-forgejo` for git.insuit.cz, `gh` for GitHub), never `WebFetch` or
+skill names (`forgejo` for git.insuit.cz, `gh` for GitHub), never `WebFetch` or
 an anonymous `curl`. A missing server is a finding to report, not a reason to
 scrape the page.

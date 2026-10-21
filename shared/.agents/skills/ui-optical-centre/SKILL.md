@@ -1,5 +1,5 @@
 ---
-name: ui-optical-centre
+name: optical-centre
 description: Load before placing a block alone in a large empty area — a login box on an empty page, an empty state, a splash, a lone card, a "nothing here yet" message, a dialog-sized panel — or when such a block "looks too low". Not for small things in a tight box (an icon in a button, a label in a chip), which stay exactly centred. Carries where the eye's centre is, the golden-section ratio for it, and the CSS that keeps the top reachable when the content outgrows the window.
 trigger-keywords: vertical* cent*, vertikáln*, center vertically, centre vertically, vycentr*, optical cent*, optick*, golden ratio, zlatý řez
 ---
@@ -50,4 +50,4 @@ Horizontal centring stays exact — the eye is not biased left or right.
 
 A dialog whose height changes while it is open — an error line appearing —
 is pinned by its top instead, so its buttons stay under the cursor; see
-[ui-calm](../ui-calm/SKILL.md).
+[calm-ui](../ui-calm/SKILL.md).

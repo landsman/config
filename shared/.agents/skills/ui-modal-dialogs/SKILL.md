@@ -1,5 +1,5 @@
 ---
-name: ui-modal-dialogs
+name: modal-dialogs
 description: Load before building, restyling or reviewing a modal dialog in any web UI — a <dialog>, a confirm, an edit form in a popup, a settings panel, a photo viewer — in React, a server template (Latte, Twig, Thymeleaf) or plain HTML. Carries the one design every modal of mine shares (a template with header, body and footer slots and a close × in the header), its buttons, the fade of the dialog and its backdrop, the page lock, closing on Escape and on a click outside, asking before unsaved changes are lost, what makes it accessible, and the traps already met.
 trigger-keywords: modal*, dialog*, popup*, pop-up*, dialóg*, okn*, backdrop*, showModal, overlay*, unsaved, neuložen*, requestClose, closedby
 ---

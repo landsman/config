@@ -7,7 +7,7 @@ on with the `awk` line it gives.
 
 `showModal()` gives the backdrop, the top layer, a focus trap, an inert page
 behind and Escape for free, and returns focus when it closes. A `<div>` has to
-rebuild all of it and misses some. On a phone, the ui-mobile-first skill's item 12
+rebuild all of it and misses some. On a phone, the mobile-first skill's item 12
 applies on top.
 
 ## 2. template

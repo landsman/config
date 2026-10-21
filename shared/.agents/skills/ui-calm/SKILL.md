@@ -1,5 +1,5 @@
 ---
-name: ui-calm
+name: calm-ui
 description: Load before writing or reviewing what a web UI does around an action — a save, an add, a delete, a form submit — its loading state, its success or error feedback, a toast or snackbar, a form inside a dialog, and when a UI "feels jumpy" or "busy". Carries one loading state per action, no toasts for success or errors, a growing modal pinned by its top, Enter submitting, and the first field focused.
 trigger-keywords: toast*, snackbar*, notifikac*, spinner*, loading state*, skeleton*, jumpy, busy UI, calm UI, klidn*
 ---
@@ -32,7 +32,7 @@ Schmitt's [A Simple Guide to Calm UI](https://maxschmitt.me/posts/calm).
    (`autofocus` on it).
 
 The rest of a dialog — its template, buttons, closing and accessibility — is
-in the [ui-modal-dialogs](../ui-modal-dialogs/SKILL.md) skill.
+in the [modal-dialogs](../ui-modal-dialogs/SKILL.md) skill.
 
 A toast still has a place for what has no spot on screen: an event nobody
 triggered (a background sync failed, a new message arrived) or an undo for an

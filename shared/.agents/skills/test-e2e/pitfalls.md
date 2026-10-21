@@ -1,6 +1,6 @@
 # E2E traps already debugged
 
-**Do not read this file whole.** Open the one section the test-e2e skill's list
+**Do not read this file whole.** Open the one section the e2e-tests skill's list
 points at:
 
     awk '/^## P7 /{f=1;print;next} /^## /{f=0} f' ~/.agents/skills/test-e2e/pitfalls.md

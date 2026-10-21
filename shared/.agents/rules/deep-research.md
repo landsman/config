@@ -7,7 +7,7 @@ Maven, Composer, Go or Homebrew package), comparing tools, a market or the state
 of a standard: anything you would otherwise spend more than a handful of
 searches on. Bumping a dependency we already have is not one.
 
-Load the `research-perplexity` skill, and for a dependency the `research-dependencies`
+Load the `perplexity-research` skill, and for a dependency the `dependencies`
 skill too, then:
 
 1. **Check the brain first** — the answer may already be there ([brain](brain.md)).

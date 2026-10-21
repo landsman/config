@@ -1,5 +1,5 @@
 ---
-name: be-liquibase
+name: liquibase
 description: Load before writing, editing, reviewing or resolving a merge conflict in a Liquibase changelog or changeset — YAML, XML or formatted SQL, including `sqlFile` changes, labels and contexts. Carries what makes a changeset immutable and the one edit an applied changeset can take (a comment, through `validCheckSum`, without dropping any database), the traps that pass review as a pure addition (stolen attributes, split dollar-quoted bodies, moved files), environment filtering, and how to prove a changelog applies before it ships.
 trigger-keywords: liquibase, changelog*, changeset*
 ---
@@ -30,7 +30,7 @@ A changeset that has run anywhere is history. Every trap below either rewrites t
 - **PostgreSQL runs DDL inside the transaction**, so a failed changeset rolls back whole.
 - **MySQL and MariaDB commit implicitly after every DDL statement.** A changeset with two DDL statements can fail halfway and cannot be re-run. Keep it to one statement per changeset there.
 - **`create index concurrently` cannot run in a transaction**, so it needs `runInTransaction: false` on its own changeset.
-- **DDL against a live table sets a lock timeout first** (the `be-postgres` skill says why). On PostgreSQL that is `set local lock_timeout = '5s';` inside the changeset. A plain `set` outlives the changeset on Liquibase's connection and applies to every changeset after it.
+- **DDL against a live table sets a lock timeout first** (the `postgres` skill says why). On PostgreSQL that is `set local lock_timeout = '5s';` inside the changeset. A plain `set` outlives the changeset on Liquibase's connection and applies to every changeset after it.
 - **A large data migration** updates in chunks rather than locking the table in one statement. It never shares a changeset with the DDL it depends on.
 - **Rollback:** `sql` and `sqlFile` changes generate none. Write the `rollback` (`--rollback` in formatted SQL), or say the changeset is forward-only.
 

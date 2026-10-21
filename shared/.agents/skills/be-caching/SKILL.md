@@ -1,5 +1,5 @@
 ---
-name: be-caching
+name: caching
 description: Load before adding, changing or reviewing an application-level cache — Spring `@Cacheable`/`@CacheEvict`, Caffeine, Redis, Symfony Cache — or when the proposed fix for a slow or repeated query is "cache it". Carries when a cache is justified, the key and invalidation traps (tenant leaks, stale data after a migration or deploy, self-invocation), local vs shared caches, and a review checklist.
 trigger-keywords: cache*, caching, cachov*, @Cacheable, @CacheEvict, caffeine, redis
 ---

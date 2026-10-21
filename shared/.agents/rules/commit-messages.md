@@ -3,7 +3,7 @@
 `<type>: <subject>`, or `<type>(<scope>): <subject>` when the repo holds more
 than one project. Lowercase throughout, no full stop.
 
-**The long form lives in the `git-commit-messages` skill** — worked examples of a
+**The long form lives in the `commit-messages` skill** — worked examples of a
 subject that says why, enforcing PR titles in CI, breaking changes, and where
 this sits relative to Conventional Commits and commitlint. Load it before
 writing a commit or a PR title. What stays here is everything needed *before*
