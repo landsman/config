@@ -23,15 +23,30 @@ fetched once, served `immutable` under a hashed name, and shared by every page.
   the colour scheme and the hover like a glyph, and the file's own colour does
   not matter:
 
-      <span class="icon icon-scissors" aria-hidden="true"></span>
+  ```html
+  <span class="icon icon-scissors" aria-hidden="true"></span>
+  ```
 
-      .icon { display: inline-block; width: 1.5em; height: 1.5em;
-              background: currentColor;
-              mask: var(--icon) center / contain no-repeat; }
-      .icon-scissors { --icon: url(icons/scissors.svg); }
-      @media (forced-colors: active) {
-        .icon { forced-color-adjust: none; background: CanvasText; }
-      }
+  ```css
+  .icon {
+    display: inline-block;
+    width: 1.5em;
+    height: 1.5em;
+    background: currentColor;
+    mask: var(--icon) center / contain no-repeat;
+  }
+
+  .icon-scissors {
+    --icon: url(icons/scissors.svg);
+  }
+
+  @media (forced-colors: active) {
+    .icon {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
+  }
+  ```
 
   An `<img>` cannot do this: CSS does not reach into the file, and a `filter`
   only approximates a colour. Forced colours drop the background, hence the
