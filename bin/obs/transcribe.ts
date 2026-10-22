@@ -2,8 +2,10 @@
 // Turns a call recording into text on this machine, with whisper.cpp. Each
 // recording keeps the call and my mic on tracks of their own (see record.ts),
 // so each is transcribed apart and the lines are merged by time: Me and Them
-// need no guessing. Who is who inside Them does not come out of this, it would
-// take a diarization model. Headphones on the call, or my mic hears Them too.
+// need no guessing. Who is who inside Them comes from FluidAudio's offline
+// diarizer (pyannote Community-1 on CoreML): Them 1, Them 2… by who spoke first,
+// no names. It is told at most as many voices as the event has people;
+// SPEAKERS=3 says exactly. Headphones on the call, or my mic hears Them too.
 //
 // The participants of a calendar event go into whisper's prompt, which is what
 // spells their names right: an .ics file, or an event dragged out of Apple
@@ -19,7 +21,7 @@
 import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { appleCalendarAttendees, appleEventId } from "@bin/obs/apple-calendar";
 import { realNames } from "@bin/obs/contacts";
 import { cli } from "@lib/cli";
@@ -51,6 +53,21 @@ const files = {
 };
 const model = (m: keyof typeof files) => `${models}/${files[m].name}`;
 
+// The diarizer is built from a pinned commit, and that commit pins its models'
+// revision; the models are checked against one hash over all their files
+// before the CLI ever loads them. No release ships a binary.
+const fluid = {
+	tag: "v0.17.7",
+	commit: "503b4bd1bbf7220882de39fe8ae6716aae4132da",
+	bin: `${homedir()}/.cache/fluidaudio/fluidaudiocli-0.17.7`,
+	repo: "FluidInference/speaker-diarization-coreml",
+	revision: "df2625ac79a7ac6b65ad868fee6d80f320da4232",
+	// shasum -a 256 of every file, sorted by path, hashed again
+	tree: "ff077a5564c55aa1063dfb4ae11d472f80190f380ae9602686f5ce8420863c12",
+	dir: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization-coreml`,
+	files: /^(Segmentation|FBank|Embedding|PldaRho)\.mlmodelc\/|^plda-parameters\.json$/,
+};
+
 export type Speed = "quick" | "precise";
 
 export function speed(answer = ""): Speed {
@@ -59,10 +76,28 @@ export function speed(answer = ""): Speed {
 	throw new Error(`quick or precise, not '${answer}'`);
 }
 
-export type Segment = { from: number; text: string };
+export type Segment = { from: number; to: number; text: string };
+export type Turn = { speaker: string; from: number; to: number };
+
+/** Splits one track by voice: each segment goes to the speaker it overlaps most,
+ *  numbered by who spoke first. One voice, or none matched, stays just `who`. */
+export function diarize(who: string, segments: Segment[], turns: Turn[]): { who: string; segments: Segment[] }[] {
+	const voice = segments.map((s) => {
+		let best = "", most = 0;
+		for (const t of turns) {
+			const overlap = Math.min(s.to, t.to) - Math.max(s.from, t.from);
+			if (overlap > most) [best, most] = [t.speaker, overlap];
+		}
+		return best;
+	});
+	const order = [...new Set(voice.filter(Boolean))];
+	if (order.length < 2) return [{ who, segments }];
+	const label = (v: string) => (v ? `${who} ${order.indexOf(v) + 1}` : who);
+	return [...new Set(voice.map(label))].map((l) => ({ who: l, segments: segments.filter((_, i) => label(voice[i]) === l) }));
+}
 
 /** One line per turn: [mm:ss] Who: text, consecutive segments of one speaker joined up to a minute. */
-export function merge(tracks: { who: string; segments: Segment[] }[]): string {
+export function merge(tracks: { who: string; segments: Pick<Segment, "from" | "text">[] }[]): string {
 	const all = tracks
 		.flatMap(({ who, segments }) => segments.map((s) => ({ who, ...s, text: s.text.trim() })))
 		// [BLANK_AUDIO], (music) and the like are whisper's notes, not speech.
@@ -114,6 +149,57 @@ async function setup() {
 		renameSync(`${dst}.part`, dst);
 	}
 	done("whisper.cpp is set up", models);
+	if (!Bun.which("swift")) return warn("swift is missing (install Xcode): transcripts keep one Them, unsplit by voice");
+	if (!existsSync(fluid.bin)) await buildFluid();
+	if (!(await fluidReady())) await fetchFluidModels();
+	done("FluidAudio is set up", fluid.bin);
+}
+
+async function buildFluid() {
+	live(`Building FluidAudio ${fluid.tag}, once`);
+	const src = mkdtempSync(join(tmpdir(), "fluidaudio-"));
+	try {
+		await $`git -c advice.detachedHead=false clone -q --depth 1 --branch ${fluid.tag} https://github.com/FluidInference/FluidAudio.git ${src}`;
+		const head = (await $`git -C ${src} rev-parse HEAD`.text()).trim();
+		if (head !== fluid.commit) throw new Error(`FluidAudio ${fluid.tag} is ${head} now, not ${fluid.commit}: the tag moved`);
+		await $`swift build -c release --product fluidaudiocli --package-path ${src}`.quiet();
+		await $`mkdir -p ${dirname(fluid.bin)} && cp ${src}/.build/release/fluidaudiocli ${fluid.bin}`;
+	} finally {
+		rmSync(src, { recursive: true });
+	}
+}
+
+/** Whether the models on disk are exactly the pinned ones, and marked as that revision for the CLI. */
+async function fluidReady(dir = fluid.dir) {
+	if (!existsSync(`${dir}/.fluidaudio-revision`)) return false;
+	return (await treeHash(dir)) === fluid.tree;
+}
+
+async function treeHash(dir: string) {
+	const paths = readdirSync(dir, { recursive: true, encoding: "utf8" })
+		.filter((p) => fluid.files.test(p) && statSync(join(dir, p)).isFile())
+		.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+	let lines = "";
+	for (const p of paths) lines += `${await sha256(join(dir, p))}  ${p}\n`;
+	return new Bun.CryptoHasher("sha256").update(lines).digest("hex");
+}
+
+async function fetchFluidModels() {
+	live("Downloading the diarization models (22 MB)");
+	const api = `https://huggingface.co/api/models/${fluid.repo}/revision/${fluid.revision}`;
+	const names = ((await (await fetch(api)).json()) as { siblings: { rfilename: string }[] }).siblings
+		.map((s) => s.rfilename).filter((f) => fluid.files.test(f));
+	const part = `${fluid.dir}.part`;
+	rmSync(part, { recursive: true, force: true });
+	for (const f of names) await $`mkdir -p ${dirname(`${part}/${f}`)} && curl -fsSL -o ${`${part}/${f}`} ${`https://huggingface.co/${fluid.repo}/resolve/${fluid.revision}/${f}`}`;
+	if ((await treeHash(part)) !== fluid.tree) {
+		rmSync(part, { recursive: true });
+		throw new Error("the diarization models do not match their checksum, deleted");
+	}
+	// The CLI takes a folder marked with its own pinned revision as downloaded.
+	await Bun.write(`${part}/.fluidaudio-revision`, fluid.revision);
+	rmSync(fluid.dir, { recursive: true, force: true });
+	renameSync(part, fluid.dir);
 }
 
 /** The recordings in ~/Recordings, the last one saved first. */
@@ -176,7 +262,8 @@ export async function transcribe(file: string): Promise<string> {
 			}
 			if ((await whisper.exited) !== 0) throw new Error(`whisper failed:\n${log.trim()}`);
 			const json = JSON.parse(readFileSync(`${tmp}/${track}.json`, "utf8"));
-			heard.push({ who, segments: (json.transcription as { offsets: { from: number }; text: string }[]).map((s) => ({ from: s.offsets.from, text: s.text })) });
+			const segments = (json.transcription as { offsets: { from: number; to: number }; text: string }[]).map((s) => ({ ...s.offsets, text: s.text }));
+			heard.push(...(who === "Them" ? diarize(who, segments, await voices(wav, names.length)) : [{ who, segments }]));
 		}
 		const text = merge(heard);
 		if (!text) throw new Error(`no speech in ${basename(file)}, nothing written: a muted mic, or the wrong input recorded?`);
@@ -188,6 +275,25 @@ export async function transcribe(file: string): Promise<string> {
 	} finally {
 		rmSync(tmp, { recursive: true });
 	}
+}
+
+/** Who speaks when on one track, in ms. Nothing when the diarizer is not set up or fails:
+ *  the track then stays one voice rather than costing the transcript. */
+async function voices(wav: string, people: number): Promise<Turn[]> {
+	if (!existsSync(fluid.bin) || !(await fluidReady())) {
+		warn("FluidAudio is not set up (make record-init), Them stays one voice");
+		return [];
+	}
+	live("Telling the voices apart");
+	const count = process.env.SPEAKERS ? ["--num-speakers", process.env.SPEAKERS] : people ? ["--max-speakers", String(people)] : [];
+	const json = `${wav}.voices.json`;
+	const run = await $`${fluid.bin} process ${wav} --mode offline ${count} --output ${json}`.quiet().nothrow();
+	if (run.exitCode !== 0) {
+		warn(`diarization failed, Them stays one voice:\n${run.stderr.toString().trim().slice(-500)}`);
+		return [];
+	}
+	const { segments } = JSON.parse(readFileSync(json, "utf8")) as { segments: { speakerId: string; startTimeSeconds: number; endTimeSeconds: number }[] };
+	return segments.map((s) => ({ speaker: s.speakerId, from: s.startTimeSeconds * 1000, to: s.endTimeSeconds * 1000 }));
 }
 
 async function run(file?: string) {
@@ -215,7 +321,9 @@ export async function toBrain(txt: string) {
 }
 
 export const handover = (txt: string) =>
-	`Here is a machine transcript of my call: ${txt}. "Me" is me, "Them" is the other side. ` +
+	`Here is a machine transcript of my call: ${txt}. "Me" is me, "Them" is the other side; ` +
+	"Them 1, Them 2… are its voices told apart by sound, numbered by who spoke first, without names: " +
+	"a name for one is a guess from what is said, and is marked as one. " +
 	"It mis-hears names, products and numbers, so take it as the gist and mark what you had to guess. " +
 	"Who the call was with and what it is about is in the file name and in the brain; if neither says, ask me. " +
 	"File it in the brain: the transcript verbatim as the raw source, and in the wiki what we talked about, " +
