@@ -10,19 +10,20 @@
 // the first. In the scenes, "mixers" is a bitmask of the tracks a source feeds:
 // 3 = 1+2, 5 = 1+3.
 //
-// usage: record.ts setup               install OBS and set it up (quits OBS first)
+// usage: record.ts setup               install OBS and set it up (quits OBS first), and move
+//                                      calls saved loose in ~/Recordings into a folder each
 //        record.ts start [audio|video] asks which when not given (Enter = audio), then
 //                                      waits with a clock: Ctrl+C or q stops and saves
 //        record.ts stop [name]         stop, ask for a name when not given (Enter = the
 //                                      Calendar event at that time, or the time), save to
-//                                      ~/Recordings with the event beside it as <name>.event.json
+//                                      ~/Recordings/<name>/ with the event beside it as <name>.event.json
 //                                      for the transcript, print the path; for a
 //                                      recording whose terminal was closed; then
 //                                      offers to transcribe it, see transcribe.ts
 import { $ } from "bun";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, renameSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { cli } from "@lib/cli";
 import { copyTree } from "@lib/files";
 import { describe } from "@lib/media";
@@ -46,22 +47,24 @@ export function mode(answer = ""): Mode {
 	throw new Error(`audio or video, not '${answer}'`);
 }
 
-// <dir>/YYYYMMDD-<name>.m4a|mp4, the time when there is no name, and never over
-// an earlier file. raw is named by config/'s FilenameFormatting: 2026-10-20_12-16-26.
+// <dir>/YYYYMMDD-<name>/YYYYMMDD-<name>.m4a|mp4: a folder per call, for the event and
+// transcripts saved beside it, and each file still named after the call wherever it is
+// copied. The time when there is no name, and never into an earlier call's folder.
+// raw is named by config/'s FilenameFormatting: 2026-10-20_12-16-26.
 export function target(m: Mode, raw: string, dir: string, name: string): string {
 	const stamp = basename(raw).replace(/\.[^.]*$/, "");
 	const base = `${stamp.slice(0, 10).replaceAll("-", "")}-${slug(name) || stamp.slice(11)}`;
 	const ext = m === "video" ? "mp4" : "m4a";
-	let dst = join(dir, `${base}.${ext}`);
-	for (let i = 2; existsSync(dst); i++) dst = join(dir, `${base}-${i}.${ext}`);
-	return dst;
+	let call = base;
+	for (let i = 2; existsSync(join(dir, call)); i++) call = `${base}-${i}`;
+	return join(dir, call, `${call}.${ext}`);
 }
 
 // Audio keeps every audio track and drops the black frame; video keeps all.
 // The raw file goes only once the copy is saved: it is the call.
 export async function save(m: Mode, raw: string, dir: string, name: string): Promise<string> {
 	const dst = target(m, raw, dir, name);
-	mkdirSync(dir, { recursive: true });
+	mkdirSync(dirname(dst), { recursive: true });
 	const map = m === "video" ? ["-map", "0"] : ["-map", "0:a"];
 	const r = await $`ffmpeg -nostdin -loglevel error -y -i ${raw} ${map} -c copy ${dst}`.nothrow();
 	if (r.exitCode !== 0) throw new Error(`saving failed, the recording is still at ${raw}`);
@@ -89,6 +92,38 @@ async function setup() {
 	enable();
 	done("OBS is set up");
 	hint("On its first start macOS asks for Microphone and Screen Recording: allow both.");
+	tidy(out);
+}
+
+/** Moves the calls saved before they got a folder each into one. Run again it finds nothing,
+ *  and it never moves over a file: a clash stays where it is. */
+export function tidy(dir: string) {
+	if (!existsSync(dir)) return;
+	let moved = 0;
+	for (const [file, call] of homes(readdirSync(dir).filter((f) => statSync(join(dir, f)).isFile()))) {
+		const dst = join(dir, call, file);
+		if (existsSync(dst)) continue;
+		mkdirSync(join(dir, call), { recursive: true });
+		renameSync(join(dir, file), dst);
+		moved++;
+	}
+	if (moved) done(`Moved ${moved} files into a folder per call`, dir);
+}
+
+/** Which call's folder each loose file goes to: a recording to its own, and its transcripts
+ *  and event to the recording they are named after. X-2.txt is X's second transcript, unless
+ *  X-2 is a recording of its own. Anything else stays out. */
+export function homes(files: string[]): Map<string, string> {
+	const stem = (f: string) => f.replace(/\.[^.]*$/, "");
+	const calls = new Set(files.filter((f) => /\.(m4a|mp4)$/.test(f)).map(stem));
+	const home = new Map<string, string>();
+	for (const f of files) {
+		const exact = f.match(/^(.*)\.(m4a|mp4|txt|event\.json)$/)?.[1];
+		const again = f.match(/^(.*)-\d+\.txt$/)?.[1];
+		if (exact && calls.has(exact)) home.set(f, exact);
+		else if (again && calls.has(again)) home.set(f, again);
+	}
+	return home;
 }
 
 async function start(answer?: string) {

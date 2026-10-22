@@ -29,14 +29,20 @@ whether to file the call in the brain.
 
 ## What it writes
 
-Everything goes to `~/Recordings` (`RECORDINGS_DIR` moves it), next to each
-other under one name:
+Each call gets a folder of its own in `~/Recordings` (`RECORDINGS_DIR` moves
+it), and every file in it is still named after the call, so a copy taken
+elsewhere still says which call it is. A second call with the same name gets a
+`-2` folder.
 
-| File | What |
+| File in `20261021-weekly-sync/` | What |
 |------|------|
 | `20261021-weekly-sync.m4a` | the call: track 1 both sides mixed, 2 the call, 3 my mic (`.mp4` for video) |
 | `20261021-weekly-sync.event.json` | the Calendar event as it was when the call ended: title, times, me, the others |
 | `20261021-weekly-sync.txt` | the transcript; a second run writes `-2.txt` and never overwrites one |
+
+`record-init` moves calls saved before this, loose in `~/Recordings`, into
+folders. Running it again changes nothing, and it never moves a file over
+another one.
 
 The transcript opens with `#` lines saying what is known before reading: the
 event, who else was on it, and each voice heard on the call track with how long

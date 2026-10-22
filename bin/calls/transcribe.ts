@@ -208,25 +208,25 @@ async function fetchFluidModels() {
 	renameSync(part, fluid.dir);
 }
 
-/** The recordings in ~/Recordings, the last one saved first. */
-function recordings(): string[] {
-	const all = readdirSync(out)
-		.filter((f) => /\.(m4a|mp4)$/.test(f))
-		.map((f) => join(out, f))
+/** The recordings in ~/Recordings, one per call's folder, the last one saved first.
+ *  A loose one is found too, until record-init has given it a folder. */
+export function recordings(dir = out): string[] {
+	const media = (d: string) => readdirSync(d).filter((f) => /\.(m4a|mp4)$/.test(f)).map((f) => join(d, f));
+	const all = [...media(dir), ...readdirSync(dir).filter((f) => !f.startsWith(".") && statSync(join(dir, f)).isDirectory()).flatMap((f) => media(join(dir, f)))]
 		.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
-	if (!all.length) throw new Error(`no recording in ${out}`);
+	if (!all.length) throw new Error(`no recording in ${dir}`);
 	return all;
 }
 
-/** Picks a recording in television, newest first. A name opens with its date,
- *  so typing 2026, 202610 or 20261020 filters by year, month or day. */
+/** Picks a recording in television, newest first, by the call's name. That opens with
+ *  its date, so typing 2026, 202610 or 20261020 filters by year, month or day. */
 async function choose(): Promise<string> {
 	if (!Bun.which("tv")) throw new Error("television is missing: brew install television, or give FILE=…");
-	const list = recordings().map((f) => basename(f)).join("\n");
-	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", "Recording to transcribe"], { stdin: new Blob([list]), stdout: "pipe", stderr: "inherit" });
+	const byName = new Map(recordings().map((f) => [basename(f), f]));
+	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", "Recording to transcribe"], { stdin: new Blob([[...byName.keys()].join("\n")]), stdout: "pipe", stderr: "inherit" });
 	const picked = (await new Response(tv.stdout).text()).trim();
 	if (!picked) throw new Error("no recording picked");
-	return join(out, picked);
+	return byName.get(picked) ?? join(out, picked);
 }
 
 /** Transcribes a recording into <recording>.txt and returns that path. */
