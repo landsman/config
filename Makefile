@@ -750,7 +750,8 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 
 ##@ Call recording
 #
-# OBS records a call without touching its audio, see bin/calls/record.ts
+# OBS records a call without touching its audio, whisper.cpp transcribes it; how to use it
+# and what it installs is in bin/calls/README.md
 #
 
 .PHONY: record-init record record-stop record-transcribe
