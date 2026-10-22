@@ -755,7 +755,7 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 #
 
 .PHONY: record-init record record-stop record-transcribe
-record-init: ## install OBS, whisper.cpp with its models (4.7 GB) and the FluidAudio diarizer (built with Xcode), set them up to record and transcribe calls (quits OBS)
+record-init: ## install OBS, whisper.cpp with its models (4.7 GB) and the FluidAudio diarizer (built with Xcode), set them up to record and transcribe calls, give loose recordings a folder each (quits OBS)
 	@$(BUN) bin/calls/record.ts setup && $(BUN) bin/calls/transcribe.ts setup
 
 record: ## record a call until Ctrl+C, then name and save it with its Calendar event: asks audio or video, Enter = audio (MODE=video skips it)
