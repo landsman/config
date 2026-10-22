@@ -25,7 +25,7 @@ skills-index-test` fails when a skill has no row.
 | [postgres](be-postgres/SKILL.md) | tables, indexes, upserts, contended writes, live migrations |
 | [liquibase](be-liquibase/SKILL.md) | changelogs and what makes a changeset immutable |
 | [caching](be-caching/SKILL.md) | when a cache is justified, keys, invalidation |
-| [kotlin-enums](be-kotlin-enums/SKILL.md) | an enum's own file or nested, one constant per line, an exhaustive `when` |
+| [kotlin](be-kotlin/SKILL.md) | own file or nested, enums, a member shadowing an import, money, what gets a unit test |
 
 ## Testing
 
