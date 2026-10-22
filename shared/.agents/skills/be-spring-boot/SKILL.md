@@ -1,7 +1,7 @@
 ---
 name: spring-boot
-description: Load before writing, reviewing or upgrading Spring Boot code — a dependency or starter, a test with MockMvc or a mocked bean, Jackson customisation, a retry, nullability annotations, an HTTP client interface, a `@Transactional` boundary or after-commit listener, an error handler. Carries how to tell Boot 3 from Boot 4 before writing anything, the API that moved between them (in boot-4.md), and the transaction and error-handling traps that hold on every version.
-trigger-keywords: spring boot, spring-boot, springboot, @SpringBootTest, @MockBean, @MockitoBean, @Retryable, @TransactionalEventListener, jackson, jspecify, problemdetail*
+description: Load before writing, reviewing or upgrading Spring Boot code — a dependency or starter, a test with MockMvc or a mocked bean, Jackson customisation, a retry, nullability annotations, an HTTP client interface, a `@Transactional` boundary or after-commit listener, an error handler, method security, a `@Scheduled` job. Carries how to tell Boot 3 from Boot 4 before writing anything, the API that moved between them (in boot-4.md), and the transaction, security, scheduling and error-handling traps that hold on every version.
+trigger-keywords: spring boot, spring-boot, springboot, @SpringBootTest, @MockBean, @MockitoBean, @Retryable, @TransactionalEventListener, jackson, jspecify, problemdetail*, @Scheduled, @PreAuthorize, @RolesAllowed
 ---
 
 # Spring Boot
@@ -36,9 +36,16 @@ When the version is 4.x, or the task is an upgrade to it, read it before writing
 - **`REQUIRES_NEW` holds a second pooled connection** while the outer one waits. Under load that is how the pool runs dry.
 - **A retry wraps the transaction, from another bean.** Retrying inside a transaction that already failed re-runs code in one marked rollback-only. The retrying method calls the `@Transactional` one on a different bean, and holds no transaction of its own.
 - **The proxy is skipped** by a call on `this` and by a private method — for `@Transactional`, `@Retryable` and `@Cacheable` alike.
+- **No external call inside a transaction.** An HTTP call, a mail or a payment provider holds the connection and every lock for as long as the other side takes. Reserve in one short transaction, call with none open, record the outcome in another; mint any id up front.
 - **Checked exceptions commit** unless `rollbackFor` says otherwise.
 - **`readOnly = true` is a hint**, not write protection and not routing to a replica.
 - **`AFTER_COMMIT` is not delivery.** The listener is skipped when no transaction is active, a crash after the commit loses the event, and a database write from inside it needs `REQUIRES_NEW`. Required delivery is an outbox — see the `postgres` skill.
+
+## Security and scheduling — every version
+
+- **`@RolesAllowed` and `@PreAuthorize` on a bean are inert without `@EnableMethodSecurity`** (`@EnableWebSecurity` does not turn it on). Check the configuration before relying on one; without it, the role check is explicit code against the principal.
+- **`@Scheduled` runs on every instance.** Without ShedLock or similar, a job is idempotent or claims its rows with `FOR UPDATE SKIP LOCKED` (see the `postgres` skill).
+- **A new cron gets a second nobody else uses.** Copying a neighbour's `0 */5 * * * *` starts both on one tick of a small scheduler pool, sharing whatever rate limit they call. Offset the second or the minute.
 
 ## Errors — every version
 
