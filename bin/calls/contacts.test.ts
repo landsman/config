@@ -9,7 +9,7 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { addressBooks, contactName, contactScript, contactSql, edited, guessName, realNames, saveContact } from "@bin/obs/contacts";
+import { addressBooks, contactName, contactScript, contactSql, edited, guessName, realNames, saveContact } from "@bin/calls/contacts";
 
 async function book() {
 	const db = new Database(":memory:");

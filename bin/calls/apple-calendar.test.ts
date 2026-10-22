@@ -8,8 +8,8 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appleCalendarAttendees, appleEventId, attendeesSql, calendarDb, eventsDuring, occurrencesSql, peopleSql } from "@bin/obs/apple-calendar";
-import { dropped } from "@bin/obs/transcribe";
+import { appleCalendarAttendees, appleEventId, attendeesSql, calendarDb, eventsDuring, occurrencesSql, peopleSql } from "@bin/calls/apple-calendar";
+import { dropped } from "@bin/calls/transcribe";
 
 test("an event dragged out of Calendar is a link to its UUID", () => {
 	const uuid = "55F9EE9B-1377-4F01-A442-79E9AC71B5BC";

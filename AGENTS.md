@@ -65,7 +65,7 @@ down here, change the tool's configuration, not the workflow — and say so.
 ## Imports in the Bun scripts
 
 An import under `bin/` goes through an alias, never a relative path:
-`@lib/term` for the shared helpers in `bin/lib/bun/`, `@bin/obs/websocket` for
+`@lib/term` for the shared helpers in `bin/lib/bun/`, `@bin/calls/websocket` for
 any other file, tests included. Both are in [`bin/tsconfig.json`](bin/tsconfig.json),
 which Bun, editors and `bun check` all read. A path then says the same thing
 wherever it is written, and moving a file does not break the imports beside it.

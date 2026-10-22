@@ -24,8 +24,8 @@ import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { appleCalendarAttendees, appleEventId, type CallEvent } from "@bin/obs/apple-calendar";
-import { realNames } from "@bin/obs/contacts";
+import { appleCalendarAttendees, appleEventId, type CallEvent } from "@bin/calls/apple-calendar";
+import { realNames } from "@bin/calls/contacts";
 import { cli } from "@lib/cli";
 import { ask, askUntil, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
