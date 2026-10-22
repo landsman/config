@@ -10,6 +10,7 @@ and skills my coding agents load.
 - [The scanner mirrors](docs/scanner-mirrors.md) — semgrep and trivy from my GHCR, pinned by digest
 - [Vulnerable dependencies](docs/vulnerable-dependencies.md) — the lockfile scan and Dependabot's security settings
 - [Development tools](docs/dev-tools.md) — JetBrains, Zed, Ghostty, tmux, television, mise: where each config lives and why
+- [Call recording and transcripts](bin/calls/README.md) — `make record`, its Calendar event, a transcript made on the Mac with the voices told apart, filed in the brain
 - [Coding agents](.docs-llm/README.md) — what of the agent config is tracked, MCP servers, how the rules reach each harness
 
 Machines and platforms:
