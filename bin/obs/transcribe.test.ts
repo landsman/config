@@ -2,10 +2,11 @@
 // order, a turn split on every segment or never, whisper's own notes read as speech,
 // and the names from a calendar event missed or mangled — folded lines, quoted
 // names, a name listed twice, a typed ~ — and Enter not
-// meaning the quick model; and a voice from the diarizer put on the wrong lines.
+// meaning the quick model; a voice from the diarizer put on the wrong lines; and
+// a header that miscounts the voices or names one before the call was read.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { attendees, diarize, dropped, merge, speed } from "@bin/obs/transcribe";
+import { attendees, diarize, dropped, header, merge, speed } from "@bin/obs/transcribe";
 
 test("tracks are merged by time, one line per turn", () =>
 	expect(merge([
@@ -54,6 +55,30 @@ test("one voice, or no diarization at all, keeps the track as it was", () => {
 	const segments = [{ from: 0, to: 1000, text: "A" }];
 	expect(diarize("Them", segments, [{ speaker: "S1", from: 0, to: 5000 }])).toEqual([{ who: "Them", segments }]);
 	expect(diarize("Them", segments, [])).toEqual([{ who: "Them", segments }]);
+});
+
+test("the header says the event, who was on it and each voice, and names none of them", () => {
+	const event = { uuid: "U", title: "Sync", start: new Date(2026, 9, 21, 14).toISOString(), end: new Date(2026, 9, 21, 14, 30).toISOString(), me: "Me", people: ["Jana", "Petr"] };
+	const turns = [{ speaker: "S1", from: 0, to: 9000 }, { speaker: "S2", from: 9000, to: 20_000 }];
+	const heard = [
+		{ who: "Them 1", segments: [{ from: 3000, to: 5000, text: "A" }, { from: 6000, to: 7000, text: "B" }] },
+		{ who: "Them 2", segments: [{ from: 41_000, to: 47_000, text: "C" }] },
+		{ who: "Me", segments: [{ from: 0, to: 1000, text: "D" }] },
+	];
+	expect(header(event, ["Jana", "Petr"], turns, heard)).toBe([
+		"# Event: Sync, 2026-10-21 14:00–14:30",
+		"# Others on the event: Jana, Petr",
+		"# Voices on the call track: 2, told apart by sound only",
+		"#   Them 1  spoke 00:03  first at 00:03",
+		"#   Them 2  spoke 00:06  first at 00:41",
+		"# The lines say Them 1, Them 2…: who is who is not decided yet.",
+		"", "",
+	].join("\n"));
+});
+
+test("without an event or a diarizer the header says so, and without either it is gone", () => {
+	expect(header(undefined, [], null, [])).toBe("# Voices on the call track: not told apart, the diarizer did not run\n\n");
+	expect(header(undefined, [], undefined, [{ who: "", segments: [] }])).toBe("");
 });
 
 test("Enter means quick, p precise, anything else is refused", () => {

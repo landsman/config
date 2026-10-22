@@ -1,12 +1,13 @@
 // What record.ts would get wrong silently: Enter not meaning audio, a video
 // saved as audio-only (or the reverse), a recording overwriting an earlier one
 // of the same name, and the raw recording deleted when saving it failed — those
-// last two lose a call. ffmpeg is a stub on PATH that logs its arguments.
+// last two lose a call — and the wrong Calendar event picked for it. ffmpeg is
+// a stub on PATH that logs its arguments.
 import { afterAll, beforeEach, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mode, save } from "@bin/obs/record";
+import { mode, save, which } from "@bin/obs/record";
 
 const t = mkdtempSync(join(tmpdir(), "record-"));
 const raw = join(t, "2026-10-20_12-16-26.mkv");
@@ -56,4 +57,12 @@ test("a failed save fails and keeps the raw recording", async () => {
 	process.env.FFMPEG_FAIL = "1";
 	await expect(save("audio", raw, `${t}/out`, "x")).rejects.toThrow(raw);
 	expect(existsSync(raw)).toBe(true);
+});
+
+test("Enter takes the best-fitting event, a number another, - none, anything else is asked again", () => {
+	expect(which("", ["a", "b"])).toBe("a");
+	expect(which("2", ["a", "b"])).toBe("b");
+	expect(which("-", ["a", "b"])).toBeUndefined();
+	expect(() => which("3", ["a", "b"])).toThrow();
+	expect(() => which("x", ["a", "b"])).toThrow();
 });
