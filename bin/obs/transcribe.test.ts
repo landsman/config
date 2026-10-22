@@ -2,10 +2,10 @@
 // order, a turn split on every segment or never, whisper's own notes read as speech,
 // and the names from a calendar event missed or mangled — folded lines, quoted
 // names, a name listed twice, a typed ~ — and Enter not
-// meaning the quick model.
+// meaning the quick model; and a voice from the diarizer put on the wrong lines.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { attendees, dropped, merge, speed } from "@bin/obs/transcribe";
+import { attendees, diarize, dropped, merge, speed } from "@bin/obs/transcribe";
 
 test("tracks are merged by time, one line per turn", () =>
 	expect(merge([
@@ -38,6 +38,22 @@ test("a dragged-in path loses its quotes and escapes", () => {
 	expect(dropped("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe("/Users/me/Downloads/Porada Q4.ics");
 	expect(dropped("'/Users/me/a b.ics'")).toBe("/Users/me/a b.ics");
 	expect(dropped("~/a.ics")).toBe(`${homedir()}/a.ics`);
+});
+
+test("a track is split by the voice each segment overlaps most, numbered by who spoke first", () => {
+	const turns = [{ speaker: "S7", from: 0, to: 4000 }, { speaker: "S2", from: 4000, to: 9000 }, { speaker: "S7", from: 9000, to: 12_000 }];
+	const segments = [{ from: 0, to: 3000, text: "A" }, { from: 3000, to: 8000, text: "B" }, { from: 9500, to: 11_000, text: "C" }, { from: 20_000, to: 21_000, text: "D" }];
+	expect(diarize("Them", segments, turns)).toEqual([
+		{ who: "Them 1", segments: [segments[0], segments[2]] },
+		{ who: "Them 2", segments: [segments[1]] },
+		{ who: "Them", segments: [segments[3]] },
+	]);
+});
+
+test("one voice, or no diarization at all, keeps the track as it was", () => {
+	const segments = [{ from: 0, to: 1000, text: "A" }];
+	expect(diarize("Them", segments, [{ speaker: "S1", from: 0, to: 5000 }])).toEqual([{ who: "Them", segments }]);
+	expect(diarize("Them", segments, [])).toEqual([{ who: "Them", segments }]);
 });
 
 test("Enter means quick, p precise, anything else is refused", () => {
