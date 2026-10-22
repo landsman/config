@@ -8,8 +8,10 @@
 // SPEAKERS=3 says exactly. Headphones on the call, or my mic hears Them too.
 //
 // The participants of a calendar event go into whisper's prompt, which is what
-// spells their names right: an .ics file, or an event dragged out of Apple
-// Calendar (apple-calendar.ts). One known only by address is named in
+// spells their names right: the event record.ts found in Calendar when the call
+// stopped (<recording>.event.json), else an .ics file or an event dragged out of
+// Apple Calendar (apple-calendar.ts). The transcript opens with what that event
+// and the diarizer say, as # lines. One known only by address is named in
 // contacts.ts. SPOKEN=cs sets the language; auto-detect
 // guesses it once per track from its first seconds. MODEL=quick|precise skips
 // the question which model.
@@ -22,7 +24,7 @@ import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { appleCalendarAttendees, appleEventId } from "@bin/obs/apple-calendar";
+import { appleCalendarAttendees, appleEventId, type CallEvent } from "@bin/obs/apple-calendar";
 import { realNames } from "@bin/obs/contacts";
 import { cli } from "@lib/cli";
 import { ask, askUntil, done, gap, hint, link, live, o, say, warn } from "@lib/term";
@@ -228,15 +230,20 @@ export async function transcribe(file: string): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
 	const s = process.env.MODEL || !process.stdin.isTTY ? speed(process.env.MODEL) : await askUntil("Quick or precise?", "[Enter or q = quick, p = precise: better Czech, about 3× slower]", speed);
 	if (!existsSync(model(s)) || !existsSync(model("vad"))) await setup();
-	let ics = dropped(process.env.ICS ?? "");
-	if (!ics && process.stdin.isTTY) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
+	// The event saved when the call was stopped; asked for only when there is none.
+	const event = existsSync(eventFile(file)) ? (JSON.parse(readFileSync(eventFile(file), "utf8")) as CallEvent) : undefined;
+	let ics = event ? "" : dropped(process.env.ICS ?? "");
+	if (!event && !ics && process.stdin.isTTY) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
 	// A mistyped path costs the names, not the transcript.
 	const apple = appleEventId(ics);
-	const people = apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : [];
+	const people = event?.people ?? (apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : []);
 	if (apple && !people.length) warn("no such event in Calendar, going on without names");
 	else if (ics && !apple && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
 	const names = await realNames(people);
+	if (event) hint(`Event: ${event.title}`);
 	if (names.length) hint(`Names: ${names.join(", ")}`);
+	// My own name too, so whisper spells it; it is no voice on the call track.
+	const spelled = [...(event?.me ? [event.me] : []), ...names];
 
 	// OBS tracks 1 = both mixed, 2 = the call, 3 = me, so audio streams 0, 1, 2.
 	// A recording made otherwise is one voice.
@@ -245,12 +252,13 @@ export async function transcribe(file: string): Promise<string> {
 	const tmp = mkdtempSync(join(tmpdir(), "transcribe-"));
 	try {
 		const heard = [];
+		let turns: Turn[] | null | undefined;
 		for (const { who, track } of tracks) {
 			const what = `Transcribing ${who || "the recording"}`;
 			live(what);
 			const wav = `${tmp}/${track}.wav`;
 			await $`ffmpeg -nostdin -loglevel error -i ${file} -map 0:a:${track} -ar 16000 -ac 1 -c:a pcm_s16le ${wav}`;
-			const prompt = names.length ? ["--prompt", `${names.join(", ")}.`] : [];
+			const prompt = spelled.length ? ["--prompt", `${spelled.join(", ")}.`] : [];
 			const whisper = Bun.spawn(["whisper-cli", "-m", model(s), "--vad", "-vm", model("vad"), "-l", process.env.SPOKEN || "auto",
 				...prompt, "-np", "-pp", "-oj", "-of", `${tmp}/${track}`, "-f", wav], { stdout: "ignore", stderr: "pipe" });
 			// -pp prints "progress = 40%" on stderr; it redraws the line above.
@@ -263,10 +271,12 @@ export async function transcribe(file: string): Promise<string> {
 			if ((await whisper.exited) !== 0) throw new Error(`whisper failed:\n${log.trim()}`);
 			const json = JSON.parse(readFileSync(`${tmp}/${track}.json`, "utf8"));
 			const segments = (json.transcription as { offsets: { from: number; to: number }; text: string }[]).map((s) => ({ ...s.offsets, text: s.text }));
-			heard.push(...(who === "Them" ? diarize(who, segments, await voices(wav, names.length)) : [{ who, segments }]));
+			if (who === "Them") turns = await voices(wav, names.length);
+			heard.push(...(who === "Them" ? diarize(who, segments, turns ?? []) : [{ who, segments }]));
 		}
-		const text = merge(heard);
-		if (!text) throw new Error(`no speech in ${basename(file)}, nothing written: a muted mic, or the wrong input recorded?`);
+		const lines = merge(heard);
+		if (!lines) throw new Error(`no speech in ${basename(file)}, nothing written: a muted mic, or the wrong input recorded?`);
+		const text = header(event, names, turns, heard) + lines;
 		// Never over an earlier one: it may have been corrected by hand.
 		let txt = file.replace(/\.[^.]*$/, ".txt");
 		for (let i = 2; existsSync(txt); i++) txt = file.replace(/\.[^.]*$/, `-${i}.txt`);
@@ -277,12 +287,37 @@ export async function transcribe(file: string): Promise<string> {
 	}
 }
 
-/** Who speaks when on one track, in ms. Nothing when the diarizer is not set up or fails:
- *  the track then stays one voice rather than costing the transcript. */
-async function voices(wav: string, people: number): Promise<Turn[]> {
+export const eventFile = (recording: string) => recording.replace(/\.[^.]*$/, ".event.json");
+
+/** What is known before the call is read, as # lines on top, for me and for the model
+ *  that files it. Names stay off the lines: who is who is decided once the whole call is read. */
+export function header(event: CallEvent | undefined, names: string[], turns: Turn[] | null | undefined, heard: { who: string; segments: Segment[] }[]): string {
+	const lines: string[] = [];
+	if (event) lines.push(`Event: ${event.title || "untitled"}, ${day(event.start)} ${hm(event.start)}–${hm(event.end)}`);
+	if (names.length) lines.push(`${event ? "Others on the event" : "On the event"}: ${names.join(", ")}`);
+	if (turns === null) lines.push("Voices on the call track: not told apart, the diarizer did not run");
+	else if (turns) {
+		const count = new Set(turns.map((t) => t.speaker)).size;
+		lines.push(`Voices on the call track: ${count}, told apart by sound only`);
+		for (const { who, segments } of heard.filter((t) => t.who.startsWith("Them") && t.segments.length)) {
+			const spoke = segments.reduce((sum, s) => sum + s.to - s.from, 0);
+			lines.push(`  ${who.padEnd(7)} spoke ${clock(spoke)}  first at ${clock(Math.min(...segments.map((s) => s.from)))}`);
+		}
+		if (count > 1) lines.push("The lines say Them 1, Them 2…: who is who is not decided yet.");
+	}
+	return lines.length ? `${lines.map((l) => `# ${l}`).join("\n")}\n\n` : "";
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const day = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const hm = (iso: string) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+/** Who speaks when on one track, in ms; null when the diarizer is not set up or fails,
+ *  and the track then stays one voice rather than costing the transcript. */
+async function voices(wav: string, people: number): Promise<Turn[] | null> {
 	if (!existsSync(fluid.bin) || !(await fluidReady())) {
 		warn("FluidAudio is not set up (make record-init), Them stays one voice");
-		return [];
+		return null;
 	}
 	live("Telling the voices apart");
 	const count = process.env.SPEAKERS ? ["--num-speakers", process.env.SPEAKERS] : people ? ["--max-speakers", String(people)] : [];
@@ -290,7 +325,7 @@ async function voices(wav: string, people: number): Promise<Turn[]> {
 	const run = await $`${fluid.bin} process ${wav} --mode offline ${count} --output ${json}`.quiet().nothrow();
 	if (run.exitCode !== 0) {
 		warn(`diarization failed, Them stays one voice:\n${run.stderr.toString().trim().slice(-500)}`);
-		return [];
+		return null;
 	}
 	const { segments } = JSON.parse(readFileSync(json, "utf8")) as { segments: { speakerId: string; startTimeSeconds: number; endTimeSeconds: number }[] };
 	return segments.map((s) => ({ speaker: s.speakerId, from: s.startTimeSeconds * 1000, to: s.endTimeSeconds * 1000 }));
@@ -324,6 +359,7 @@ export const handover = (txt: string) =>
 	`Here is a machine transcript of my call: ${txt}. "Me" is me, "Them" is the other side; ` +
 	"Them 1, Them 2… are its voices told apart by sound, numbered by who spoke first, without names: " +
 	"a name for one is a guess from what is said, and is marked as one. " +
+	"The # lines on top say what was known before the call was read: the event, who was on it, the voices heard. " +
 	"It mis-hears names, products and numbers, so take it as the gist and mark what you had to guess. " +
 	"Who the call was with and what it is about is in the file name and in the brain; if neither says, ask me. " +
 	"File it in the brain: the transcript verbatim as the raw source, and in the wiki what we talked about, " +

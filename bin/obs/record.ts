@@ -14,7 +14,9 @@
 //        record.ts start [audio|video] asks which when not given (Enter = audio), then
 //                                      waits with a clock: Ctrl+C or q stops and saves
 //        record.ts stop [name]         stop, ask for a name when not given (Enter = the
-//                                      time), save to ~/Recordings, print the path; for a
+//                                      Calendar event at that time, or the time), save to
+//                                      ~/Recordings with the event beside it as <name>.event.json
+//                                      for the transcript, print the path; for a
 //                                      recording whose terminal was closed; then
 //                                      offers to transcribe it, see transcribe.ts
 import { $ } from "bun";
@@ -27,7 +29,8 @@ import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
 import { ask, askUntil, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
-import { toBrain, transcribe } from "@bin/obs/transcribe";
+import { type CallEvent, eventsDuring } from "@bin/obs/apple-calendar";
+import { eventFile, toBrain, transcribe } from "@bin/obs/transcribe";
 import { connect, enable } from "@bin/obs/websocket";
 
 type Mode = "audio" | "video";
@@ -143,8 +146,11 @@ async function start(answer?: string) {
 
 async function stop(name?: string) {
 	gap();
-	name ??= await ask("Name the recording", "[Enter = the time]");
 	const { call, close } = await connect();
+	// The event is looked up while OBS still knows how long it has been recording.
+	const { outputDuration } = await call("GetRecordStatus");
+	const event = await pickEvent(eventsDuring(new Date(Date.now() - outputDuration), new Date()));
+	name ??= (await ask("Name the recording", `[Enter = ${event?.title || "the time"}]`)) || event?.title || "";
 	const { currentProfileName } = await call("GetProfileList");
 	const { outputPath } = await call("StopRecord");
 	close();
@@ -152,6 +158,7 @@ async function stop(name?: string) {
 	await waitFor(async () => !(await running("obs-ffmpeg-mux")), 30);
 	await quit().catch(() => {}); // a window left open in it only keeps it running
 	const saved = await save(currentProfileName === "MeetVideo" ? "video" : "audio", outputPath, out, name);
+	if (event) await Bun.write(eventFile(saved), `${JSON.stringify(event, null, "\t")}\n`);
 	if (!process.stdout.isTTY) return say(saved); // a script reading it gets the path alone
 	gap();
 	done(`Saved ${basename(saved)}`, await describe(saved));
@@ -167,6 +174,20 @@ async function stop(name?: string) {
 	hint("⌘ + click to open");
 	gap();
 	await toBrain(txt);
+}
+
+/** The event the call was, asked only when Calendar has more than one at that time. */
+async function pickEvent(events: CallEvent[]): Promise<CallEvent | undefined> {
+	if (events.length < 2 || !process.stdin.isTTY) return events[0];
+	const list = events.map((e, i) => `${i + 1} = ${e.title || "untitled"}`).join(", ");
+	return askUntil("Which event was the call?", `[Enter = 1, ${list}, - = none]`, (a) => which(a, events));
+}
+
+export function which<T>(answer: string, events: T[]): T | undefined {
+	if (answer === "-") return undefined;
+	const i = answer === "" ? 0 : Number(answer) - 1;
+	if (!Number.isInteger(i) || !events[i]) throw new Error(`a number from 1 to ${events.length}, or -`);
+	return events[i];
 }
 
 if (import.meta.main) await cli(import.meta.path, { setup, start, stop });
