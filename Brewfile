@@ -115,7 +115,7 @@ brew "tree-sitter-cli"
 brew "ts_query_ls"
 # Extremely fast Python package installer and resolver, written in Rust
 brew "uv"
-# Speech to text on this machine — transcribes a call, see bin/obs/transcribe.ts
+# Speech to text on this machine — transcribes a call, see bin/calls/transcribe.ts
 brew "whisper.cpp"
 # Blazing fast terminal file manager written in Rust, based on async I/O
 brew "yazi"
@@ -190,7 +190,7 @@ if OS.mac?
 	cask "microsoft-teams"
 	# Screen zoom and annotation for presentations — Sysinternals ZoomIt
 	cask "microsoft/sysinternalstap/zoomit"
-	# Screen and audio recorder — records a call, see bin/obs/record.sh
+	# Screen and audio recorder — records a call, see bin/calls/record.ts
 	cask "obs"
 	# Desktop client for Perplexity AI
 	cask "perplexity"

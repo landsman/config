@@ -12,7 +12,7 @@ on:
       - shared/**
       - bin/agents/**
       - bin/lib/bun/**
-      # Used only by the call recording in bin/obs, which is macOS-only. A hook
+      # Used only by the call recording in bin/calls, which is macOS-only. A hook
       # that starts importing one fails bin/agents/windows-paths.test.ts.
       - '!bin/lib/bun/cli*.ts'
       - '!bin/lib/bun/files*.ts'

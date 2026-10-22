@@ -6,7 +6,7 @@
 // a header that miscounts the voices or names one before the call was read.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { attendees, diarize, dropped, header, merge, speed } from "@bin/obs/transcribe";
+import { attendees, diarize, dropped, header, merge, speed } from "@bin/calls/transcribe";
 
 test("tracks are merged by time, one line per turn", () =>
 	expect(merge([

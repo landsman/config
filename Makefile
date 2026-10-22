@@ -750,21 +750,22 @@ macos-vnode-watch-off: ## stop the root sampler and put the user-level one back
 
 ##@ Call recording
 #
-# OBS records a call without touching its audio, see bin/obs/record.ts
+# OBS records a call without touching its audio, whisper.cpp transcribes it; how to use it
+# and what it installs is in bin/calls/README.md
 #
 
 .PHONY: record-init record record-stop record-transcribe
 record-init: ## install OBS, whisper.cpp with its models (4.7 GB) and the FluidAudio diarizer (built with Xcode), set them up to record and transcribe calls (quits OBS)
-	@$(BUN) bin/obs/record.ts setup && $(BUN) bin/obs/transcribe.ts setup
+	@$(BUN) bin/calls/record.ts setup && $(BUN) bin/calls/transcribe.ts setup
 
 record: ## record a call until Ctrl+C, then name and save it with its Calendar event: asks audio or video, Enter = audio (MODE=video skips it)
-	@$(BUN) bin/obs/record.ts start $(MODE)
+	@$(BUN) bin/calls/record.ts start $(MODE)
 
 record-stop: ## stop a recording whose terminal was closed, name it (NAME=… skips it), save to ~/Recordings
-	@$(BUN) bin/obs/record.ts stop "$(NAME)"
+	@$(BUN) bin/calls/record.ts stop "$(NAME)"
 
 record-transcribe: ## transcribe a recording picked in television (type 202610 for October), or FILE=…, into a .txt beside it, Me/Them 1/Them 2…, then file it in the brain with Claude (MODEL=precise, SPOKEN=cs, ICS=event.ics or an ical:// link, SPEAKERS=3 voices on the other side, BRAIN=n)
-	@$(BUN) bin/obs/transcribe.ts run "$(FILE)"
+	@$(BUN) bin/calls/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
 

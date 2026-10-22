@@ -24,8 +24,8 @@ import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { appleCalendarAttendees, appleEventId, type CallEvent } from "@bin/obs/apple-calendar";
-import { realNames } from "@bin/obs/contacts";
+import { appleCalendarAttendees, appleEventId, type CallEvent } from "@bin/calls/apple-calendar";
+import { realNames } from "@bin/calls/contacts";
 import { cli } from "@lib/cli";
 import { ask, askUntil, done, gap, hint, link, live, o, say, warn } from "@lib/term";
 
@@ -66,7 +66,9 @@ const fluid = {
 	revision: "df2625ac79a7ac6b65ad868fee6d80f320da4232",
 	// shasum -a 256 of every file, sorted by path, hashed again
 	tree: "ff077a5564c55aa1063dfb4ae11d472f80190f380ae9602686f5ce8420863c12",
-	dir: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization-coreml`,
+	// The repository's name without -coreml, as FluidAudio's Repo.folderName makes it
+	dir: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization`,
+	misplaced: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization-coreml`,
 	files: /^(Segmentation|FBank|Embedding|PldaRho)\.mlmodelc\/|^plda-parameters\.json$/,
 };
 
@@ -154,6 +156,8 @@ async function setup() {
 	if (!Bun.which("swift")) return warn("swift is missing (install Xcode): transcripts keep one Them, unsplit by voice");
 	if (!existsSync(fluid.bin)) await buildFluid();
 	if (!(await fluidReady())) await fetchFluidModels();
+	// An earlier setup put the models where the CLI never looks; gone only when they are exactly ours.
+	if (existsSync(fluid.misplaced) && (await fluidReady(fluid.misplaced))) rmSync(fluid.misplaced, { recursive: true });
 	done("FluidAudio is set up", fluid.bin);
 }
 
