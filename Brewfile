@@ -26,6 +26,8 @@ brew "cloudflared"
 brew "croc"
 # Secure runtime for JavaScript and TypeScript
 brew "deno"
+# ls with colour per file type, icons and a git column — aliased in 00-general.sh
+brew "eza"
 # Play, record, convert, and stream select audio and video codecs
 brew "ffmpeg"
 # GitHub command-line tool
@@ -166,6 +168,9 @@ if OS.mac?
 	cask "docker-desktop"
 	# Collaborative design and prototyping
 	cask "figma"
+	# The icons eza draws, for terminals that do not bundle them. Ghostty does,
+	# which is why the Linux boxes go without.
+	cask "font-jetbrains-mono-nerd-font"
 	# Fast, GPU-accelerated terminal emulator
 	cask "ghostty"
 	# Web browser — the default one, see bin/macos/file-associations.conf
