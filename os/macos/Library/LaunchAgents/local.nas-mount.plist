@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Mounts the home NAS's Samba shares at login, and again whenever the network
+  changes, so arriving home mounts them too. What it mounts and why it needs
+  the Keychain is in ~/.local/bin/nas-mount.sh (os/macos/.local/bin here).
+
+  WatchPaths on SystemConfiguration is launchd's network-change trigger. A
+  share unmounted by hand comes back on the next change; that is the trade.
+  Off: `launchctl bootout gui/$(id -u)/local.nas-mount`.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>local.nas-mount</string>
+	<key>ProgramArguments</key>
+	<array>
+		<!-- Through sh: launchd expands neither $HOME nor a leading ~. -->
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>exec "$HOME/.local/bin/nas-mount.sh"</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>WatchPaths</key>
+	<array>
+		<string>/Library/Preferences/SystemConfiguration</string>
+	</array>
+</dict>
+</plist>
