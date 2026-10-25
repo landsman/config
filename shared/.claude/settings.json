@@ -173,6 +173,7 @@
         ]
       },
       {
+        "_otty": true,
         "hooks": [
           {
             "type": "command",
@@ -192,6 +193,7 @@
         ]
       },
       {
+        "_otty": true,
         "hooks": [
           {
             "type": "command",
@@ -214,6 +216,7 @@
         ]
       },
       {
+        "_otty": true,
         "hooks": [
           {
             "type": "command",
@@ -242,6 +245,7 @@
         ]
       },
       {
+        "_otty": true,
         "hooks": [
           {
             "type": "command",
@@ -252,6 +256,7 @@
     ],
     "PermissionRequest": [
       {
+        "_otty": true,
         "hooks": [
           {
             "type": "command",
@@ -262,6 +267,7 @@
     ],
     "PostToolUse": [
       {
+        "_otty": true,
         "hooks": [
           {
             "type": "command",
@@ -272,6 +278,7 @@
     ],
     "StopFailure": [
       {
+        "_otty": true,
         "hooks": [
           {
             "type": "command",
