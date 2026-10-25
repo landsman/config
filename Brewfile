@@ -197,7 +197,7 @@ if OS.mac?
 	cask "microsoft/sysinternalstap/zoomit"
 	# Screen and audio recorder — records a call, see bin/calls/record.ts
 	cask "obs"
-	# Terminal built for coding agents, closed source; see the brain's otty page
+	# Terminal built for coding agents (closed source)
 	cask "otty"
 	# Desktop client for Perplexity AI
 	cask "perplexity"
