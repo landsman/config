@@ -25,6 +25,11 @@ on:
       - '!**.md'
   workflow_dispatch:
 
+# A new push supersedes the run still checking the old commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # The Windows half runs for real rather than being parsed. x64, like the
   # T480; the only hosted Windows 11 image is Arm, where x64 installers run
