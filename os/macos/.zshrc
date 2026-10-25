@@ -4,6 +4,13 @@
 # whatever rc the installer patched, which is not tracked here.
 [ -x /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv zsh)"
 
+# BSD ls prints no colour unless asked; the terminal is not the problem.
+export CLICOLOR=1
+
+# Ubuntu's prompt, green user@host and blue directory; zsh's default is all
+# one colour.
+PROMPT='%B%F{green}%n@%m%f%b:%B%F{blue}%~%f%b%# '
+
 export PATH="$HOME/.local/bin:/opt/homebrew/opt/libpq/bin:$PATH"
 export PATH="$PATH:$HOME/.lmstudio/bin"          # LM Studio CLI (lms)
 export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"

@@ -7,6 +7,11 @@ on:
     paths-ignore: ['**.md']
   workflow_dispatch:   # so a run can be retried without closing and reopening the PR
 
+# A new push supersedes the run still checking the old commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Both userlands, because that is where the bugs are. The scripts under bin/
   # run on the Mac and on the ThinkPads, and BSD and GNU disagree on enough to

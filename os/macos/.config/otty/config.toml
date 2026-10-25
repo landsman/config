@@ -1,0 +1,37 @@
+foreground = "#f7f8ff"
+background = "#40434b"
+palette-0 = "#252a35"
+open-with-app = "Xcode|com.apple.dt.Xcode"
+open-with-app = "Zed|dev.zed.Zed"
+
+# window-layout = "tabs-bottom" (reset to default)
+
+theme = "Glass Dark"
+
+# font-blending = "linear" (reset to default)
+
+sidebar-width = 322
+
+theme-dark = "Glass Dark"
+
+palette-1 = "#ff8a8a"
+palette-2 = "#a8d46f"
+palette-3 = "#e8c778"
+palette-4 = "#8db7ff"
+palette-5 = "#d1a3ff"
+palette-6 = "#7fd6c2"
+palette-7 = "#e3e6f0"
+palette-8 = "#747b8e"
+palette-9 = "#ffb0a8"
+palette-10 = "#c8ea90"
+palette-11 = "#f2da9a"
+palette-12 = "#b2ccff"
+palette-13 = "#e0c2ff"
+palette-14 = "#a3e6d8"
+
+selection-background = "#bbc9ed"
+cursor-color = "#f7f8ff"
+
+# palette-15 = "#e0e0e0" (reset to default)
+# selection-foreground = "#9e8b13" (reset to default)
+# cursor-text = "#323232" (reset to default)

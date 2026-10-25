@@ -171,6 +171,15 @@
             "command": "\"$HOME/projects/landsman/config/bin/agents/checkout-guard.sh\""
           }
         ]
+      },
+      {
+        "_otty": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" processing \"$PPID\""
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -180,6 +189,15 @@
             "type": "command",
             "command": "\"$HOME/projects/landsman/config/bin/agents/session-start.sh\"",
             "timeout": 60
+          }
+        ]
+      },
+      {
+        "_otty": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" idle \"$PPID\""
           }
         ]
       }
@@ -194,6 +212,15 @@
           {
             "type": "command",
             "command": "printf '{\"systemMessage\":\"sent %s\"}' \"$(date '+%-I:%M %p')\""
+          }
+        ]
+      },
+      {
+        "_otty": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" processing \"$PPID\""
           }
         ]
       }
@@ -214,6 +241,48 @@
           {
             "type": "command",
             "command": "\"$HOME/projects/landsman/config/bin/agents/send-files.ts\""
+          }
+        ]
+      },
+      {
+        "_otty": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" idle \"$PPID\""
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "_otty": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" awaiting \"$PPID\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "_otty": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" processing \"$PPID\""
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "_otty": true,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" error \"$PPID\""
           }
         ]
       }
