@@ -46,6 +46,7 @@ skills-index-test` fails when a skill has no row.
 | [commit-messages](git-commit-messages/SKILL.md) | commit subjects and PR titles |
 | [forgejo](git-forgejo/SKILL.md) | anything on git.insuit.cz |
 | [forgejo-workflows](git-forgejo-workflows/SKILL.md) | writing or porting a Forgejo Actions workflow |
+| [pr-review](git-pr-review/SKILL.md) | review comments on a PR: decide, fix, reply in the thread, resolve |
 
 ## Dependencies and research
 

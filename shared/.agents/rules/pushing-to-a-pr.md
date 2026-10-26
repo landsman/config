@@ -39,3 +39,9 @@ When it is already merged:
   instead, to see what really did not make it.
 - **A migration that was merged has shipped.** It may already have run on a real
   database, so the follow-up adds a new one rather than editing it.
+
+## Review comments
+
+**Every review thread gets a reply, and a fixed one gets resolved, unasked** —
+a bot's as much as a person's. Load the `pr-review` skill when a PR has
+comments, and before reporting a PR of yours as done.
