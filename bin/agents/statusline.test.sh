@@ -37,6 +37,15 @@ expect "and is counted once it is complete" 4444 "$(total)"
 msg z 2 > "$log"
 expect "a replaced, shorter transcript is summed from the start" 8 "$(total)"
 
+echo "0 a[\$(touch $tmp/pwned)] -" > "$cache"
+expect "a planted cache is discarded, not evaluated" "8:no" "$(total):$([ -e "$tmp/pwned" ] && echo yes || echo no)"
+
+mkdir "$tmp/elsewhere"
+ln -s "$tmp/elsewhere" "$tmp/claude-statusline-$(id -u)"
+out=$(jq -nc --arg t "$log" '{session_id:"sess",transcript_path:$t}' | "$script")
+expect "a cache folder that is a link is not used" "" "$out"
+rm "$tmp/claude-statusline-$(id -u)"
+
 mkdir -p "$tmp/t/sess/subagents"
 msg m 1 > "$tmp/t/sess.jsonl"
 msg s 5 > "$tmp/t/sess/subagents/agent-1.jsonl"

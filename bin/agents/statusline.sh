@@ -7,32 +7,36 @@
 #   statusline.sh tokens <jsonl> <cache>  print one transcript's token total
 #
 # The input carries no running token total, only the plan percentages, so the
-# total is summed from the transcripts. Each one's sum is cached with the line
-# count it covers, and a refresh parses only the lines appended since.
+# total is summed from the transcripts. Each one's sum is cached with the byte
+# offset it covers: an unchanged transcript is not read at all, and a grown
+# one only from that offset.
 set -euo pipefail
 
 # tokens <jsonl> <cache>: input, cache writes, cache reads and output of every
 # API response in the transcript. A response is written once per content
 # block, so a repeated message id counts once.
 tokens() {
-	local jsonl=$1 cache=$2 seen=0 total=0 last=- lines add
+	local jsonl=$1 cache=$2 seen=0 total=0 last=- size add used
 	[ -f "$cache" ] && read -r seen total last < "$cache"
-	lines=$(wc -l < "$jsonl" | tr -d ' ')
-	# Fewer lines than cached: the file was replaced, start over.
-	[ "$lines" -lt "$seen" ] && { seen=0 total=0 last=-; }
-	if [ "$lines" -gt "$seen" ]; then
-		# head -n stops at the last newline, so a line still being written
-		# is left for the next refresh rather than lost.
-		read -r add last < <(tail -n +"$((seen + 1))" "$jsonl" | head -n "$((lines - seen))" |
-			jq -Rnr --arg last "$last" '
-				[inputs | fromjson? | select(.type == "assistant" and .message.usage) | .message] as $m
+	# The cache is arithmetic input, and bash evaluates an expression there.
+	[[ $seen =~ ^[0-9]+$ && $total =~ ^[0-9]+$ ]] || { seen=0 total=0 last=-; }
+	size=$(stat -c %s "$jsonl" 2>/dev/null || stat -f %z "$jsonl")
+	# Smaller than cached: the file was replaced, start over.
+	[ "$size" -lt "$seen" ] && { seen=0 total=0 last=-; }
+	if [ "$size" -gt "$seen" ]; then
+		# Only lines that end in a newline are counted and consumed, so a line
+		# still being written is left for the next refresh rather than lost.
+		read -r add used last < <(tail -c +"$((seen + 1))" "$jsonl" | head -c "$((size - seen))" |
+			jq -Rsr --arg last "$last" '
+				split("\n")[:-1] as $whole
+				| [$whole[] | fromjson? | select(.type == "assistant" and .message.usage) | .message] as $m
 				| ($m | map(select(.id != $last)) | unique_by(.id)
 					| map(.usage | (.input_tokens // 0) + (.cache_creation_input_tokens // 0)
 						+ (.cache_read_input_tokens // 0) + (.output_tokens // 0)) | add // 0)
 				as $add
-				| "\($add) \($m[-1].id // $last)"')
+				| "\($add) \($whole | map(utf8bytelength + 1) | add // 0) \($m[-1].id // $last)"')
 		total=$((total + add))
-		printf '%s %s %s\n' "$lines" "$total" "$last" > "$cache.$$" && mv "$cache.$$" "$cache"
+		printf '%s %s %s\n' "$((seen + used))" "$total" "$last" > "$cache.$$" && mv "$cache.$$" "$cache"
 	fi
 	echo "$total"
 }
@@ -47,12 +51,18 @@ line() {
 	session=$(jq -r '.session_id // empty' <<< "$input")
 	transcript=$(jq -r '.transcript_path // empty' <<< "$input")
 	if [ -n "$session" ] && [ -f "$transcript" ]; then
-		dir="${TMPDIR:-/tmp}/claude-statusline/$session"
-		mkdir -p "$dir"
-		for f in "$transcript" "${transcript%.jsonl}"/subagents/*.jsonl; do
-			[ -f "$f" ] && sum=$((sum + $(tokens "$f" "$dir/$(basename "$f").cache")))
-		done
-		out+=("$(human "$sum") tok")
+		# With TMPDIR unset that is the shared /tmp, where another user could
+		# plant the folder: only one that is ours, private and no link is used.
+		dir="${TMPDIR:-/tmp}/claude-statusline-$(id -u)"
+		mkdir -m 700 "$dir" 2>/dev/null || true
+		if [ -O "$dir" ] && [ ! -L "$dir" ] && chmod 700 "$dir"; then
+			dir="$dir/$session"
+			mkdir -p "$dir"
+			for f in "$transcript" "${transcript%.jsonl}"/subagents/*.jsonl; do
+				[ -f "$f" ] && sum=$((sum + $(tokens "$f" "$dir/$(basename "$f").cache")))
+			done
+			out+=("$(human "$sum") tok")
+		fi
 	fi
 	five=$(jq -r '.rate_limits.five_hour.used_percentage // empty | floor' <<< "$input")
 	week=$(jq -r '.rate_limits.seven_day.used_percentage // empty | floor' <<< "$input")
