@@ -85,8 +85,10 @@ line() {
 	dir="$dir/$session"
 	mkdir -p "$dir"
 	if [ -f "$transcript" ]; then
+		# The suffix names what a total counts; a change to that renames it, so a
+		# running session recounts rather than adding to a total of the old kind.
 		for f in "$transcript" "${transcript%.jsonl}"/subagents/*.jsonl; do
-			[ -f "$f" ] && sum=$((sum + $(tokens "$f" "$dir/$(basename "$f").cache")))
+			[ -f "$f" ] && sum=$((sum + $(tokens "$f" "$dir/$(basename "$f").v2.cache")))
 		done
 		out+=("$(human "$sum") tok")
 	fi

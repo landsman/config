@@ -57,6 +57,12 @@ line() { # line <5h pct> <5h resets_at>: the status line for session "sess"
 expect "the session starts at none of the plan, whatever the account used before" "18 tok · 5h 0.0% · 7d 0.0%" "$(line 23.5 18000)"
 expect "the line adds the subagents, and only this session's part of a window" "18 tok · 5h 1.5% · 7d 0.0%" "$(line 25 18000)"
 
+old="$tmp/claude-statusline-$(id -u)/old"
+mkdir -p "$old"
+echo "0 5000000 -" > "$old/sess.jsonl.cache"
+out=$(jq -nc --arg t "$tmp/t/sess.jsonl" '{session_id:"old",transcript_path:$t}' | "$script")
+expect "a total cached by the version that counted cache reads is not added to" "18 tok" "$out"
+
 out=$(jq -nc --arg t "$tmp/t/sess.jsonl" '{session_id:"sess",transcript_path:$t,
 	rate_limits:{five_hour:{used_percentage:25,resets_at:18000}}}' | "$script")
 expect "a window missing from the input is left out, not shown as 0" "18 tok · 5h 1.5%" "$out"
