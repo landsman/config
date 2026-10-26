@@ -34,10 +34,15 @@ work, a bot's included. I should never have to ask for the replies.
 
 ## GitHub
 
-Threads, with what a reply and a resolve need:
+Threads, with what a reply and a resolve need — every page of them, and the
+whole conversation in each, since a follow-up in a thread is a finding too:
 
-    gh api graphql -f query='{repository(owner:"<o>",name:"<r>"){pullRequest(number:<n>){
-      reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{databaseId path body}}}}}}}'
+    gh api graphql --paginate -f query='query($endCursor:String){repository(owner:"<o>",name:"<r>"){pullRequest(number:<n>){
+      reviewThreads(first:100,after:$endCursor){pageInfo{hasNextPage endCursor}
+        nodes{id isResolved comments(first:50){nodes{databaseId path author{login} body}}}}}}}'
+
+The reply goes to the first comment's `databaseId`. A thread longer than 50
+comments is not paged here; read it on the web.
 
 Plain comments and review bodies: `gh pr view <n> --comments`.
 
