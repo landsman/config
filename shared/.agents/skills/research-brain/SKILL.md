@@ -71,5 +71,7 @@ compiling means organising, not shortening.
 
 ## Then tell me
 
-One line at the end of the answer: which pages were created or updated. Not
-the diff.
+One line at the end of the answer: which pages were created or updated, **each
+as a full link to the page on the forge**, not a path —
+`https://git.insuit.cz/landsman/brain/src/branch/main/wiki/<page>.md`. A path
+into a worktree that `finish` already removed leads nowhere. Not the diff.
