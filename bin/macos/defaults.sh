@@ -272,9 +272,12 @@ fi
 # Otty: "Don't Show Again" on its Claude Code integration prompt. The hooks are
 # installed, through bin/agents/otty-hook.sh, but Otty only recognises its own
 # path in settings.json and keeps offering an installer that replaces the
-# stowed symlink with a copy. Merged with jq, so other dismissals stay.
+# stowed symlink with a copy. Merged with jq, so other dismissals stay. Keyed
+# on the app, not its support folder: that only appears on first launch, which
+# on a fresh Mac comes after `make macos`.
 otty="$HOME/Library/Application Support/io.appmakes.otty"
-if [ -d "$otty" ]; then
+if [ -d /Applications/Otty.app ]; then
+	mkdir -p "$otty"
 	f="$otty/integration-warnings.json"
 	{ cat "$f" 2>/dev/null || echo '{}'; } \
 		| jq -c '.pillDismissed = ((.pillDismissed // []) + ["claude"] | unique) | .settingsIgnored //= []' > "$f.tmp"
