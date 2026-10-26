@@ -295,7 +295,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "p=$(ls -1d \"$HOME\"/.claude/plugins/cache/ponytail/ponytail/*/hooks/ponytail-statusline.sh 2>/dev/null | tail -1); [ -n \"$p\" ] && exec bash \"$p\""
+    "command": "\"$HOME/projects/landsman/config/bin/agents/statusline.sh\""
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
