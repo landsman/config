@@ -177,7 +177,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" processing \"$PPID\""
+            "command": "OTTY_CLI='/Applications/Otty.app/Contents/MacOS/otty-cli' '/Applications/Otty.app/Contents/Resources/agent-integration/claude/otty-hook.sh' processing \"$PPID\" 2>/dev/null || true"
           }
         ]
       }
@@ -197,7 +197,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" idle \"$PPID\""
+            "command": "OTTY_CLI='/Applications/Otty.app/Contents/MacOS/otty-cli' '/Applications/Otty.app/Contents/Resources/agent-integration/claude/otty-hook.sh' idle \"$PPID\" 2>/dev/null || true"
           }
         ]
       }
@@ -220,7 +220,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" processing \"$PPID\""
+            "command": "OTTY_CLI='/Applications/Otty.app/Contents/MacOS/otty-cli' '/Applications/Otty.app/Contents/Resources/agent-integration/claude/otty-hook.sh' processing \"$PPID\" 2>/dev/null || true"
           }
         ]
       }
@@ -249,7 +249,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" idle \"$PPID\""
+            "command": "OTTY_CLI='/Applications/Otty.app/Contents/MacOS/otty-cli' '/Applications/Otty.app/Contents/Resources/agent-integration/claude/otty-hook.sh' idle \"$PPID\" 2>/dev/null || true"
           }
         ]
       }
@@ -260,7 +260,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" awaiting \"$PPID\""
+            "command": "OTTY_CLI='/Applications/Otty.app/Contents/MacOS/otty-cli' '/Applications/Otty.app/Contents/Resources/agent-integration/claude/otty-hook.sh' awaiting \"$PPID\" 2>/dev/null || true"
           }
         ]
       }
@@ -271,7 +271,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" processing \"$PPID\""
+            "command": "OTTY_CLI='/Applications/Otty.app/Contents/MacOS/otty-cli' '/Applications/Otty.app/Contents/Resources/agent-integration/claude/otty-hook.sh' processing \"$PPID\" 2>/dev/null || true"
           }
         ]
       }
@@ -282,7 +282,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/projects/landsman/config/bin/agents/otty-hook.sh\" error \"$PPID\""
+            "command": "OTTY_CLI='/Applications/Otty.app/Contents/MacOS/otty-cli' '/Applications/Otty.app/Contents/Resources/agent-integration/claude/otty-hook.sh' error \"$PPID\" 2>/dev/null || true"
           }
         ]
       }
