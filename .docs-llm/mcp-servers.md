@@ -164,8 +164,8 @@ requests, files, releases and Actions runs on `git.insuit.cz`, which is what mak
 the forge reachable from a session that has no browser.
 
 **It is a URL, not a process on this machine:**
-`https://nas.dog-macaroni.ts.net/forgejo-mcp`, served from the Pi next to Forgejo
-by `forgejo-mcp/` in the homelab repo. That README covers the build, the token
+`https://forgejo-mcp.dog-macaroni.ts.net/mcp`, served from the Pi next to Forgejo
+by `forgejo-mcp/` in the homelab repo, as a tailnet node of its own. That README covers the build, the token
 and the upgrade. With Tailscale off the server fails to connect, and that is the
 whole cost.
 
@@ -175,11 +175,14 @@ exporting it into every shell, and any agent with a shell could print it. A
 Keychain entry or a 0600 file would not have helped either: a process running as
 the same user can read both. Now the client sends no credential, and the server
 uses its own token (`--allow-operator-token-fallback`). An agent can do what
-the token allows through the tools, but it can never read the token.
+the token allows through the tools, but it can never read the token. The token
+is a bot account's, `michal`, which reaches only the repositories it is a
+collaborator on, so what an agent writes there is authored by `michal`.
 
 The trade is that reaching the endpoint is the credential. Two things keep that
-to my own devices: the Pi publishes the port on loopback only, and the tailnet
-ACL keeps the tagged pollos boxes off it. That matters because jesse runs
+to my own devices: no port is published on the Pi, the server sits behind a
+Tailscale sidecar tagged `tag:forgejo-mcp`, and the tailnet ACL keeps the tagged
+pollos boxes off that tag. That matters because jesse runs
 arbitrary CI jobs. Keep both in mind before exposing it any other way, a
 Cloudflare tunnel included.
 
