@@ -16,6 +16,7 @@ skills-index-test` fails when a skill has no row.
 | [mobile-first](ui-mobile-first/SKILL.md) | layout with the phone as the base case |
 | [react](ui-react/SKILL.md) | where the logic of a component goes, and its tests |
 | [tanstack-start](fe-tanstack-start/SKILL.md) | a Start route, loader or build config, and keeping its PageSpeed up |
+| [typescript](fe-typescript/SKILL.md) | types proved by a rejected use, `satisfies` over annotations, parsing over `as`, what `strict` leaves off |
 
 ## Backend and data
 
