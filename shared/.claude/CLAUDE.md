@@ -37,6 +37,7 @@ the mistake, not after.
 | [Brain](rules/brain.md) | researching something, or asked to remember it for later |
 | [Deep research](rules/deep-research.md) | a research needs many sources, a new dependency included — it goes to Perplexity as a prompt, unless I say to do it myself |
 | [Browser automation](rules/browser-automation.md) | a web app gets opened to check or drive it |
+| [Files I edit too](rules/files-i-edit-too.md) | writing to a document or a spreadsheet I may have changed since you read it |
 
 The folder name is not a preference: `rules/` and `CLAUDE.md` are the only two
 things Claude Code loads on its own. A folder named anything else is inert

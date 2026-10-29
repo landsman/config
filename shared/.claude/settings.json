@@ -173,6 +173,15 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/office-guard.sh\" pre"
+          }
+        ]
+      },
+      {
         "_otty": true,
         "hooks": [
           {
@@ -266,6 +275,15 @@
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/office-guard.sh\" post"
+          }
+        ]
+      },
       {
         "_otty": true,
         "hooks": [
