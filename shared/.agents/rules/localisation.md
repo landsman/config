@@ -24,6 +24,13 @@ For a new string:
   API field, a database value, or a branch in business logic. That turns
   translating a word into a behaviour change.
 
+For a changed string, **find where the visible text comes from before editing
+it** — a key in the catalogue, a CMS entry, an API response. A default in the
+component is not it when the label comes from a key; changing it changes
+nothing on screen. Then search for the key's other users: a shared key edited
+for one screen rewrites every screen that uses it, and when only one should
+change, it gets a key of its own.
+
 ## Write the accented characters, not `\uXXXX`
 
 A translation file holds the letters it means. `Nastavení se nepodařilo uložit`,
