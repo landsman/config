@@ -1,6 +1,6 @@
 ---
 name: react
-description: Load before writing or changing a React component or hook — before a handler, a gesture, a timer, a filter, a validation, a fetch or any other logic goes into a component body or its JSX. Carries where the logic goes (a hook, with its decision as a pure function), what gets which test, and when inline is enough.
+description: Load before writing or changing a React component or hook — before a handler, a gesture, a timer, a filter, a validation, a fetch or any other logic goes into a component body or its JSX. Carries where the logic goes — render, a handler, an Action or an Effect, by what causes it — then a hook with its decision as a pure function, what gets which test, and when inline is enough.
 trigger-keywords: react, reactu, jsx, tsx, useEffect, useState
 ---
 
@@ -27,6 +27,31 @@ only sets state stays inline; a hook for it is ceremony:
 ```tsx
 <button onClick={() => setOpen(true)}>  // stays as it is
 ```
+
+## Where it runs, by what causes it
+
+Ask what makes the code run before deciding where it goes. An Effect is for
+staying in sync with something React does not own, not a second event system.
+
+| Cause | Goes in |
+|---|---|
+| a value the render needs | the render body — computed, never stored |
+| a click, an input, a submit, a drag | the event handler |
+| a form or an async mutation in flight | an Action with `useActionState` (React 19+) |
+| a subscription, a timer, a browser API, a third-party widget | an Effect, with its cleanup |
+
+- **Derived is not state.** `useState` plus a `useEffect` that sets it from
+  props renders once with the stale value, then again; `const fullName =
+  first + " " + last` is right on the first render.
+- **What a user did runs where they did it.** A `submitted` flag that an Effect
+  watches to send the order sends it again on the next dependency change; the
+  handler sends it once.
+- **A key is a stable id.** An array index breaks a list that reorders or
+  filters; a new `key` on purpose resets a subtree whose identity changed.
+- **`use(promise)` needs a promise made outside the render** — a loader, a
+  cache, a parent. One created in the component is a new promise every render.
+- **Read the React version first.** Actions and `use` are React 19; on 18 the
+  mutation goes in the handler with its own pending state.
 
 ## Examples
 
