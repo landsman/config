@@ -7,8 +7,8 @@ trigger-keywords: typescript, satisfies, as const, tsconfig, strict, generic, ty
 # TypeScript types that reject wrong code
 
 A type earns its place by rejecting a program that would break. Imports and
-branching have rules of their own (ts-imports, ts-pattern); this is the type
-itself.
+branching have rules of their own — [ts-imports](../../rules/ts-imports.md)
+and [ts-pattern](../../rules/ts-pattern.md); this is the type itself.
 
 ## Prove it with a rejected use
 
