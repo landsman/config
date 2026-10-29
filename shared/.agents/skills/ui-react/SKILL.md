@@ -1,7 +1,7 @@
 ---
 name: react
 description: Load before writing or changing a React component or hook — before a handler, a gesture, a timer, a filter, a validation, a fetch or any other logic goes into a component body or its JSX. Carries where the logic goes — render, a handler, an Action or an Effect, by what causes it — then a hook with its decision as a pure function, what gets which test, and when inline is enough.
-trigger-keywords: react, reactu, jsx, tsx, useEffect, useState
+trigger-keywords: react, reactu, jsx, tsx, useEffect, useState, hydration, suppressHydrationWarning, localStorage, ssr
 ---
 
 # React components and their logic
@@ -112,6 +112,48 @@ enough when there is no state of its own.
   so say in the report that a real device has not tried it.
 - **Run the new end-to-end test once without the change** and see it fail. A
   test that passes either way tests nothing.
+
+## Browser-only state on a server-rendered page
+
+**React's first client render must match the server's HTML.** Rendering from
+`localStorage`, `window`, the theme or `Date` breaks that: a hydration
+mismatch. What fixes it depends on what the state moves.
+
+- **It moves the layout** (a sidebar open, a density, a collapsed panel): an
+  inline script in the layout applies it to the DOM before hydration and leaves
+  the value on `window`; `useState` starts from that value, so React renders
+  the same classes the script set. SSR stays, nothing flickers.
+- **A small leaf control** (a theme toggle): rendering nothing until mounted
+  (`useIsClient`), or `use(browser())` with a `<Suspense>` fallback on React
+  19.3+, is fine. Never on a layout: its whole subtree leaves SSR with it.
+- **A visual that follows that state** (a backdrop behind the sidebar): always
+  in the HTML, shown by CSS keyed off the class the script already sets
+  (`group` on the sidebar, `hidden group-[.left-0]:block` on the backdrop). No
+  second state to mismatch.
+
+```tsx
+function initSidebar() {
+  const open = localStorage.getItem("sidebar") === "true";
+  document.querySelector("[data-sidebar]")?.classList.toggle("left-0", open);
+  window.__SIDEBAR__ = open;
+}
+<script dangerouslySetInnerHTML={{ __html: `(${initSidebar})()` }} />
+
+const [open, setOpen] = useState(() => typeof window === "undefined" ? false : window.__SIDEBAR__);
+```
+
+Not these:
+
+- **`localStorage` in the `useState` initializer** behind `typeof window`:
+  still a mismatch, the server says `false` and the client `true`.
+- **`localStorage` in `useEffect`**: no mismatch, a visible flicker after mount.
+- **`suppressHydrationWarning`** hides the warning and fixes nothing, one
+  level deep. Only where a script is known to edit that element: `<html>`
+  under next-themes.
+
+The production build stays silent on attribute mismatches; how a test catches
+them is P13 in the `e2e-tests` skill. Worked through in
+[this post](https://www.gmoniava.com/blog/hydration-mismatch-errors-and-how-to-fix-them).
 
 ## Out of scope
 

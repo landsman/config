@@ -14,7 +14,7 @@ skills-index-test` fails when a skill has no row.
 | [modal-dialogs](ui-modal-dialogs/SKILL.md) | the one modal design every project shares |
 | [optical-centre](ui-optical-centre/SKILL.md) | a lone block in a large empty area, placed above the middle |
 | [mobile-first](ui-mobile-first/SKILL.md) | layout with the phone as the base case |
-| [react](ui-react/SKILL.md) | where the logic of a component goes, and its tests |
+| [react](ui-react/SKILL.md) | where the logic of a component goes, its tests, and browser-only state without a hydration mismatch |
 | [tanstack-start](fe-tanstack-start/SKILL.md) | a Start route, loader or build config, and keeping its PageSpeed up |
 | [typescript](fe-typescript/SKILL.md) | types proved by a rejected use, `satisfies` over annotations, parsing over `as`, what `strict` leaves off |
 
