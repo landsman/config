@@ -63,6 +63,7 @@ skills-index-test` fails when a skill has no row.
 | Skill | For |
 |-------|-----|
 | [terse-prose](write-terse-prose/SKILL.md) | comments, PR bodies, error messages cut to their core |
+| [blog](write-blog/SKILL.md) | an insuit.cz post from a topic or from this session, ending as a hidden MDX file in a PR |
 | [bro](write-bro/SKILL.md) | the last answer again, in plain language |
 
 ## Not a skill
