@@ -7,7 +7,7 @@ trigger-keywords: git.insuit.cz, forgejo*
 # Reading git.insuit.cz
 
 `git.insuit.cz` is my Forgejo, and most repos on it are private. **Go straight to
-the `forgejo` MCP server** — it is signed in with my token. `curl`, `WebFetch`
+the `forgejo` MCP server** — it acts as the bot `michal`, which sees only the repos it is a collaborator on; a 404 there means it was not added, not that the repo is gone. `curl`, `WebFetch`
 and the anonymous `/api/v1` all get a login page or a 404, and WebFetch is
 denied outright.
 
@@ -43,7 +43,7 @@ a comment is `create_issue_comment`; posting a review is `create_pull_review`.
 
 ## When the server is missing
 
-No `mcp__forgejo__*` tools in the session means the server did not start:
-`FORGEJO_ACCESS_TOKEN` is unset or `forgejo-mcp` is not built. Say so and point
-at `make claude` and `make forgejo-mcp` (`.docs-llm/mcp-servers.md` in the config
-repo) — do not fall back to scraping the web UI.
+No `mcp__forgejo__*` tools in the session means the server could not be
+reached: Tailscale is off, or the service on the Pi is down (a rejected token
+shows there as a restart loop). Say so and point at `.docs-llm/mcp-servers.md` in
+the config repo — do not fall back to scraping the web UI.
