@@ -26,3 +26,9 @@ history but the one you keep.
    save and close it before writing.
 
 When the check finds my changes, say so in one line, so I know they were kept.
+
+In Claude Code a hook (`bin/agents/office-guard.sh`) backs up every office file
+a Bash command names, into `~/.local/state/agent-backups/`, and refuses the
+command once when the file changed since your last one or is open in an app.
+It only sees a path written out in the command or in a script it runs, so the
+rule still holds.
