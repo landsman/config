@@ -15,6 +15,7 @@ skills-index-test` fails when a skill has no row.
 | [optical-centre](ui-optical-centre/SKILL.md) | a lone block in a large empty area, placed above the middle |
 | [mobile-first](ui-mobile-first/SKILL.md) | layout with the phone as the base case |
 | [react](ui-react/SKILL.md) | where the logic of a component goes, and its tests |
+| [tanstack-start](fe-tanstack-start/SKILL.md) | a Start route, loader or build config, and keeping its PageSpeed up |
 
 ## Backend and data
 
