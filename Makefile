@@ -292,6 +292,12 @@ apps: ## install Homebrew if missing, then the Brewfile, then the distro's own a
 		npm i -g --prefix "$$HOME/.local/opt/corepack" corepack; \
 		"$$HOME/.local/opt/corepack/bin/corepack" enable yarn --install-directory "$$HOME/.local/bin"; \
 		ln -sf "$$HOME/.local/opt/corepack/bin/corepack" "$$HOME/.local/bin/corepack"; }
+	@# Junie, JetBrains' agent CLI: in no brew tap, and its npm package stopped
+	@# at a release from April. The installer checks the zip's SHA-256 and the
+	@# shim updates itself. ~/.local/bin goes on PATH first, or the installer
+	@# appends it to ~/.zshrc, which is a stowed file of this repo.
+	@test -x "$$HOME/.local/bin/junie" || curl -fsSL https://junie.jetbrains.com/install.sh \
+		| PATH="$$HOME/.local/bin:$$PATH" bash
 	@# The GUI half of the Brewfile is `if OS.mac?`, because a cask installs on
 	@# Linux only when it ships a Linux build and almost no GUI app does. What
 	@# the distro has to supply instead lives next to that OS's dotfiles, using
