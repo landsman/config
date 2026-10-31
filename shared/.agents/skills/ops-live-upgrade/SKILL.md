@@ -1,7 +1,7 @@
 ---
 name: live-upgrade
 description: Load before changing something live that is hard to undo — upgrading a self-hosted service or its major version, running a migration on real data, moving or restoring a service, replacing a database or a volume — and before writing the runbook, checklist or PR body for one. Carries reading the real release notes, checking the runbook against the box, a backup that can really bring it back, the order of the steps, what counts as verified, and how to report it.
-trigger-keywords: upgrad*, updat*, rollback, restore, obnov*, záloh*, backup*
+trigger-keywords: upgrad*, updatov*, rollback, restore, obnov*, záloh*, backup*
 ---
 
 # Changing something live that is hard to undo
