@@ -41,6 +41,12 @@ skills-index-test` fails when a skill has no row.
 |-------|-----|
 | [doubt-review](review-doubt/SKILL.md) | a cold subagent tries to disprove a claim before anything rests on it |
 
+## Operations
+
+| Skill | For |
+|-------|-----|
+| [live-upgrade](ops-live-upgrade/SKILL.md) | an upgrade, migration or restore on a live service: real release notes, the runbook checked on the box, a backup that can bring it back |
+
 ## Git, forges and CI
 
 | Skill | For |
