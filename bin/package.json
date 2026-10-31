@@ -2,6 +2,6 @@
   "private": true,
   "description": "The Bun types for `bun check` (make lint) over the Bun scripts under bin/. Nothing here runs at run time.",
   "devDependencies": {
-    "@types/bun": "1.4.3"
+    "@types/bun": "1.4.4"
   }
 }
