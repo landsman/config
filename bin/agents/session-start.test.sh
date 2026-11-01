@@ -7,7 +7,14 @@ dir="$(cd "$(dirname "$0")" && pwd)"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 fails=0
-export HOME="$tmp" TMPDIR="$tmp"
+# GIT_CONFIG_*, not just HOME: git also reads $XDG_CONFIG_HOME/git/config, which
+# a desktop session exports as the *real* ~/.config, so the machine's own global
+# config reached in here. Mine includes this repo's .gitconfig, whose
+# forbidden-names hook is "$HOME/projects/landsman/config/..." — a path that
+# does not exist under a faked HOME, so the hook failed every commit below and
+# the test failed on my own laptop while staying green on CI, where no such
+# config exists. Same isolation as bin/git/forbidden-names.test.sh.
+export HOME="$tmp" TMPDIR="$tmp" GIT_CONFIG_GLOBAL="$tmp/gitconfig" GIT_CONFIG_NOSYSTEM=1
 repo="$tmp/repo"
 hook="$repo/bin/agents/session-start.sh"
 mkdir -p "$repo/bin/agents" "$repo/shared"
