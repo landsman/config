@@ -6,8 +6,8 @@
 # Usage: nas-mount.sh
 #
 # Away from home the port check fails and nothing happens, so no error dialog.
-# The Bonjour name, because nas.local resolves to a global IPv6 address first and
-# the session then hangs on an address macOS rotates.
+# The Bonjour name keeps the session on IPv4, as a mount made in Finder does;
+# through nas.local it went over the Mac's global IPv6 address instead.
 set -eu
 
 host=NAS._smb._tcp.local
