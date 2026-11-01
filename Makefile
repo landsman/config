@@ -7,7 +7,7 @@ SHELL := /bin/bash
 #
 # Both are detected, so one `make stow` is correct on every install:
 #   device from DMI product_version ("ThinkPad T480" -> t480)
-#   os     from /etc/os-release ID  (ubuntu / arch)
+#   os     from /etc/os-release, ID first and then ID_LIKE
 # A name with no matching directory is skipped rather than failing, so a new
 # machine works before its package exists. Override with:
 #   make stow DEVICE=x1 OS=arch
@@ -21,7 +21,19 @@ DEVICE ?= $(shell sysctl -n hw.model | sed 's/^Mac17,8$$/macbook-pro-m5-16/')
 OS     ?= macos
 endif
 DEVICE ?= $(shell awk '{print tolower($$NF)}' /sys/class/dmi/id/product_version 2>/dev/null)
-OS     ?= $(shell . /etc/os-release 2>/dev/null && echo $$ID)
+# ID, then each word of ID_LIKE, and the first one with a directory in os/ wins:
+# a distro built on another reports its own ID and names its base there, so
+# Omarchy is ID=omarchy ID_LIKE=arch and belongs to os/arch. Without the second
+# half every target that reads $(OS) silently did half its job on this machine —
+# `make stow` printed "no package for os 'omarchy' - skipped" and `make apps`
+# "no distro apps", one line each, and the Hyprland config was never linked.
+# Falling back to nothing but the raw ID when no package matches, so that
+# message still names what the machine calls itself rather than its base.
+# An OS= on the command line skips this shell entirely (`?=` does not expand a
+# variable that is already set), which is what keeps an explicit name explicit:
+# a typo stays skipped instead of quietly resolving to the base distro.
+OS     ?= $(shell . /etc/os-release 2>/dev/null; \
+		for o in $$ID $$ID_LIKE; do [ -d "os/$$o" ] && { echo "$$o"; exit; }; done; echo "$$ID")
 
 DEVICE_PKG := $(shell test -d 'devices/$(DEVICE)' && echo '$(DEVICE)')
 OS_PKG     := $(shell test -d 'os/$(OS)' && echo '$(OS)')
@@ -538,8 +550,9 @@ hostname: ## name this install from bin/hostname/names.conf (Linux; asks for roo
 
 .PHONY: plugins
 plugins: ## add, pin, patch and enable the shell plugins listed in os/arch/install-plugins.sh (after stow)
-	@# By path, not os/$(OS)/: Omarchy reports ID=omarchy, so $(OS) never names
-	@# the arch package there. The script skips itself where there is no omarchy.
+	@# By path, not os/$(OS)/: plugins are an Omarchy thing, not an Arch one, and
+	@# $(OS) is whichever userland is booted. The script skips itself where there
+	@# is no omarchy, so running this on the Kubuntu half is a no-op.
 	@bash os/arch/install-plugins.sh
 
 ##@ Claude Code

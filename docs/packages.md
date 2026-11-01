@@ -19,7 +19,11 @@ Not everything is stowed:
 Both packages are detected, so one `make stow` is correct everywhere:
 
 - **device** from DMI `product_version` — `ThinkPad T480` → `t480`
-- **os** from `/etc/os-release` `ID` — `ubuntu` / `arch`
+- **os** from `/etc/os-release`: `ID` first, then each word of `ID_LIKE`, and
+  the first one with a directory in `os/` wins — a distro built on another
+  reports its own name and names its base there, so Omarchy's `ID=omarchy`
+  `ID_LIKE=arch` resolves to `os/arch`. When nothing matches, the raw `ID` is
+  kept, so the "skipped" note names what the machine calls itself
 - **macOS** has neither file, so it is detected from `hw.model` — `Mac17,8` →
   `macbook-pro-m5-16`, `macos`. That mapping is one `sed` line in the Makefile;
   a second Mac gets a second line.
