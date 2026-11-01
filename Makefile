@@ -803,7 +803,11 @@ record-transcribe: ## transcribe a recording picked in television (type 202610 f
 git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
 	@git config --global --get-all include.path | grep -qxF '$(CURDIR)/.gitconfig' \
 		|| git config --global --add include.path '$(CURDIR)/.gitconfig'
-	@read -p "email [$$(git config --file '$(CURDIR)/.gitconfig' user.email)]: " e; \
+	@# The default is what the machine already has, not a value out of
+	@# .gitconfig: that file is included and carries no address any more (see
+	@# the comment at the top of it), and showing the live one makes a re-run
+	@# say what is set rather than offering something to overwrite it with.
+	@read -p "email [$$(git config --global user.email)]: " e; \
 		[ -z "$$e" ] || git config --global user.email "$$e"
 	@# Signing goes through the *agent*, not the key file: with a .pub as
 	@# user.signingkey, `ssh-keygen -Y sign` asks ssh-agent for the private
@@ -816,8 +820,19 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 	@# fails — a Ctrl-C at the passphrase prompt leaves the rest of the signing
 	@# setup worth writing — but it says so, because the symptom otherwise
 	@# arrives a reboot later and looks like the config never worked.
+	@# The *effective* address, not the global one, because an include that
+	@# sets user.email would shadow it and the commits would carry that instead.
+	@# The `*` arm catches a machine still carrying the old placeholder in its
+	@# own global config, where nothing here can reach it.
 	@email="$$(git config user.email)"; \
-		case "$$email" in ""|*"*"*) echo "set a real user.email first - the repo default is a placeholder"; exit 1;; esac; \
+		case "$$email" in \
+			"") echo "no user.email - run this target again and give one"; exit 1;; \
+			*"*"*) echo "user.email is still the placeholder '$$email' - fix it in $$(git config --show-origin --get user.email | cut -f1)"; exit 1;; \
+		esac; \
+		if [ "$$email" != "$$(git config --global user.email)" ]; then \
+			echo "warning: user.email is '$$email', not the global '$$(git config --global user.email)'"; \
+			echo "  something read after the global config is setting it: $$(git config --show-origin --get user.email | cut -f1)"; \
+		fi; \
 		default="$$HOME/.ssh/landsman_git_signing.pub"; \
 		read -p "signing key [$$default]: " k; k="$${k:-$$default}"; \
 		priv="$${k%.pub}"; \
@@ -836,6 +851,23 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 		grep -qxF "$$line" "$$signers" || echo "$$line" >> "$$signers"; \
 		echo; echo "add as a *signing* key at https://github.com/settings/ssh/new :"; \
 		cat "$$k"
+	@# The include above also switches on the forbidden-names hook, which
+	@# refuses *every* commit in *every* repo while the list it reads is
+	@# missing. So the state of that file is reported here, where the machine is
+	@# being set up, rather than discovered an hour later as a refused commit in
+	@# some unrelated repo with a message about cloning a brain.
+	@# Deliberately not created empty: an empty list matches nothing and passes
+	@# everything, which is the one outcome the hook exists to prevent. It is
+	@# also untracked in the brain itself — it is the only copy of those names —
+	@# so there is nothing here to clone either; it comes from 1Password or
+	@# another machine. See shared/.agents/rules/where-repos-live.md.
+	@# A warning, not a failure: the email and signing set up above are worth
+	@# keeping even on a machine whose brain is not restored yet.
+	@f=$$(git config --get forbiddenNames.file || true); f="$${f/#\~/$$HOME}"; \
+		if [ -z "$$f" ]; then echo "forbidden names: not configured - .gitconfig should set forbiddenNames.file"; \
+		elif [ -f "$$f" ]; then echo "forbidden names: $$f ($$(grep -cvE '^[[:space:]]*(#|$$)' "$$f") entries)"; \
+		else echo "forbidden names: $$f is MISSING - every commit will be refused until it is there"; \
+			echo "  restore it from 1Password or another machine, beside the brain's wiki/names-that-stay-private.md"; fi
 	@git config --list --show-scope
 
 git-config-test: ## check .gitconfig parses and is tab-indented
