@@ -269,9 +269,26 @@ apps: ## install Homebrew if missing, then the Brewfile, then the distro's own a
 	@# Brewfile, not to be update day. Without it every run re-downloads the
 	@# casks that update themselves — brew still has them at the old version —
 	@# and adding one line costs half an hour. Upgrading is `brew upgrade`.
+	@# `--verbose`, because without it this step is silent for as long as it
+	@# runs. `brew bundle` prints one "Installing <name>" line per entry, hands
+	@# the whole list to a single `brew install` — upstream's own doing, its
+	@# `--jobs` is deprecated with "installations use package managers' native
+	@# batching" — and then buffers that command's output to print only if it
+	@# fails. On a fresh Linux box that is twenty quiet minutes, because every
+	@# poured bottle is relocated with patchelf there, and silence that long is
+	@# indistinguishable from a hang. Verbose passes brew's own output straight
+	@# through, so every "==> Pouring" is a sign of life; the cost is a
+	@# "Skipping install" line per entry on a machine already in line.
+	@# The elapsed line is the other half: it says how long this took on this
+	@# machine instead of leaving the next run to guess. It prints whether the
+	@# install worked or not, which is what the saved status is for.
 	@b=$$(command -v brew \
 		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
-		"$$b" bundle --no-upgrade --file Brewfile
+		start=$$(date +%s); \
+		"$$b" bundle --no-upgrade --verbose --file Brewfile; status=$$?; \
+		elapsed=$$(( $$(date +%s) - start )); \
+		echo "make apps: the Brewfile took $$((elapsed / 60))m$$((elapsed % 60))s"; \
+		exit $$status
 	@# Yarn, which is here rather than in the Brewfile because corepack cannot
 	@# be. Node bundled corepack until 25 and dropped it, and every way of
 	@# installing it since ships pnpm and pnpx shims of its own: `brew install

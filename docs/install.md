@@ -28,6 +28,12 @@ make audit       # known vulnerabilities in what this machine has installed
   known vulnerabilities. It reports and carries on, so a CVE does not stop a
   new machine halfway; `make audit` on its own fails on one. `make apps` does
   not upgrade (`--no-upgrade`), so the fix it points to is `brew upgrade`.
+- **`make apps` is slow the first time, and now says so** — the Brewfile's
+  fifty lines pull nearly two hundred bottles through a single `brew install`,
+  and on Linux every one of them is relocated with patchelf on the way in:
+  twenty to thirty minutes on a fresh box. It runs `brew bundle --verbose` so
+  that brew's own `==> Pouring` lines show it moving rather than leaving a blank
+  screen that reads like a hang, and prints how long that step took when it ends.
 - **New shell before `make stow`** — a just-installed brew is not on `PATH` yet:
   open a terminal, or `eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"`
   (macOS: `/opt/homebrew/bin/brew`).
