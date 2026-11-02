@@ -24,8 +24,10 @@ there as it is.
 - **One query per file, in a `queries/` folder next to its caller**, named after
   what it returns: `queries/people-on-event.sql`, not `query3.sql`. It opens with
   a `--` line saying that.
-- **Parameters stay placeholders** (`?`, `:name`, `$1`), bound by the driver.
-  Loading from a file is no reason to build SQL by concatenating strings.
+- **Parameters are named placeholders** (`$email`, `:email`), bound by the
+  driver from an object — the file then says what it takes, and a missing one is
+  missed by name rather than by position. Loading from a file is no reason to
+  build SQL by concatenating strings.
 - **Read once, when the module or class loads**, by a short named helper:
 
   | Stack | Read with |
@@ -42,10 +44,11 @@ there as it is.
 - **A database another app owns is opened read-only, in one place.** One
   helper opens it, a test proves a write through it changes nothing on disk,
   and another that no other file opens a database. `bin/calls/macos/apple-database.ts`.
-- **A wrong number of values fails loudly.** A driver may refuse it (bun:sqlite
-  throws "expected 2 values, received 1") or read the missing one as NULL and
-  answer nothing; neither may be swallowed by a catch meant for something else.
-  Type the values where the language can, as bun:sqlite's `query<Row, [string]>`.
+- **A missing value fails loudly.** A driver may read it as NULL and answer
+  nothing: bun:sqlite does unless opened with `strict: true`, then it throws
+  `Missing parameter "email"`. Never let a catch meant for something else swallow
+  that, and type the values where the language can, as bun:sqlite's
+  `query<Row, { email: string }>`.
 
 **Not SQL written by hand:** a query builder or an ORM (jOOQ, Exposed,
 Doctrine's DQL builder, Prisma), and a framework that only takes the query in

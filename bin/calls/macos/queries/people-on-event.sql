@@ -5,5 +5,5 @@ SELECT coalesce(identity.display_name, replace(identity.address, 'mailto:', ''))
 FROM Participant participant
 JOIN Identity identity ON identity.ROWID = participant.identity_id
 JOIN CalendarItem event ON event.ROWID = participant.owner_id
-WHERE participant.owner_id = ? AND coalesce(identity.display_name, identity.address) IS NOT NULL
+WHERE participant.owner_id = $eventRow AND coalesce(identity.display_name, identity.address) IS NOT NULL
 ORDER BY participant.ROWID;

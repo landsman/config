@@ -86,8 +86,10 @@ export function contactName(email: string, books: string[]): string | undefined 
 	for (const bookPath of books) {
 		const name = readAppleDatabase(bookPath, undefined, (database) => {
 			const contact = database
-				.query<{ firstName: string | null; lastName: string | null }, [string]>(contactQuery)
-				.get(email);
+				.query<{ firstName: string | null; lastName: string | null }, { email: string }>(
+					contactQuery,
+				)
+				.get({ email });
 			return [contact?.firstName, contact?.lastName].filter(Boolean).join(" ").trim();
 		});
 		// A book that cannot be read, or has no such contact, is skipped; the next one may have it.

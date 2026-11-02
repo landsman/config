@@ -15,7 +15,8 @@ export function readAppleDatabase<Result>(
 ): Result {
 	try {
 		// readonly: SQLite itself refuses every write, whatever `read` tries.
-		const database = new Database(databasePath, { readonly: true });
+		// strict: a $name the query uses and the code does not pass throws.
+		const database = new Database(databasePath, { readonly: true, strict: true });
 		try {
 			return read(database);
 		} finally {
@@ -32,10 +33,14 @@ export function appleQuery(file: string): string {
 	return readFileSync(join(import.meta.dir, "queries", file), "utf8");
 }
 
-/** A query given more or fewer values than it has placeholders is a bug in this code, not
- *  Apple changing the schema: it fails loudly instead of reading as nothing. */
+/** A query not given a value it names, or given the wrong number of `?` values, is a bug in
+ *  this code, not Apple changing the schema: it fails loudly instead of reading as nothing.
+ *  strict: true is what makes a missing named value throw rather than bind as NULL. */
 export function throwIfOurMistake(error: unknown) {
-	if (error instanceof Error && /expected \d+ values?, received \d+/.test(error.message)) {
+	if (
+		error instanceof Error &&
+		/expected \d+ values?, received \d+|Missing parameter/.test(error.message)
+	) {
 		throw error;
 	}
 }

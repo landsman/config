@@ -28,7 +28,9 @@ export function eventIdInLink(link: string): string | undefined {
 /** The names on an event, bare addresses included. */
 export function attendeesOfEvent(eventId: string, databasePath = calendarDatabase): string[] {
 	return readAppleDatabase(databasePath, [], (database) => {
-		const attendees = database.query<{ name: string }, [string]>(attendeesQuery).all(eventId);
+		const attendees = database
+			.query<{ name: string }, { eventId: string }>(attendeesQuery)
+			.all({ eventId });
 		return attendees.map((attendee) => attendee.name.trim());
 	});
 }
@@ -87,7 +89,9 @@ type Meeting = { occurrence: Occurrence; start: number; end: number };
 /** Every timed event on the days between `from` and `to`, each once. */
 function meetingsBetween(database: Database, from: number, to: number): Meeting[] {
 	const seen = new Set<string>();
-	const occurrences = database.query<Occurrence, [number, number]>(occurrencesQuery).all(from, to);
+	const occurrences = database
+		.query<Occurrence, { fromDay: number; toDay: number }>(occurrencesQuery)
+		.all({ fromDay: from, toDay: to });
 	return occurrences
 		.map((occurrence) => ({ occurrence, ...whenItHappens(occurrence) }))
 		.filter((meeting) => {
@@ -140,7 +144,9 @@ function whenItHappens(occurrence: Occurrence): { start: number; end: number } {
 
 /** Me, and everyone else on the event, the organizer included unless that is me. */
 function peopleOnEvent(database: Database, eventRow: number) {
-	const participants = database.query<Participant, [number]>(peopleQuery).all(eventRow);
+	const participants = database
+		.query<Participant, { eventRow: number }>(peopleQuery)
+		.all({ eventRow });
 	const me = participants.find((participant) => participant.isMe);
 	// The organizer can be me a second time, under the same address.
 	const isMeAgain = (participant: Participant) => {

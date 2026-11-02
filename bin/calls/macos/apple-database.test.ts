@@ -63,17 +63,20 @@ describe("bad input", () => {
 		expect(answer).toBe("nothing");
 	});
 
-	test("a query given the wrong number of values is our bug, and fails loudly", async () => {
+	test("a value the query names but the code leaves out is our bug, and fails loudly", async () => {
 		const path = await personDatabase();
-		const readWithOneValueMissing = () => {
-			return readAppleDatabase(path, [], (database) => {
-				return database
-					.query("SELECT name FROM person WHERE email = ? AND name = ?")
-					.all("jana@example.com");
-			});
+		const read = (values: Record<string, string>) => {
+			return () => {
+				return readAppleDatabase(path, [], (database) => {
+					return database
+						.query("SELECT name FROM person WHERE email = $email AND name = $name")
+						.all(values);
+				});
+			};
 		};
 
-		expect(readWithOneValueMissing).toThrow(/expected 2 values, received 1/);
+		expect(read({ email: "jana@example.com" })).toThrow('Missing parameter "name"');
+		expect(read({})).toThrow('Missing parameter "email"');
 	});
 
 	test("no other code in bin/calls opens a database, so every read goes through here", () => {
