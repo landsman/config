@@ -68,6 +68,12 @@ export function createTerm(out: Stream, err: Stream, readLine: (prefill?: string
 	};
 }
 
+/** One line picked in television; empty on Esc. */
+export async function pick(header: string, lines: string[]): Promise<string> {
+	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", header], { stdin: new Blob([lines.join("\n")]), stdout: "pipe", stderr: "inherit" });
+	return (await new Response(tv.stdout).text()).trim();
+}
+
 /** One line of stdin, "" when it ends. readline on process.stdin, the stream untilKey
  *  reads too: two readers of one stdin (Bun's `console` and process.stdin) lose each other's input. */
 async function stdinLine(prefill?: string): Promise<string> {

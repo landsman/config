@@ -1,12 +1,9 @@
 // What transcribe.ts would get wrong silently: the two tracks merged out of
 // order, a turn split on every segment or never, whisper's own notes read as speech,
-// and the names from a calendar event missed or mangled — folded lines, quoted
-// names, a name listed twice, a typed ~ — and Enter not
-// meaning the quick model; a voice from the diarizer put on the wrong lines; and
+// and Enter not meaning the quick model; a voice from the diarizer put on the wrong lines; and
 // a header that miscounts the voices or names one before the call was read.
 import { expect, test } from "bun:test";
-import { homedir } from "node:os";
-import { attendees, diarize, dropped, header, merge, speed, typedNames } from "@bin/calls/transcribe";
+import { diarize, header, merge, speed } from "@bin/calls/transcribe";
 
 test("tracks are merged by time, one line per turn", () =>
 	expect(merge([
@@ -23,23 +20,6 @@ test("a long turn starts a new line every minute", () =>
 
 test("one unlabelled track has no speaker", () =>
 	expect(merge([{ who: "", segments: [{ from: 61_000, text: "Hello." }] }])).toBe("[01:01] Hello.\n"));
-
-test("names come from the organizer and attendees, folded and quoted, once each", () =>
-	expect(attendees([
-		"BEGIN:VEVENT",
-		"ORGANIZER;CN=Jana Nováková:mailto:jana@example.com",
-		'ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;CN="Petr Dvořák";PARTSTAT=ACCEPTED:mai',
-		" lto:petr@example.com",
-		"ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=Jana Nováková:mailto:jana@example.com",
-		"ATTENDEE;CN=someone@example.com:mailto:someone@example.com",
-		"END:VEVENT",
-	].join("\r\n"))).toEqual(["Jana Nováková", "Petr Dvořák", "someone@example.com"]));
-
-test("a dragged-in path loses its quotes and escapes", () => {
-	expect(dropped("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe("/Users/me/Downloads/Porada Q4.ics");
-	expect(dropped("'/Users/me/a b.ics'")).toBe("/Users/me/a b.ics");
-	expect(dropped("~/a.ics")).toBe(`${homedir()}/a.ics`);
-});
 
 test("a track is split by the voice each segment overlaps most, numbered by who spoke first", () => {
 	const turns = [{ speaker: "S7", from: 0, to: 4000 }, { speaker: "S2", from: 4000, to: 9000 }, { speaker: "S7", from: 9000, to: 12_000 }];
@@ -85,10 +65,4 @@ test("Enter means quick, p precise, anything else is refused", () => {
 	expect(speed("")).toBe("quick");
 	expect(speed("p")).toBe("precise");
 	expect(() => speed("x")).toThrow();
-});
-
-test("names typed by hand are split on commas or semicolons, spaces collapsed, without blanks or repeats", () => {
-	expect(typedNames(" Jana Nováková, Petr Dvořák,, Jana  Nováková ")).toEqual(["Jana Nováková", "Petr Dvořák"]);
-	expect(typedNames("Jana Nováková; Petr\tDvořák ;Tomáš Novák")).toEqual(["Jana Nováková", "Petr Dvořák", "Tomáš Novák"]);
-	expect(typedNames("")).toEqual([]);
 });

@@ -30,8 +30,9 @@ import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
 import { ask, askUntil, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
-import { type CallEvent, eventsDuring } from "@bin/calls/apple-calendar";
-import { eventFile, toBrain, transcribe } from "@bin/calls/transcribe";
+import { type CallEvent, eventsDuring } from "@bin/calls/event/apple-calendar";
+import { eventFile } from "@bin/calls/event/pick";
+import { toBrain, transcribe } from "@bin/calls/transcribe";
 import { connect, enable } from "@bin/calls/websocket";
 
 type Mode = "audio" | "video";

@@ -7,70 +7,27 @@
 // no names. It is told at most as many voices as the event has people;
 // SPEAKERS=3 says exactly. Headphones on the call, or my mic hears Them too.
 //
-// The participants of a calendar event go into whisper's prompt, which is what
-// spells their names right: the event record.ts found in Calendar when the call
-// stopped (<recording>.event.json), else an .ics file or an event dragged out of
-// Apple Calendar (apple-calendar.ts). The transcript opens with what that event
-// and the diarizer say, as # lines. One known only by address is named in
-// contacts.ts. SPOKEN=cs sets the language; auto-detect
-// guesses it once per track from its first seconds. MODEL=quick|precise skips
-// the question which model.
+// Who was on the call goes into whisper's prompt, which is what spells their
+// names right (event.ts); the transcript opens with what the event and the
+// diarizer say, as # lines. The models it runs on are in models.ts. SPOKEN=cs
+// sets the language; auto-detect guesses it once per track from its first
+// seconds. MODEL=quick|precise skips the question which model.
 //
 // usage: transcribe.ts setup        install whisper.cpp, download its models (4.7 GB, once)
 //        transcribe.ts run [file]   the one given, or picked from ~/Recordings in television
 //                                   (type 202610 for October): writes <recording>.txt beside it,
 //                                   then offers to open Claude on it to file the call in the brain
 import { $ } from "bun";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
-import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/apple-calendar";
-import { realNames } from "@bin/calls/contacts";
+import { basename, join } from "node:path";
+import type { CallEvent } from "@bin/calls/event/apple-calendar";
+import { callEvent, day, hm } from "@bin/calls/event/pick";
+import { fluid, fluidReady, model, setup } from "@bin/calls/models";
 import { cli } from "@lib/cli";
-import { ask, askUntil, done, edit, gap, hint, link, live, o, say, warn } from "@lib/term";
+import { ask, askUntil, done, gap, hint, link, live, o, pick, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
-const models = `${homedir()}/.cache/whisper`;
-// Pinned by checksum: a model is code whisper runs over every call.
-const files = {
-	// Turbo is large-v3 with 4 decoder layers instead of 32: several times
-	// faster, and it loses the most on languages other than English.
-	quick: {
-		name: "ggml-large-v3-turbo.bin",
-		url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
-		sha256: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
-	},
-	precise: {
-		name: "ggml-large-v3.bin",
-		url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
-		sha256: "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2",
-	},
-	// Silence goes to whisper as nothing at all; fed to it, it makes up
-	// sentences ("Titulky vytvořil…"), and a muted mic is mostly silence.
-	vad: {
-		name: "ggml-silero-v6.2.0.bin",
-		url: "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v6.2.0.bin",
-		sha256: "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
-	},
-};
-const model = (m: keyof typeof files) => `${models}/${files[m].name}`;
-
-// The diarizer is built from a pinned commit, and that commit pins its models'
-// revision; the models are checked against one hash over all their files
-// before the CLI ever loads them. No release ships a binary.
-const fluid = {
-	tag: "v0.17.7",
-	commit: "503b4bd1bbf7220882de39fe8ae6716aae4132da",
-	bin: `${homedir()}/.cache/fluidaudio/fluidaudiocli-0.17.7`,
-	repo: "FluidInference/speaker-diarization-coreml",
-	revision: "df2625ac79a7ac6b65ad868fee6d80f320da4232",
-	// shasum -a 256 of every file, sorted by path, hashed again
-	tree: "ff077a5564c55aa1063dfb4ae11d472f80190f380ae9602686f5ce8420863c12",
-	// The repository's name without -coreml, as FluidAudio's Repo.folderName makes it
-	dir: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization`,
-	misplaced: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization-coreml`,
-	files: /^(Segmentation|FBank|Embedding|PldaRho)\.mlmodelc\/|^plda-parameters\.json$/,
-};
 
 export type Speed = "quick" | "precise";
 
@@ -123,91 +80,6 @@ const clock = (ms: number) => {
 	return h ? `${h}:${mmss}` : mmss;
 };
 
-/** The people on a calendar event, its organizer and attendees: a name, or an address when it has none. */
-export function attendees(ics: string): string[] {
-	const unfolded = ics.replace(/\r?\n[ \t]/g, ""); // a long line goes on after a newline and a space
-	return [...new Set([...unfolded.matchAll(/^(?:ATTENDEE|ORGANIZER)[^:\n]*?;CN=("?)([^";:\n]+)\1/gm)].map((m) => m[2].trim()))];
-}
-
-/** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
-export const dropped = (s: string) =>
-	s.trim().replace(/^'(.*)'$/, "$1").replace(/^"(.*)"$/, "$1").replace(/\\(.)/g, "$1").replace(/^~(?=\/)/, homedir());
-
-async function sha256(path: string) {
-	const h = new Bun.CryptoHasher("sha256");
-	for await (const chunk of Bun.file(path).stream()) h.update(chunk);
-	return h.digest("hex");
-}
-
-async function setup() {
-	if (!Bun.which("whisper-cli")) await $`brew install whisper.cpp`;
-	for (const m of ["quick", "precise", "vad"] as const) {
-		const { url, sha256: sum } = files[m], dst = model(m);
-		if (existsSync(dst)) continue;
-		live(`Downloading ${files[m].name}`);
-		await $`mkdir -p ${models} && curl -fL --progress-bar -o ${dst}.part ${url}`;
-		if ((await sha256(`${dst}.part`)) !== sum) {
-			rmSync(`${dst}.part`);
-			throw new Error(`${files[m].name} does not match its checksum, deleted`);
-		}
-		renameSync(`${dst}.part`, dst);
-	}
-	done("whisper.cpp is set up", models);
-	if (!Bun.which("swift")) return warn("swift is missing (install Xcode): transcripts keep one Them, unsplit by voice");
-	if (!existsSync(fluid.bin)) await buildFluid();
-	if (!(await fluidReady())) await fetchFluidModels();
-	// An earlier setup put the models where the CLI never looks; gone only when they are exactly ours.
-	if (existsSync(fluid.misplaced) && (await fluidReady(fluid.misplaced))) rmSync(fluid.misplaced, { recursive: true });
-	done("FluidAudio is set up", fluid.bin);
-}
-
-async function buildFluid() {
-	live(`Building FluidAudio ${fluid.tag}, once`);
-	const src = mkdtempSync(join(tmpdir(), "fluidaudio-"));
-	try {
-		await $`git -c advice.detachedHead=false clone -q --depth 1 --branch ${fluid.tag} https://github.com/FluidInference/FluidAudio.git ${src}`;
-		const head = (await $`git -C ${src} rev-parse HEAD`.text()).trim();
-		if (head !== fluid.commit) throw new Error(`FluidAudio ${fluid.tag} is ${head} now, not ${fluid.commit}: the tag moved`);
-		await $`swift build -c release --product fluidaudiocli --package-path ${src}`.quiet();
-		await $`mkdir -p ${dirname(fluid.bin)} && cp ${src}/.build/release/fluidaudiocli ${fluid.bin}`;
-	} finally {
-		rmSync(src, { recursive: true });
-	}
-}
-
-/** Whether the models on disk are exactly the pinned ones, and marked as that revision for the CLI. */
-async function fluidReady(dir = fluid.dir) {
-	if (!existsSync(`${dir}/.fluidaudio-revision`)) return false;
-	return (await treeHash(dir)) === fluid.tree;
-}
-
-async function treeHash(dir: string) {
-	const paths = readdirSync(dir, { recursive: true, encoding: "utf8" })
-		.filter((p) => fluid.files.test(p) && statSync(join(dir, p)).isFile())
-		.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-	let lines = "";
-	for (const p of paths) lines += `${await sha256(join(dir, p))}  ${p}\n`;
-	return new Bun.CryptoHasher("sha256").update(lines).digest("hex");
-}
-
-async function fetchFluidModels() {
-	live("Downloading the diarization models (22 MB)");
-	const api = `https://huggingface.co/api/models/${fluid.repo}/revision/${fluid.revision}`;
-	const names = ((await (await fetch(api)).json()) as { siblings: { rfilename: string }[] }).siblings
-		.map((s) => s.rfilename).filter((f) => fluid.files.test(f));
-	const part = `${fluid.dir}.part`;
-	rmSync(part, { recursive: true, force: true });
-	for (const f of names) await $`mkdir -p ${dirname(`${part}/${f}`)} && curl -fsSL -o ${`${part}/${f}`} ${`https://huggingface.co/${fluid.repo}/resolve/${fluid.revision}/${f}`}`;
-	if ((await treeHash(part)) !== fluid.tree) {
-		rmSync(part, { recursive: true });
-		throw new Error("the diarization models do not match their checksum, deleted");
-	}
-	// The CLI takes a folder marked with its own pinned revision as downloaded.
-	await Bun.write(`${part}/.fluidaudio-revision`, fluid.revision);
-	rmSync(fluid.dir, { recursive: true, force: true });
-	renameSync(part, fluid.dir);
-}
-
 /** The recordings in ~/Recordings, one per call's folder, the last one saved first.
  *  A loose one is found too, until record-init has given it a folder. */
 export function recordings(dir = out): string[] {
@@ -228,50 +100,12 @@ async function choose(): Promise<string> {
 	return byName.get(picked) ?? join(out, picked);
 }
 
-/** One line picked in television; empty on Esc. */
-async function pick(header: string, lines: string[]): Promise<string> {
-	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", header], { stdin: new Blob([lines.join("\n")]), stdout: "pipe", stderr: "inherit" });
-	return (await new Response(tv.stdout).text()).trim();
-}
-
-/** The event a recording was, picked from Calendar's last ten, since dragging one into a
- *  terminal does not always work. Esc = none. Undefined too when there is nothing to pick from. */
-async function pickRecent(): Promise<CallEvent | "none" | undefined> {
-	const events = recentEvents();
-	if (!events.length || !Bun.which("tv")) return undefined;
-	const byLine = new Map(events.map((e) => [`${day(e.start)} ${hm(e.start)}  ${e.title || "untitled"}${e.people.length ? `  · ${e.people.join(", ")}` : ""}`, e]));
-	return byLine.get(await pick("Which meeting was it? Esc = none", [...byLine.keys()])) ?? "none";
-}
-
 /** Transcribes a recording into <recording>.txt and returns that path. */
 export async function transcribe(file: string): Promise<string> {
 	if (!existsSync(file)) throw new Error(`no such recording: ${file}`);
 	const s = process.env.MODEL || !process.stdin.isTTY ? speed(process.env.MODEL) : await askUntil("Quick or precise?", "[Enter or q = quick, p = precise: better Czech, about 3× slower]", speed);
 	if (!existsSync(model(s)) || !existsSync(model("vad"))) await setup();
-	// The event saved when the call was stopped; asked for only when there is none.
-	let event = existsSync(eventFile(file)) ? (JSON.parse(readFileSync(eventFile(file), "utf8")) as CallEvent) : undefined;
-	let ics = event ? "" : dropped(process.env.ICS ?? "");
-	let save = false;
-	if (!event && !ics && process.stdin.isTTY) {
-		const picked = await pickRecent();
-		if (picked && picked !== "none") [event, save] = [picked, true];
-		else if (!picked) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
-	}
-	// A mistyped path costs the names, not the transcript.
-	const apple = appleEventId(ics);
-	let people = event?.people ?? (apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : []);
-	if (apple && !people.length) warn("no such event in Calendar, going on without names");
-	else if (ics && !apple && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
-	// The event's names, to fix, cross out or add to: someone invited along is on no event.
-	const before = people.join(", ");
-	if (process.env.PEOPLE) people = [...new Set([...people, ...typedNames(process.env.PEOPLE)])];
-	else if (process.stdin.isTTY) people = typedNames(await edit("Who was on the call, besides me?", "[edit, add after a comma or semicolon; Enter = done]", people.length ? `${before}, ` : ""));
-	if (event && people.join(", ") !== before) [event, save] = [{ ...event, people }, true];
-	// Saved as record.ts would have, with the names as edited, so the next run has them too.
-	if (event && save) await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
-	const names = await realNames(people);
-	if (event) hint(`Event: ${event.title}`);
-	if (names.length) hint(`Names: ${names.join(", ")}`);
+	const { event, names } = await callEvent(file);
 	// My own name too, so whisper spells it; it is no voice on the call track.
 	const spelled = [...(event?.me ? [event.me] : []), ...names];
 
@@ -317,11 +151,6 @@ export async function transcribe(file: string): Promise<string> {
 	}
 }
 
-/** Names typed as "Jana Nováková, Petr Dvořák" or with semicolons: spaces collapsed, without blanks or repeats. */
-export const typedNames = (s: string) => [...new Set(s.split(/[,;]/).map((n) => n.replace(/\s+/g, " ").trim()).filter(Boolean))];
-
-export const eventFile = (recording: string) => recording.replace(/\.[^.]*$/, ".event.json");
-
 /** What is known before the call is read, as # lines on top, for me and for the model
  *  that files it. Names stay off the lines: who is who is decided once the whole call is read. */
 export function header(event: CallEvent | undefined, names: string[], turns: Turn[] | null | undefined, heard: { who: string; segments: Segment[] }[]): string {
@@ -340,10 +169,6 @@ export function header(event: CallEvent | undefined, names: string[], turns: Tur
 	}
 	return lines.length ? `${lines.map((l) => `# ${l}`).join("\n")}\n\n` : "";
 }
-
-const pad = (n: number) => String(n).padStart(2, "0");
-const day = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-const hm = (iso: string) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
 /** Who speaks when on one track, in ms; null when the diarizer is not set up or fails,
  *  and the track then stays one voice rather than costing the transcript. */

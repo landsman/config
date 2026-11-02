@@ -65,11 +65,11 @@ once the whole call has been read, so an early guess cannot steer the rest.
 | `ggml-silero-v6.2.0.bin` | skips silence, which whisper otherwise fills with made-up sentences | `~/.cache/whisper` |
 | [FluidAudio](https://github.com/FluidInference/FluidAudio) 0.17.7 | tells the voices on the call track apart (pyannote Community-1 on CoreML) | built by `record-init` into `~/.cache/fluidaudio`, 22 MB |
 | its diarizer models | 22 MB, 21 files | `~/Library/Application Support/FluidAudio/Models/speaker-diarization` |
-| Calendar | the event during the call, and who was on it ([`apple-calendar.ts`](apple-calendar.ts)) | read-only from its database |
-| Contacts | a name for an attendee known only by address ([`contacts.ts`](contacts.ts)) | read-only; a new name is saved through the Contacts app, when confirmed |
+| Calendar | the event during the call, and who was on it ([`event/`](event)) | read-only from its database |
+| Contacts | a name for an attendee known only by address ([`event/contacts.ts`](event/contacts.ts)) | read-only; a new name is saved through the Contacts app, when confirmed |
 | [Claude Code](https://claude.com/claude-code) | files the call in the brain, interactively, in `~/projects/landsman/brain` | asked after each transcript |
 
-Every model is pinned by sha256 and checked before it is used. The diarizer has
+Every model is pinned by sha256 and checked before it is used ([`models.ts`](models.ts)). The diarizer has
 no release binary, so it is built with Xcode from the commit behind its tag, and
 refused if the tag moved. That commit pins its own model revision. If Calendar,
 Contacts or the diarizer is not available, the transcript is still written,
