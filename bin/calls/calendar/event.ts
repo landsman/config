@@ -1,65 +1,155 @@
 // Which meeting a recording was and who was on it, for whisper's prompt and the
-// transcript's header: the event ../record/record.ts found in Calendar when the call stopped
-// (<recording>.event.json), else one of Calendar's last ten picked in television,
-// else an .ics file (ics.ts) or an event dragged out of Apple Calendar
-// (../macos/calendar.ts).
+// transcript's header. The event comes from, in this order:
+//   - <recording>.event.json, saved by ../record/record.ts when the call stopped;
+//   - ICS=…, an .ics file or an ical:// link dragged out of Apple Calendar;
+//   - one of Calendar's last ten, picked in television;
+//   - an .ics file or a link dragged in when asked, when there is nothing to pick.
 // Its names are then shown on a line to edit, since someone invited along is on
 // no event; PEOPLE=… adds to them instead. One known only by address is named in
-// contacts.ts.
+// ../macos/contacts.ts.
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/macos/calendar";
+import { match } from "ts-pattern";
 import { attendees } from "@bin/calls/calendar/ics";
+import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/macos/calendar";
 import { realNames } from "@bin/calls/macos/contacts";
 import { ask, edit, hint, pick, warn } from "@lib/term";
 
 /** The event a recording was, if known, and the others on the call by name. */
 export async function callEvent(file: string): Promise<{ event?: CallEvent; names: string[] }> {
-	// The one saved when the call was stopped; asked for only when there is none.
-	let event = existsSync(eventFile(file)) ? (JSON.parse(readFileSync(eventFile(file), "utf8")) as CallEvent) : undefined;
-	let ics = event ? "" : dropped(process.env.ICS ?? "");
-	let save = false;
-	if (!event && !ics && process.stdin.isTTY) {
-		const picked = await pickRecent();
-		if (picked && picked !== "none") [event, save] = [picked, true];
-		else if (!picked) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
+	const source = await findEvent(file);
+	const found = await peopleOn(source);
+	const people = await confirmPeople(found.people);
+
+	let event = found.event;
+	if (event) {
+		const edited = people.join(", ") !== found.people.join(", ");
+		event = { ...event, people };
+		// Saved as record.ts would have, with the names as edited, so the next run has them too.
+		if (source.kind === "picked" || edited) await saveEvent(file, event);
+		hint(`Event: ${event.title}`);
 	}
-	// A mistyped path costs the names, not the transcript.
-	const apple = appleEventId(ics);
-	let people = event?.people ?? (apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : []);
-	if (apple && !people.length) warn("no such event in Calendar, going on without names");
-	else if (ics && !apple && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
-	// The event's names, to fix, cross out or add to: someone invited along is on no event.
-	const before = people.join(", ");
-	if (process.env.PEOPLE) people = [...new Set([...people, ...typedNames(process.env.PEOPLE)])];
-	else if (process.stdin.isTTY) people = typedNames(await edit("Who was on the call, besides me?", "[edit, add after a comma or semicolon; Enter = done]", people.length ? `${before}, ` : ""));
-	if (event && people.join(", ") !== before) [event, save] = [{ ...event, people }, true];
-	// Saved as record.ts would have, with the names as edited, so the next run has them too.
-	if (event && save) await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
+
 	const names = await realNames(people);
-	if (event) hint(`Event: ${event.title}`);
 	if (names.length) hint(`Names: ${names.join(", ")}`);
 	return { event, names };
 }
 
-/** The event a recording was, picked from Calendar's last ten, since dragging one into a
- *  terminal does not always work. Esc = none. Undefined too when there is nothing to pick from. */
-async function pickRecent(): Promise<CallEvent | "none" | undefined> {
-	const events = recentEvents();
-	if (!events.length || !Bun.which("tv")) return undefined;
-	const byLine = new Map(events.map((e) => [`${day(e.start)} ${hm(e.start)}  ${e.title || "untitled"}${e.people.length ? `  · ${e.people.join(", ")}` : ""}`, e]));
-	return byLine.get(await pick("Which meeting was it? Esc = none", [...byLine.keys()])) ?? "none";
+/** Where the event came from, and what that gives to read the names from. */
+type Source =
+	| { kind: "saved"; event: CallEvent }
+	| { kind: "picked"; event: CallEvent }
+	| { kind: "dragged"; uuid: string }
+	| { kind: "ics"; path: string }
+	| { kind: "missing"; path: string }
+	| { kind: "none" };
+
+async function findEvent(file: string): Promise<Source> {
+	if (existsSync(eventFile(file))) {
+		return { kind: "saved", event: JSON.parse(readFileSync(eventFile(file), "utf8")) };
+	}
+	if (process.env.ICS) return given(process.env.ICS);
+	if (!process.stdin.isTTY) return { kind: "none" };
+
+	const picked = await pickRecent();
+	if (picked) return picked;
+	return given(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
 }
 
-/** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
-export const dropped = (s: string) =>
-	s.trim().replace(/^'(.*)'$/, "$1").replace(/^"(.*)"$/, "$1").replace(/\\(.)/g, "$1").replace(/^~(?=\/)/, homedir());
+/** What was typed or dragged in: a link to an event in Calendar, or a path to an .ics. */
+export function given(text: string): Source {
+	const path = dropped(text);
+	if (!path) return { kind: "none" };
+
+	const uuid = appleEventId(path);
+	if (uuid) return { kind: "dragged", uuid };
+
+	return existsSync(path) ? { kind: "ics", path } : { kind: "missing", path };
+}
+
+/** One of Calendar's last ten, since dragging one into a terminal does not always work.
+ *  Esc is no event; undefined when there is nothing to pick from. */
+async function pickRecent(): Promise<Source | undefined> {
+	const events = recentEvents();
+	if (!events.length || !Bun.which("tv")) return undefined;
+
+	const byLine = new Map(events.map((e) => [label(e), e]));
+	const line = await pick("Which meeting was it? Esc = none", [...byLine.keys()]);
+	const event = byLine.get(line);
+	return event ? { kind: "picked", event } : { kind: "none" };
+}
+
+/** 2026-11-02 10:00  Weekly sync  · Jana Nováková, Petr Dvořák */
+function label(e: CallEvent): string {
+	const title = e.title || "untitled";
+	const people = e.people.length ? `  · ${e.people.join(", ")}` : "";
+	return `${day(e.start)} ${hm(e.start)}  ${title}${people}`;
+}
+
+/** The names on the event. A mistyped path or a vanished event costs the names, not the transcript. */
+async function peopleOn(source: Source): Promise<{ event?: CallEvent; people: string[] }> {
+	return match(source)
+		.with({ kind: "saved" }, { kind: "picked" }, ({ event }) => ({ event, people: event.people }))
+		.with({ kind: "dragged" }, ({ uuid }) => {
+			const people = appleCalendarAttendees(uuid);
+			if (!people.length) warn("no such event in Calendar, going on without names");
+			return { people };
+		})
+		.with({ kind: "ics" }, ({ path }) => ({ people: attendees(readFileSync(path, "utf8")) }))
+		.with({ kind: "missing" }, ({ path }) => {
+			warn(`no such file, going on without names: ${path}`);
+			return { people: [] };
+		})
+		.with({ kind: "none" }, () => ({ people: [] }))
+		.exhaustive();
+}
+
+/** The event's names, to fix, cross out or add to: someone invited along is on no event.
+ *  PEOPLE=… adds to them without asking. */
+async function confirmPeople(people: string[]): Promise<string[]> {
+	if (process.env.PEOPLE) return [...new Set([...people, ...typedNames(process.env.PEOPLE)])];
+	if (!process.stdin.isTTY) return people;
+
+	const prefill = people.length ? `${people.join(", ")}, ` : "";
+	const answer = await edit("Who was on the call, besides me?", "[edit, add after a comma or semicolon; Enter = done]", prefill);
+	return typedNames(answer);
+}
 
 /** Names typed as "Jana Nováková, Petr Dvořák" or with semicolons: spaces collapsed, without blanks or repeats. */
-export const typedNames = (s: string) => [...new Set(s.split(/[,;]/).map((n) => n.replace(/\s+/g, " ").trim()).filter(Boolean))];
+export function typedNames(text: string): string[] {
+	const names = text
+		.split(/[,;]/)
+		.map((name) => name.replace(/\s+/g, " ").trim())
+		.filter(Boolean);
+	return [...new Set(names)];
+}
+
+async function saveEvent(file: string, event: CallEvent) {
+	await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
+}
 
 export const eventFile = (recording: string) => recording.replace(/\.[^.]*$/, ".event.json");
 
+/** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
+export function dropped(text: string): string {
+	return text
+		.trim()
+		.replace(/^'(.*)'$/, "$1")
+		.replace(/^"(.*)"$/, "$1")
+		.replace(/\\(.)/g, "$1")
+		.replace(/^~(?=\/)/, homedir());
+}
+
+/** 2026-11-02 */
+export function day(iso: string): string {
+	const d = new Date(iso);
+	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** 10:00 */
+export function hm(iso: string): string {
+	const d = new Date(iso);
+	return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
-export const day = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-export const hm = (iso: string) => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
