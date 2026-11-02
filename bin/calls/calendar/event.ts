@@ -37,21 +37,14 @@ export async function callEvent(file: string): Promise<{ event?: CallEvent; name
 
 /** Where the event came from. */
 export enum Origin {
-	/** <recording>.event.json, saved when the call stopped or by an earlier run */
 	Saved = "saved",
-	/** one of Calendar's last ten, picked now */
 	Picked = "picked",
-	/** an ical:// link dragged out of Apple Calendar */
 	Dragged = "dragged",
-	/** an .ics file */
 	Ics = "ics",
-	/** a path to an .ics that is not there */
 	Missing = "missing",
-	/** no event */
 	None = "none",
 }
 
-/** Where the event came from, and what that gives to read the names from. */
 type Source =
 	| { kind: Origin.Saved; event: CallEvent }
 	| { kind: Origin.Picked; event: CallEvent }
@@ -156,13 +149,11 @@ export function dropped(text: string): string {
 		.replace(/^~(?=\/)/, homedir());
 }
 
-/** 2026-11-02 */
 export function day(iso: string): string {
 	const d = new Date(iso);
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** 10:00 */
 export function hm(iso: string): string {
 	const d = new Date(iso);
 	return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
