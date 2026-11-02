@@ -666,6 +666,15 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 	@echo
 	@echo "plugins: open $(CURDIR) in the IDE and accept the 'required plugins' prompt"
 
+##@ Zed
+#
+# Zed installs what auto_install_extensions lists; its UI never writes there
+#
+
+.PHONY: zed-extensions
+zed-extensions: ## add every extension installed in Zed here to the repo's Zed settings
+	@$(BUN) bin/zed/extensions.ts sync
+
 ##@ Google Chrome
 #
 # The toggles Google does not sync, see bin/chrome/prefs.sh

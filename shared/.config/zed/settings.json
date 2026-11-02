@@ -21,7 +21,22 @@
     "applescript": true,
     "emmet": true,
     "sublime-text-4-colorful-theme": true,
-    "jetbrains-new-ui-icons": true
+    "jetbrains-new-ui-icons": true,
+    "blade-runner-2049": true,
+    "catppuccin-blur": true,
+    "catppuccin": true,
+    "dracula": true,
+    "everforest": true,
+    "github-theme": true,
+    "jetbrains-themes": true,
+    "macos-classic": true,
+    "monokai-reversed": true,
+    "monospace-theme": true,
+    "night-owlz": true,
+    "nvim-nightfox": true,
+    "sublime-mariana-theme": true,
+    "tokyo-night": true,
+    "vercel-theme": true
   },
   // The java extension claims *.gradle.kts as "Gradle KTS", whose highlights
   // query fails to load (Invalid node type "null"), so the file renders plain.
