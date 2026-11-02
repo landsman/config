@@ -801,6 +801,15 @@ record-transcribe: ## transcribe a recording picked in television (type 202610 f
 	@$(BUN) bin/calls/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
+#
+# The private half of the commit signing key, as a 1Password secret reference.
+# A reference is a pointer, not a secret: it reads nothing without an unlocked
+# `op` signed in to my account, which is what lets it sit in a public repo —
+# and the vault is its id rather than its name, so it says even less. The key
+# itself, and an `op` service account token, never belong here.
+#
+SIGNING_KEY_REF = op://uda246doh2wzgveiq5xoqwppc4/landsman_git_signing/private key
+
 .PHONY: git git-config-test git-config-format
 git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
 	@git config --global --get-all include.path | grep -qxF '$(CURDIR)/.gitconfig' \
@@ -826,6 +835,14 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 	@# sets user.email would shadow it and the commits would carry that instead.
 	@# The `*` arm catches a machine still carrying the old placeholder in its
 	@# own global config, where nothing here can reach it.
+	@# The `op read` above: `?ssh-format=openssh` because an SSH-key item reads
+	@# back as PKCS#8 without it, which ssh-keygen and ssh-add both refuse and
+	@# which looks like a corrupt key rather than a wrong format. Into a mktemp
+	@# with 600 from the start and only moved into place once ssh-keygen has
+	@# parsed it, so a half-read or a refused unlock cannot leave a truncated
+	@# key where the next run would trust it. The public half is derived rather
+	@# than read a second time. Only for the default path: a key named on the
+	@# prompt is not what that reference points at.
 	@email="$$(git config user.email)"; \
 		case "$$email" in \
 			"") echo "no user.email - run this target again and give one"; exit 1;; \
@@ -838,6 +855,15 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 		default="$$HOME/.ssh/landsman_git_signing.pub"; \
 		read -p "signing key [$$default]: " k; k="$${k:-$$default}"; \
 		priv="$${k%.pub}"; \
+		if [ ! -f "$$priv" ] && [ "$$priv" = "$${default%.pub}" ] && command -v op >/dev/null; then \
+			echo "no key at $$priv - reading it from 1Password"; \
+			t=$$(mktemp); chmod 600 "$$t"; \
+			if op read "$(SIGNING_KEY_REF)?ssh-format=openssh" > "$$t" 2>/dev/null \
+				&& ssh-keygen -y -f "$$t" >/dev/null 2>&1; then \
+				mv "$$t" "$$priv"; chmod 600 "$$priv"; \
+				[ -f "$$k" ] || ssh-keygen -y -f "$$priv" > "$$k"; \
+			else rm -f "$$t"; echo "op could not read it - 'op signin' first, or restore the key by hand"; fi; \
+		fi; \
 		if [ ! -f "$$priv" ]; then \
 			echo "no key at $$priv"; \
 			echo "restore it from 1Password, chmod 600 it, then run make git again"; \
