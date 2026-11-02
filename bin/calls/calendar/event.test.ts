@@ -3,7 +3,7 @@
 // by hand split wrong.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { dropped, given, typedNames } from "@bin/calls/calendar/event";
+import { dropped, given, Origin, typedNames } from "@bin/calls/calendar/event";
 
 test("a dragged-in path loses its quotes and escapes", () => {
 	expect(dropped("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe("/Users/me/Downloads/Porada Q4.ics");
@@ -19,8 +19,8 @@ test("names typed by hand are split on commas or semicolons, spaces collapsed, w
 
 test("what is dragged in is a link to an event, an .ics there, one that is not, or nothing", () => {
 	const uuid = "55F9EE9B-1377-4F01-A442-79E9AC71B5BC";
-	expect(given(`ical://occurrence/20261020T110000Z/${uuid}\\?method=show`)).toEqual({ kind: "dragged", uuid });
-	expect(given(import.meta.path)).toEqual({ kind: "ics", path: import.meta.path });
-	expect(given("/nowhere/a\\ b.ics")).toEqual({ kind: "missing", path: "/nowhere/a b.ics" });
-	expect(given("  ")).toEqual({ kind: "none" });
+	expect(given(`ical://occurrence/20261020T110000Z/${uuid}\\?method=show`)).toEqual({ kind: Origin.Dragged, uuid });
+	expect(given(import.meta.path)).toEqual({ kind: Origin.Ics, path: import.meta.path });
+	expect(given("/nowhere/a\\ b.ics")).toEqual({ kind: Origin.Missing, path: "/nowhere/a b.ics" });
+	expect(given("  ")).toEqual({ kind: Origin.None });
 });

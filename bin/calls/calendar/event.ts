@@ -26,7 +26,7 @@ export async function callEvent(file: string): Promise<{ event?: CallEvent; name
 		const edited = people.join(", ") !== found.people.join(", ");
 		event = { ...event, people };
 		// Saved as record.ts would have, with the names as edited, so the next run has them too.
-		if (source.kind === "picked" || edited) await saveEvent(file, event);
+		if (source.kind === Origin.Picked || edited) await saveEvent(file, event);
 		hint(`Event: ${event.title}`);
 	}
 
@@ -35,21 +35,37 @@ export async function callEvent(file: string): Promise<{ event?: CallEvent; name
 	return { event, names };
 }
 
+/** Where the event came from. */
+export enum Origin {
+	/** <recording>.event.json, saved when the call stopped or by an earlier run */
+	Saved = "saved",
+	/** one of Calendar's last ten, picked now */
+	Picked = "picked",
+	/** an ical:// link dragged out of Apple Calendar */
+	Dragged = "dragged",
+	/** an .ics file */
+	Ics = "ics",
+	/** a path to an .ics that is not there */
+	Missing = "missing",
+	/** no event */
+	None = "none",
+}
+
 /** Where the event came from, and what that gives to read the names from. */
 type Source =
-	| { kind: "saved"; event: CallEvent }
-	| { kind: "picked"; event: CallEvent }
-	| { kind: "dragged"; uuid: string }
-	| { kind: "ics"; path: string }
-	| { kind: "missing"; path: string }
-	| { kind: "none" };
+	| { kind: Origin.Saved; event: CallEvent }
+	| { kind: Origin.Picked; event: CallEvent }
+	| { kind: Origin.Dragged; uuid: string }
+	| { kind: Origin.Ics; path: string }
+	| { kind: Origin.Missing; path: string }
+	| { kind: Origin.None };
 
 async function findEvent(file: string): Promise<Source> {
 	if (existsSync(eventFile(file))) {
-		return { kind: "saved", event: JSON.parse(readFileSync(eventFile(file), "utf8")) };
+		return { kind: Origin.Saved, event: JSON.parse(readFileSync(eventFile(file), "utf8")) };
 	}
 	if (process.env.ICS) return given(process.env.ICS);
-	if (!process.stdin.isTTY) return { kind: "none" };
+	if (!process.stdin.isTTY) return { kind: Origin.None };
 
 	const picked = await pickRecent();
 	if (picked) return picked;
@@ -59,12 +75,12 @@ async function findEvent(file: string): Promise<Source> {
 /** What was typed or dragged in: a link to an event in Calendar, or a path to an .ics. */
 export function given(text: string): Source {
 	const path = dropped(text);
-	if (!path) return { kind: "none" };
+	if (!path) return { kind: Origin.None };
 
 	const uuid = appleEventId(path);
-	if (uuid) return { kind: "dragged", uuid };
+	if (uuid) return { kind: Origin.Dragged, uuid };
 
-	return existsSync(path) ? { kind: "ics", path } : { kind: "missing", path };
+	return existsSync(path) ? { kind: Origin.Ics, path } : { kind: Origin.Missing, path };
 }
 
 /** One of Calendar's last ten, since dragging one into a terminal does not always work.
@@ -76,7 +92,7 @@ async function pickRecent(): Promise<Source | undefined> {
 	const byLine = new Map(events.map((e) => [label(e), e]));
 	const line = await pick("Which meeting was it? Esc = none", [...byLine.keys()]);
 	const event = byLine.get(line);
-	return event ? { kind: "picked", event } : { kind: "none" };
+	return event ? { kind: Origin.Picked, event } : { kind: Origin.None };
 }
 
 /** 2026-11-02 10:00  Weekly sync  · Jana Nováková, Petr Dvořák */
@@ -89,18 +105,18 @@ function label(e: CallEvent): string {
 /** The names on the event. A mistyped path or a vanished event costs the names, not the transcript. */
 async function peopleOn(source: Source): Promise<{ event?: CallEvent; people: string[] }> {
 	return match(source)
-		.with({ kind: "saved" }, { kind: "picked" }, ({ event }) => ({ event, people: event.people }))
-		.with({ kind: "dragged" }, ({ uuid }) => {
+		.with({ kind: Origin.Saved }, { kind: Origin.Picked }, ({ event }) => ({ event, people: event.people }))
+		.with({ kind: Origin.Dragged }, ({ uuid }) => {
 			const people = appleCalendarAttendees(uuid);
 			if (!people.length) warn("no such event in Calendar, going on without names");
 			return { people };
 		})
-		.with({ kind: "ics" }, ({ path }) => ({ people: attendees(readFileSync(path, "utf8")) }))
-		.with({ kind: "missing" }, ({ path }) => {
+		.with({ kind: Origin.Ics }, ({ path }) => ({ people: attendees(readFileSync(path, "utf8")) }))
+		.with({ kind: Origin.Missing }, ({ path }) => {
 			warn(`no such file, going on without names: ${path}`);
 			return { people: [] };
 		})
-		.with({ kind: "none" }, () => ({ people: [] }))
+		.with({ kind: Origin.None }, () => ({ people: [] }))
 		.exhaustive();
 }
 
