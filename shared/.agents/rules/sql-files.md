@@ -58,4 +58,5 @@ a file. Those stay as the framework wants them; IntelliJ reads `@Query` as SQL
 on its own. A project that keeps native SQL out altogether keeps doing so: this
 says where SQL goes once it is written, not that it should be.
 
-The worked example is `bin/calls/macos/queries/` in this repo.
+The worked example is `bin/calls/macos/queries/` in this repo. For SQLite —
+parameters, strict binding, another app's database — load the `sqlite` skill.
