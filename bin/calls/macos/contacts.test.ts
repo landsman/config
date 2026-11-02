@@ -119,10 +119,8 @@ test("a contact is saved with the last word as its surname, values as arguments"
 
 test.skipIf(!Bun.which("osacompile"))("the script that saves a contact compiles", async () => {
 	const folder = mkdtempSync(join(tmpdir(), "contact-script-"));
-	await Bun.write(`${folder}/save.applescript`, saveContactScript);
 	expect(
-		(await $`osacompile -o ${folder}/save.scpt ${folder}/save.applescript`.nothrow().quiet())
-			.exitCode,
+		(await $`osacompile -o ${folder}/save.scpt ${saveContactScript}`.nothrow().quiet()).exitCode,
 	).toBe(0);
 });
 

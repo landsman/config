@@ -6,7 +6,9 @@
 import { $ } from "bun";
 import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { appleQuery, readAppleDatabase } from "@bin/calls/macos/apple-database";
+import { readAppleDatabase } from "@bin/calls/macos/apple-database";
+import contactQuery from "@bin/calls/macos/queries/contact-by-email.sql" with { type: "text" };
+import saveContactScript from "@bin/calls/macos/save-contact.applescript" with { type: "file" };
 import { ask, hint, warn } from "@lib/term";
 
 type NewContact = { name: string; email: string };
@@ -100,8 +102,6 @@ export function contactName(email: string, books: string[]): string | undefined 
 	return undefined;
 }
 
-export const contactQuery = appleQuery("contact-by-email.sql");
-
 /** jan.novak@, jan_novak@ or jan-novak@ → Jan Novak; a single word such as info@ is no name. */
 export function guessName(email: string): string | undefined {
 	const mailbox = email.split("@")[0];
@@ -131,19 +131,14 @@ export async function saveContact(name: string, email: string, runScript = runAp
 	}
 }
 
-export const saveContactScript = `on run argv
-		tell application "Contacts"
-			set newPerson to make new person with properties {first name:item 1 of argv, last name:item 2 of argv}
-			make new email at end of emails of newPerson with properties {label:"work", value:item 3 of argv}
-			save
-		end tell
-	end run`;
-
-/** Runs an AppleScript with its arguments; its error, or "" when it went through. */
-async function runAppleScript(script: string, scriptArguments: string[]): Promise<string> {
-	const result = await $`osascript -e ${script} ${scriptArguments}`.nothrow().quiet();
+/** Runs an AppleScript file with its arguments; its error, or "" when it went through. */
+async function runAppleScript(scriptFile: string, scriptArguments: string[]): Promise<string> {
+	const result = await $`osascript ${scriptFile} ${scriptArguments}`.nothrow().quiet();
 	if (!result.exitCode) {
 		return "";
 	}
 	return result.stderr.toString().trim() || `osascript exited ${result.exitCode}`;
 }
+
+// Exported for the tests: the query against the real schema, the script compiled.
+export { contactQuery, saveContactScript };

@@ -29,11 +29,14 @@ there as it is.
   driver from an object — the file then says what it takes, and a missing one is
   missed by name rather than by position. Loading from a file is no reason to
   build SQL by concatenating strings.
-- **Read once, when the module or class loads**, by a short named helper:
+- **Loaded by an import where the stack has one**, so the editor jumps to the
+  file and a missing one fails at start; otherwise read once when the module or
+  class loads:
 
   | Stack | Read with |
   |---|---|
-  | Bun, Node | `readFileSync(join(import.meta.dir, "queries", file), "utf8")` |
+  | Bun | `import query from "./queries/x.sql" with { type: "text" }`, and `declare module "*.sql"` once for the types |
+  | Node | `readFileSync(new URL("./queries/x.sql", import.meta.url), "utf8")` |
   | Kotlin, Java | `src/main/resources/queries/`, `ClassPathResource("queries/$file").getContentAsString(UTF_8)` |
   | PHP | `file_get_contents(__DIR__ . "/queries/$file")` |
   | Go | `//go:embed queries/people-on-event.sql` on a `string` |
@@ -58,4 +61,6 @@ a file. Those stay as the framework wants them; IntelliJ reads `@Query` as SQL
 on its own. A project that keeps native SQL out altogether keeps doing so: this
 says where SQL goes once it is written, not that it should be.
 
-The worked example is `bin/calls/macos/queries/` in this repo.
+The worked example is `bin/calls/macos/queries/` in this repo, and
+`bin/imported-files.d.ts` for the types. The same goes for a script another
+program runs: `save-contact.applescript` is imported `with { type: "file" }`.
