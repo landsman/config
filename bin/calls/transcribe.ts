@@ -263,8 +263,8 @@ export async function transcribe(file: string): Promise<string> {
 	if (apple && !people.length) warn("no such event in Calendar, going on without names");
 	else if (ics && !apple && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
 	// Someone the event does not name, invited along or never on it: PEOPLE=… or typed, added to its names.
-	if (people.length) hint(`On the event: ${people.join(", ")}`);
-	const typed = typedNames(process.env.PEOPLE ?? (process.stdin.isTTY ? await ask(people.length ? "Anyone else on the call?" : "Who else was on the call?", "[names, comma-separated; Enter = no one]") : ""));
+	const question = people.length ? `On the call with ${people.join(", ")}. Anyone else?` : "Who else was on the call?";
+	const typed = typedNames(process.env.PEOPLE ?? (process.stdin.isTTY ? await ask(question, `[more names, comma-separated; Enter = ${people.length ? "that is everyone" : "don't know"}]`) : ""));
 	people = [...new Set([...people, ...typed])];
 	if (event && typed.length) [event, save] = [{ ...event, people }, true];
 	// Saved as record.ts would have, with the added names, so the next run has them too.
