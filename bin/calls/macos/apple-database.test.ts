@@ -69,7 +69,7 @@ describe("bad input", () => {
 			return () => {
 				return readAppleDatabase(path, [], (database) => {
 					return database
-						.query("SELECT name FROM person WHERE email = $email AND name = $name")
+						.query("SELECT name FROM person WHERE email = :email AND name = :name")
 						.all(values);
 				});
 			};

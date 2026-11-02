@@ -15,7 +15,7 @@ export function readAppleDatabase<Result>(
 ): Result {
 	try {
 		// readonly: SQLite itself refuses every write, whatever `read` tries.
-		// strict: a $name the query uses and the code does not pass throws.
+		// strict: a :name the query uses and the code does not pass throws.
 		const database = new Database(databasePath, { readonly: true, strict: true });
 		try {
 			return read(database);

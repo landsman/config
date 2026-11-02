@@ -24,7 +24,8 @@ there as it is.
 - **One query per file, in a `queries/` folder next to its caller**, named after
   what it returns: `queries/people-on-event.sql`, not `query3.sql`. It opens with
   a `--` line saying that.
-- **Parameters are named placeholders** (`$email`, `:email`), bound by the
+- **Parameters are named, `:email`**, the form SQLite, PDO, Python's sqlite3,
+  Spring's `NamedParameterJdbcTemplate` and DataGrip all read, bound by the
   driver from an object — the file then says what it takes, and a missing one is
   missed by name rather than by position. Loading from a file is no reason to
   build SQL by concatenating strings.
