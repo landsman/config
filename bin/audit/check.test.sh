@@ -26,9 +26,12 @@ ln -s "$(command -v jq)" "$tmp/bin/jq"
 : >"$tmp/outdated"
 
 # run <rc brew exits with> <answer>; sets out and code. SEVERITY passes through.
+# check.sh makes its scratch files in a TMPDIR of its own, so the check that it
+# cleans up counts only what it left, not what the machine writes meanwhile.
+mkdir -p "$tmp/scratch"
 run() {
   echo "$1" >"$tmp/rc"; printf '%s' "$2" >"$tmp/answer"
-  code=0; out=$(PATH="$tmp/bin:/usr/bin:/bin" "$check" 2>&1) || code=$?
+  code=0; out=$(PATH="$tmp/bin:/usr/bin:/bin" TMPDIR="$tmp/scratch" "$check" 2>&1) || code=$?
 }
 expect() { [ "$code" = "$1" ] || fail "$2: exit $code, want $1 — $out"; }
 has() { grep -qF -- "$1" <<<"$out" || fail "$2: no '$1' in: $out"; }
@@ -212,10 +215,9 @@ if ! PATH=/bin command -v jq >/dev/null; then
 fi
 
 # No scratch files left behind, whichever way the run ended.
-before=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -newer "$tmp/bin/brew" 2>/dev/null | wc -l)
 run 0 "$finding"; run 0 "$clean"; run 0 'garbage'
-after=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -newer "$tmp/bin/brew" 2>/dev/null | wc -l)
-[ "$before" = "$after" ] || fail "scratch files left behind: $before before, $after after"
+left=$(find "$tmp/scratch" -mindepth 1 -maxdepth 1 | wc -l)
+[ "$left" -eq 0 ] || fail "scratch files left behind: $left"
 
 # --- the subcommand and usage ----------------------------------------------
 

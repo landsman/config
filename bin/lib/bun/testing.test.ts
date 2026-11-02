@@ -32,7 +32,7 @@ describe("bad input", () => {
 
 	test("a word that only looks alike is not an import of test code", () => {
 		expect(importsTestCode('import { cli } from "@lib/cli";')).toBe(false);
-		expect(importsTestCode('// tested by hand, see testing notes')).toBe(false);
+		expect(importsTestCode("// tested by hand, see testing notes")).toBe(false);
 		expect(importsTestCode('import { latest } from "@lib/latest-testing-tools";')).toBe(false);
 	});
 });
@@ -43,5 +43,7 @@ function isTestCode(path: string): boolean {
 
 /** An import or a dynamic import() whose path ends in .test, .test.ts or /testing. */
 function importsTestCode(source: string): boolean {
-	return /(?:from\s+|import\()\s*["'][^"']*(?:\.test(?:\.ts)?|[/@]lib\/testing|\/testing)["']/.test(source);
+	return /(?:from\s+|import\()\s*["'][^"']*(?:\.test(?:\.ts)?|[/@]lib\/testing|\/testing)["']/.test(
+		source,
+	);
 }
