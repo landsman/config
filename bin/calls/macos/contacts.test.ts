@@ -78,9 +78,9 @@ test("a contact is saved with the last word as its surname, values as arguments"
 });
 
 test.skipIf(!Bun.which("osacompile"))("the script that saves a contact compiles", async () => {
-	const dir = mkdtempSync(join(tmpdir(), "contact-script-"));
-	await Bun.write(`${dir}/save.applescript`, saveContactScript);
-	expect((await $`osacompile -o ${dir}/save.scpt ${dir}/save.applescript`.nothrow().quiet()).exitCode).toBe(0);
+	const folder = mkdtempSync(join(tmpdir(), "contact-script-"));
+	await Bun.write(`${folder}/save.applescript`, saveContactScript);
+	expect((await $`osacompile -o ${folder}/save.scpt ${folder}/save.applescript`.nothrow().quiet()).exitCode).toBe(0);
 });
 
 // Only on a Mac with Contacts, and read-only: preparing a query checks every

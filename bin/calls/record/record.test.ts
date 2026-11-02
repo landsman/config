@@ -8,7 +8,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { callOfEachFile, chosenEvent, Mode, moveLooseCallsIntoFolders, recordingMode, requireFreeSpace, save } from "@bin/calls/record/record";
-import { recordings } from "@bin/calls/transcribe/transcribe";
+import { allRecordings } from "@bin/calls/transcribe/transcribe";
 
 const testFolder = mkdtempSync(join(tmpdir(), "record-"));
 const obsFile = join(testFolder, "2026-10-20_12-16-26.mkv");
@@ -100,6 +100,6 @@ test("tidying moves loose calls into folders, twice is no change, and never over
 	expect(readdirSync(join(folder, "a")).sort()).toEqual(["a.m4a", "a.txt"]);
 	expect(readFileSync(join(folder, "b", "b.m4a"), "utf8")).toBe("already there");
 	expect(readdirSync(folder).sort()).toEqual(["a", "b", "b.m4a", "notes.txt"]);
-	expect(recordings(folder).map((recording) => recording.slice(folder.length + 1)).sort()).toEqual(["a/a.m4a", "b.m4a", "b/b.m4a"]);
+	expect(allRecordings(folder).map((recording) => recording.slice(folder.length + 1)).sort()).toEqual(["a/a.m4a", "b.m4a", "b/b.m4a"]);
 	rmSync(folder, { recursive: true });
 });

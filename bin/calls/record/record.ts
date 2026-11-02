@@ -33,7 +33,7 @@ import { slug } from "@lib/text";
 import { eventFilePath } from "@bin/calls/calendar/event";
 import { type CallEvent, eventsDuring } from "@bin/calls/macos/calendar";
 import { connect, enable } from "@bin/calls/record/websocket";
-import { toBrain, transcribe } from "@bin/calls/transcribe/transcribe";
+import { fileInBrain, transcribe } from "@bin/calls/transcribe/transcribe";
 
 export enum Mode {
 	Audio = "audio",
@@ -210,7 +210,7 @@ async function stop(name?: string) {
 	say(`  ${link(transcript)}`);
 	hint("⌘ + click to open");
 	gap();
-	await toBrain(transcript);
+	await fileInBrain(transcript);
 }
 
 /** The event the call was, asked only when Calendar has more than one at that time. */

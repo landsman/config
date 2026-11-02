@@ -7,119 +7,165 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { done, live, warn } from "@lib/term";
 
-async function sha256(path: string) {
-	const h = new Bun.CryptoHasher("sha256");
-	for await (const chunk of Bun.file(path).stream()) h.update(chunk);
-	return h.digest("hex");
+export enum WhisperModel {
+	Quick = "quick",
+	Precise = "precise",
+	SilenceDetector = "silence-detector",
+}
+
+export function whisperModelPath(model: WhisperModel): string {
+	return `${whisperModelsFolder}/${whisperModels[model].file}`;
 }
 
 export async function setup() {
-	if (!Bun.which("whisper-cli")) await $`brew install whisper.cpp`;
-	for (const m of ["quick", "precise", "vad"] as const) {
-		const { url, sha256: sum } = files[m], dst = model(m);
-		if (existsSync(dst)) continue;
-		live(`Downloading ${files[m].name}`);
-		await $`mkdir -p ${models} && curl -fL --progress-bar -o ${dst}.part ${url}`;
-		if ((await sha256(`${dst}.part`)) !== sum) {
-			rmSync(`${dst}.part`);
-			throw new Error(`${files[m].name} does not match its checksum, deleted`);
-		}
-		renameSync(`${dst}.part`, dst);
+	if (!Bun.which("whisper-cli")) {
+		await $`brew install whisper.cpp`;
 	}
-	done("whisper.cpp is set up", models);
-	if (!Bun.which("swift")) return warn("swift is missing (install Xcode): transcripts keep one Them, unsplit by voice");
-	if (!existsSync(fluid.bin)) await buildFluid();
-	if (!(await fluidReady())) await fetchFluidModels();
-	// An earlier setup put the models where the CLI never looks; gone only when they are exactly ours.
-	if (existsSync(fluid.misplaced) && (await fluidReady(fluid.misplaced))) rmSync(fluid.misplaced, { recursive: true });
-	done("FluidAudio is set up", fluid.bin);
+	for (const model of Object.values(WhisperModel)) {
+		await downloadWhisperModel(model);
+	}
+	done("whisper.cpp is set up", whisperModelsFolder);
+
+	if (!Bun.which("swift")) {
+		return warn("swift is missing (install Xcode): transcripts keep one Them, unsplit by voice");
+	}
+	if (!existsSync(diarizer.program)) {
+		await buildDiarizer();
+	}
+	if (!(await diarizerModelsReady())) {
+		await downloadDiarizerModels();
+	}
+	// An earlier setup put the models where the program never looks; gone only when they are exactly ours.
+	const misplaced = diarizer.misplacedModelsFolder;
+	if (existsSync(misplaced) && (await diarizerModelsReady(misplaced))) {
+		rmSync(misplaced, { recursive: true });
+	}
+	done("FluidAudio is set up", diarizer.program);
 }
 
-async function buildFluid() {
-	live(`Building FluidAudio ${fluid.tag}, once`);
-	const src = mkdtempSync(join(tmpdir(), "fluidaudio-"));
+async function downloadWhisperModel(model: WhisperModel) {
+	const { file, url, checksum } = whisperModels[model];
+	const destination = whisperModelPath(model);
+	if (existsSync(destination)) {
+		return;
+	}
+	live(`Downloading ${file}`);
+	const partial = `${destination}.part`;
+	await $`mkdir -p ${whisperModelsFolder} && curl -fL --progress-bar -o ${partial} ${url}`;
+	if ((await fileChecksum(partial)) !== checksum) {
+		rmSync(partial);
+		throw new Error(`${file} does not match its checksum, deleted`);
+	}
+	renameSync(partial, destination);
+}
+
+async function fileChecksum(path: string): Promise<string> {
+	const hasher = new Bun.CryptoHasher("sha256");
+	for await (const chunk of Bun.file(path).stream()) {
+		hasher.update(chunk);
+	}
+	return hasher.digest("hex");
+}
+
+async function buildDiarizer() {
+	live(`Building FluidAudio ${diarizer.tag}, once`);
+	const sourceFolder = mkdtempSync(join(tmpdir(), "fluidaudio-"));
 	try {
-		await $`git -c advice.detachedHead=false clone -q --depth 1 --branch ${fluid.tag} https://github.com/FluidInference/FluidAudio.git ${src}`;
-		const head = (await $`git -C ${src} rev-parse HEAD`.text()).trim();
-		if (head !== fluid.commit) throw new Error(`FluidAudio ${fluid.tag} is ${head} now, not ${fluid.commit}: the tag moved`);
-		await $`swift build -c release --product fluidaudiocli --package-path ${src}`.quiet();
-		await $`mkdir -p ${dirname(fluid.bin)} && cp ${src}/.build/release/fluidaudiocli ${fluid.bin}`;
+		await $`git -c advice.detachedHead=false clone -q --depth 1 --branch ${diarizer.tag} https://github.com/FluidInference/FluidAudio.git ${sourceFolder}`;
+		const commit = (await $`git -C ${sourceFolder} rev-parse HEAD`.text()).trim();
+		if (commit !== diarizer.commit) {
+			throw new Error(`FluidAudio ${diarizer.tag} is ${commit} now, not ${diarizer.commit}: the tag moved`);
+		}
+		await $`swift build -c release --product fluidaudiocli --package-path ${sourceFolder}`.quiet();
+		const built = `${sourceFolder}/.build/release/fluidaudiocli`;
+		await $`mkdir -p ${dirname(diarizer.program)} && cp ${built} ${diarizer.program}`;
 	} finally {
-		rmSync(src, { recursive: true });
+		rmSync(sourceFolder, { recursive: true });
 	}
 }
 
-/** Whether the models on disk are exactly the pinned ones, and marked as that revision for the CLI. */
-export async function fluidReady(dir = fluid.dir) {
-	if (!existsSync(`${dir}/.fluidaudio-revision`)) return false;
-	return (await treeHash(dir)) === fluid.tree;
+/** Whether the models on disk are exactly the pinned ones, and marked as that revision for the program. */
+export async function diarizerModelsReady(folder = diarizer.modelsFolder): Promise<boolean> {
+	if (!existsSync(`${folder}/.fluidaudio-revision`)) {
+		return false;
+	}
+	return (await folderChecksum(folder)) === diarizer.modelsChecksum;
 }
 
-async function treeHash(dir: string) {
-	const paths = readdirSync(dir, { recursive: true, encoding: "utf8" })
-		.filter((p) => fluid.files.test(p) && statSync(join(dir, p)).isFile())
-		.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-	let lines = "";
-	for (const p of paths) lines += `${await sha256(join(dir, p))}  ${p}\n`;
-	return new Bun.CryptoHasher("sha256").update(lines).digest("hex");
+/** The checksum of every model file, sorted by path, checksummed again: shasum -a 256 over a tree. */
+async function folderChecksum(folder: string): Promise<string> {
+	const modelFiles = readdirSync(folder, { recursive: true, encoding: "utf8" })
+		.filter((path) => diarizer.modelFiles.test(path) && statSync(join(folder, path)).isFile())
+		.sort((first, second) => (first < second ? -1 : first > second ? 1 : 0));
+	let checksums = "";
+	for (const path of modelFiles) {
+		checksums += `${await fileChecksum(join(folder, path))}  ${path}\n`;
+	}
+	return new Bun.CryptoHasher("sha256").update(checksums).digest("hex");
 }
 
-async function fetchFluidModels() {
+async function downloadDiarizerModels() {
 	live("Downloading the diarization models (22 MB)");
-	const api = `https://huggingface.co/api/models/${fluid.repo}/revision/${fluid.revision}`;
-	const names = ((await (await fetch(api)).json()) as { siblings: { rfilename: string }[] }).siblings
-		.map((s) => s.rfilename).filter((f) => fluid.files.test(f));
-	const part = `${fluid.dir}.part`;
-	rmSync(part, { recursive: true, force: true });
-	for (const f of names) await $`mkdir -p ${dirname(`${part}/${f}`)} && curl -fsSL -o ${`${part}/${f}`} ${`https://huggingface.co/${fluid.repo}/resolve/${fluid.revision}/${f}`}`;
-	if ((await treeHash(part)) !== fluid.tree) {
-		rmSync(part, { recursive: true });
+	const listing = `https://huggingface.co/api/models/${diarizer.repository}/revision/${diarizer.revision}`;
+	const { siblings: repositoryFiles } = (await (await fetch(listing)).json()) as { siblings: { rfilename: string }[] };
+	const modelFiles = repositoryFiles
+		.map((repositoryFile) => repositoryFile.rfilename)
+		.filter((path) => diarizer.modelFiles.test(path));
+
+	const partial = `${diarizer.modelsFolder}.part`;
+	rmSync(partial, { recursive: true, force: true });
+	for (const path of modelFiles) {
+		const url = `https://huggingface.co/${diarizer.repository}/resolve/${diarizer.revision}/${path}`;
+		const destination = `${partial}/${path}`;
+		await $`mkdir -p ${dirname(destination)} && curl -fsSL -o ${destination} ${url}`;
+	}
+	if ((await folderChecksum(partial)) !== diarizer.modelsChecksum) {
+		rmSync(partial, { recursive: true });
 		throw new Error("the diarization models do not match their checksum, deleted");
 	}
-	// The CLI takes a folder marked with its own pinned revision as downloaded.
-	await Bun.write(`${part}/.fluidaudio-revision`, fluid.revision);
-	rmSync(fluid.dir, { recursive: true, force: true });
-	renameSync(part, fluid.dir);
+	// The program takes a folder marked with its own pinned revision as downloaded.
+	await Bun.write(`${partial}/.fluidaudio-revision`, diarizer.revision);
+	rmSync(diarizer.modelsFolder, { recursive: true, force: true });
+	renameSync(partial, diarizer.modelsFolder);
 }
 
-const models = `${homedir()}/.cache/whisper`;
+const whisperModelsFolder = `${homedir()}/.cache/whisper`;
+
 // Pinned by checksum: a model is code whisper runs over every call.
-const files = {
+const whisperModels: Record<WhisperModel, { file: string; url: string; checksum: string }> = {
 	// Turbo is large-v3 with 4 decoder layers instead of 32: several times
 	// faster, and it loses the most on languages other than English.
-	quick: {
-		name: "ggml-large-v3-turbo.bin",
+	[WhisperModel.Quick]: {
+		file: "ggml-large-v3-turbo.bin",
 		url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
-		sha256: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
+		checksum: "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
 	},
-	precise: {
-		name: "ggml-large-v3.bin",
+	[WhisperModel.Precise]: {
+		file: "ggml-large-v3.bin",
 		url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
-		sha256: "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2",
+		checksum: "64d182b440b98d5203c4f9bd541544d84c605196c4f7b845dfa11fb23594d1e2",
 	},
 	// Silence goes to whisper as nothing at all; fed to it, it makes up
 	// sentences ("Titulky vytvořil…"), and a muted mic is mostly silence.
-	vad: {
-		name: "ggml-silero-v6.2.0.bin",
+	[WhisperModel.SilenceDetector]: {
+		file: "ggml-silero-v6.2.0.bin",
 		url: "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v6.2.0.bin",
-		sha256: "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+		checksum: "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
 	},
 };
-export const model = (m: keyof typeof files) => `${models}/${files[m].name}`;
 
 // The diarizer is built from a pinned commit, and that commit pins its models'
-// revision; the models are checked against one hash over all their files
-// before the CLI ever loads them. No release ships a binary.
-export const fluid = {
+// revision; the models are checked against one checksum over all their files
+// before the program ever loads them. No release ships a binary.
+export const diarizer = {
 	tag: "v0.17.7",
 	commit: "503b4bd1bbf7220882de39fe8ae6716aae4132da",
-	bin: `${homedir()}/.cache/fluidaudio/fluidaudiocli-0.17.7`,
-	repo: "FluidInference/speaker-diarization-coreml",
+	program: `${homedir()}/.cache/fluidaudio/fluidaudiocli-0.17.7`,
+	repository: "FluidInference/speaker-diarization-coreml",
 	revision: "df2625ac79a7ac6b65ad868fee6d80f320da4232",
-	// shasum -a 256 of every file, sorted by path, hashed again
-	tree: "ff077a5564c55aa1063dfb4ae11d472f80190f380ae9602686f5ce8420863c12",
+	modelsChecksum: "ff077a5564c55aa1063dfb4ae11d472f80190f380ae9602686f5ce8420863c12",
 	// The repository's name without -coreml, as FluidAudio's Repo.folderName makes it
-	dir: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization`,
-	misplaced: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization-coreml`,
-	files: /^(Segmentation|FBank|Embedding|PldaRho)\.mlmodelc\/|^plda-parameters\.json$/,
+	modelsFolder: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization`,
+	misplacedModelsFolder: `${homedir()}/Library/Application Support/FluidAudio/Models/speaker-diarization-coreml`,
+	modelFiles: /^(Segmentation|FBank|Embedding|PldaRho)\.mlmodelc\/|^plda-parameters\.json$/,
 };
