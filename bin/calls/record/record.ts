@@ -19,7 +19,7 @@
 //                                      ~/Recordings/<name>/ with the event beside it as <name>.event.json
 //                                      for the transcript, print the path; for a
 //                                      recording whose terminal was closed; then
-//                                      offers to transcribe it, see transcribe.ts
+//                                      offers to transcribe it, see ../transcribe/transcribe.ts
 import { $ } from "bun";
 import { existsSync, mkdirSync, readdirSync, renameSync, statfsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -30,10 +30,10 @@ import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
 import { ask, askUntil, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
-import { type CallEvent, eventsDuring } from "@bin/calls/event/apple-calendar";
-import { eventFile } from "@bin/calls/event/pick";
-import { toBrain, transcribe } from "@bin/calls/transcribe";
-import { connect, enable } from "@bin/calls/websocket";
+import { type CallEvent, eventsDuring } from "@bin/calls/calendar/apple";
+import { eventFile } from "@bin/calls/calendar/event";
+import { toBrain, transcribe } from "@bin/calls/transcribe/transcribe";
+import { connect, enable } from "@bin/calls/record/websocket";
 
 type Mode = "audio" | "video";
 

@@ -7,8 +7,8 @@ import { afterAll, beforeEach, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { homes, mode, roomFor, save, tidy, which } from "@bin/calls/record";
-import { recordings } from "@bin/calls/transcribe";
+import { homes, mode, roomFor, save, tidy, which } from "@bin/calls/record/record";
+import { recordings } from "@bin/calls/transcribe/transcribe";
 
 const t = mkdtempSync(join(tmpdir(), "record-"));
 const raw = join(t, "2026-10-20_12-16-26.mkv");

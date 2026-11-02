@@ -1,14 +1,14 @@
 // Which meeting a recording was and who was on it, for whisper's prompt and the
-// transcript's header: the event record.ts found in Calendar when the call stopped
+// transcript's header: the event ../record/record.ts found in Calendar when the call stopped
 // (<recording>.event.json), else one of Calendar's last ten picked in television,
-// else an .ics file or an event dragged out of Apple Calendar (apple-calendar.ts).
+// else an .ics file or an event dragged out of Apple Calendar (apple.ts).
 // Its names are then shown on a line to edit, since someone invited along is on
 // no event; PEOPLE=… adds to them instead. One known only by address is named in
 // contacts.ts.
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/event/apple-calendar";
-import { realNames } from "@bin/calls/event/contacts";
+import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/calendar/apple";
+import { realNames } from "@bin/calls/calendar/contacts";
 import { ask, edit, hint, pick, warn } from "@lib/term";
 
 /** The event a recording was, if known, and the others on the call by name. */

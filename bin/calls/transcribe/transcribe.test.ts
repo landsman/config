@@ -3,7 +3,7 @@
 // and Enter not meaning the quick model; a voice from the diarizer put on the wrong lines; and
 // a header that miscounts the voices or names one before the call was read.
 import { expect, test } from "bun:test";
-import { diarize, header, merge, speed } from "@bin/calls/transcribe";
+import { diarize, header, merge, speed } from "@bin/calls/transcribe/transcribe";
 
 test("tracks are merged by time, one line per turn", () =>
 	expect(merge([

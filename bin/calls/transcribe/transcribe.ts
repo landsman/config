@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 // Turns a call recording into text on this machine, with whisper.cpp. Each
-// recording keeps the call and my mic on tracks of their own (see record.ts),
+// recording keeps the call and my mic on tracks of their own (see ../record/record.ts),
 // so each is transcribed apart and the lines are merged by time: Me and Them
 // need no guessing. Who is who inside Them comes from FluidAudio's offline
 // diarizer (pyannote Community-1 on CoreML): Them 1, Them 2… by who spoke first,
@@ -8,7 +8,7 @@
 // SPEAKERS=3 says exactly. Headphones on the call, or my mic hears Them too.
 //
 // Who was on the call goes into whisper's prompt, which is what spells their
-// names right (event.ts); the transcript opens with what the event and the
+// names right (../calendar/event.ts); the transcript opens with what the event and the
 // diarizer say, as # lines. The models it runs on are in models.ts. SPOKEN=cs
 // sets the language; auto-detect guesses it once per track from its first
 // seconds. MODEL=quick|precise skips the question which model.
@@ -21,9 +21,9 @@ import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { CallEvent } from "@bin/calls/event/apple-calendar";
-import { callEvent, day, hm } from "@bin/calls/event/pick";
-import { fluid, fluidReady, model, setup } from "@bin/calls/models";
+import type { CallEvent } from "@bin/calls/calendar/apple";
+import { callEvent, day, hm } from "@bin/calls/calendar/event";
+import { fluid, fluidReady, model, setup } from "@bin/calls/transcribe/models";
 import { cli } from "@lib/cli";
 import { ask, askUntil, done, gap, hint, link, live, o, pick, say, warn } from "@lib/term";
 

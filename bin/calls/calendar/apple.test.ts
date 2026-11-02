@@ -1,4 +1,4 @@
-// What apple-calendar.ts would get wrong silently: the UUID misread out of the
+// What apple.ts would get wrong silently: the UUID misread out of the
 // link, the names of another event, or none, read out of the database; the event
 // a call was found at the wrong time, a conference taken for the meeting inside
 // it, or me counted among the others — or Apple changing the schema of Calendar,
@@ -8,8 +8,8 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appleCalendarAttendees, appleEventId, attendeesSql, calendarDb, eventsDuring, occurrencesSql, peopleSql, recentEvents } from "@bin/calls/event/apple-calendar";
-import { dropped } from "@bin/calls/event/pick";
+import { appleCalendarAttendees, appleEventId, attendeesSql, calendarDb, eventsDuring, occurrencesSql, peopleSql, recentEvents } from "@bin/calls/calendar/apple";
+import { dropped } from "@bin/calls/calendar/event";
 
 test("an event dragged out of Calendar is a link to its UUID", () => {
 	const uuid = "55F9EE9B-1377-4F01-A442-79E9AC71B5BC";

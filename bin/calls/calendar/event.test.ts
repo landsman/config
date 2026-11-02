@@ -1,9 +1,9 @@
-// What pick.ts would get wrong silently: the names from a calendar event missed
+// What event.ts would get wrong silently: the names from a calendar event missed
 // or mangled — folded lines, quoted names, a name listed twice — a dragged path
 // left quoted or a typed ~ unexpanded, and names typed by hand split wrong.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { attendees, dropped, typedNames } from "@bin/calls/event/pick";
+import { attendees, dropped, typedNames } from "@bin/calls/calendar/event";
 
 test("names come from the organizer and attendees, folded and quoted, once each", () =>
 	expect(attendees([
