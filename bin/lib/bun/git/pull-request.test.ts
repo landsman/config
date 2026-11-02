@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { $ } from "bun";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { openPullRequest } from "@bin/git/pull-request";
+import { openPullRequest } from "@lib/git/pull-request";
 
 const scratch = mkdtempSync(`${tmpdir()}/pull-request-`);
 const checkout = `${scratch}/checkout`;

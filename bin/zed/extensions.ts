@@ -11,7 +11,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { resolve } from "node:path";
 import { cli } from "@lib/cli";
-import { openPullRequest } from "@bin/git/pull-request";
+import { openPullRequest } from "@lib/git/pull-request";
 
 const repoRoot = resolve(import.meta.dir, "../..");
 const settingsFile = "shared/.config/zed/settings.json";
