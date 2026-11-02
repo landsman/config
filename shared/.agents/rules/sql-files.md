@@ -39,6 +39,9 @@ there as it is.
   targets, so a renamed column or a placeholder nobody fills fails the build,
   not the first run. The file and the code that binds its values are apart now,
   and nothing else ties them.
+- **A database another app owns is opened read-only, in one place.** One
+  helper opens it, a test proves a write through it changes nothing on disk,
+  and another that no other file opens a database. `bin/calls/macos/apple-database.ts`.
 - **A wrong number of values fails loudly.** A driver may refuse it (bun:sqlite
   throws "expected 2 values, received 1") or read the missing one as NULL and
   answer nothing; neither may be swallowed by a catch meant for something else.

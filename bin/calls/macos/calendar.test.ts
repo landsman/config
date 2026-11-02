@@ -17,7 +17,6 @@ import {
 	occurrencesQuery,
 	peopleQuery,
 	recentEvents,
-	throwIfOurMistake,
 } from "@bin/calls/macos/calendar";
 import { draggedPath } from "@bin/calls/calendar/event";
 
@@ -145,26 +144,3 @@ test.skipIf(!existsSync(calendarDatabase))(
 		}
 	},
 );
-
-test("a query given the wrong number of values fails loudly, anything else from the database reads as nothing", () => {
-	const database = new Database(":memory:");
-	database.run("CREATE TABLE person (name TEXT, email TEXT)");
-	const wrongCount = () =>
-		database.query("SELECT name FROM person WHERE email = ? AND name = ?").all("jana@example.com");
-	const schemaChanged = () => database.query("SELECT missing_column FROM person").all();
-
-	expect(() => {
-		try {
-			wrongCount();
-		} catch (error) {
-			throwIfOurMistake(error);
-		}
-	}).toThrow(/expected 2 values, received 1/);
-	expect(() => {
-		try {
-			schemaChanged();
-		} catch (error) {
-			throwIfOurMistake(error);
-		}
-	}).not.toThrow();
-});

@@ -2,10 +2,9 @@
 // read-only. Every account added to Calendar (iCloud, Google, Exchange) is in
 // that one database. Its schema is Apple's and undocumented, so a change to it
 // reads as no event and no names, never as a failed transcript.
-import { Database } from "bun:sqlite";
-import { readFileSync } from "node:fs";
+import type { Database } from "bun:sqlite";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { appleQuery, readAppleDatabase } from "@bin/calls/macos/apple-database";
 
 export const calendarDatabase = `${homedir()}/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`;
 
@@ -28,13 +27,13 @@ export function eventIdInLink(link: string): string | undefined {
 
 /** The names on an event, bare addresses included. */
 export function attendeesOfEvent(eventId: string, databasePath = calendarDatabase): string[] {
-	return readCalendar(databasePath, [], (database) => {
+	return readAppleDatabase(databasePath, [], (database) => {
 		const attendees = database.query<{ name: string }, [string]>(attendeesQuery).all(eventId);
 		return attendees.map((attendee) => attendee.name.trim());
 	});
 }
 
-export const attendeesQuery = readQuery("attendees-of-event.sql");
+export const attendeesQuery = appleQuery("attendees-of-event.sql");
 
 /** The events that overlap a call, the closest fit first: how much they share over how much
  *  they cover together, so a meeting beats a two-day conference around it. */
@@ -43,7 +42,7 @@ export function eventsDuring(
 	callEnd: Date,
 	databasePath = calendarDatabase,
 ): CallEvent[] {
-	return readCalendar(databasePath, [], (database) => {
+	return readAppleDatabase(databasePath, [], (database) => {
 		const from = toCalendarSeconds(callStart);
 		const to = toCalendarSeconds(callEnd);
 		const closestFit = (meeting: Meeting) => {
@@ -64,7 +63,7 @@ export function recentEvents(
 	count = 10,
 	databasePath = calendarDatabase,
 ): CallEvent[] {
-	return readCalendar(databasePath, [], (database) => {
+	return readAppleDatabase(databasePath, [], (database) => {
 		const until = toCalendarSeconds(now);
 		// ponytail: a month back; ten meetings older than that are not worth a list
 		return meetingsBetween(database, until - 31 * secondsInDay, until)
@@ -73,29 +72,6 @@ export function recentEvents(
 			.slice(0, count)
 			.map((meeting) => toCallEvent(database, meeting));
 	});
-}
-
-/** Opens the database read-only for one read, and answers `fallback` when it cannot be read. */
-function readCalendar<T>(databasePath: string, fallback: T, read: (database: Database) => T): T {
-	try {
-		const database = new Database(databasePath, { readonly: true });
-		try {
-			return read(database);
-		} finally {
-			database.close();
-		}
-	} catch (error) {
-		throwIfOurMistake(error);
-		return fallback;
-	}
-}
-
-/** A query given more or fewer values than it has placeholders is a bug in this code, not
- *  Apple changing the schema: it fails loudly instead of reading as no event. */
-export function throwIfOurMistake(error: unknown) {
-	if (error instanceof Error && /expected \d+ values?, received \d+/.test(error.message)) {
-		throw error;
-	}
 }
 
 // Calendar counts seconds from 2001-01-01, Core Data's epoch.
@@ -144,7 +120,7 @@ type Occurrence = {
 	occurrenceEnd: number | null;
 };
 
-export const occurrencesQuery = readQuery("occurrences.sql");
+export const occurrencesQuery = appleQuery("occurrences.sql");
 
 /** An occurrence's own times are mostly empty, so a one-off or a moved repeat takes its
  *  event's times, and a plain repeat its series' time of day on that day. */
@@ -178,8 +154,4 @@ function peopleOnEvent(database: Database, eventRow: number) {
 
 type Participant = { name: string; address: string | null; isMe: number };
 
-export const peopleQuery = readQuery("people-on-event.sql");
-
-function readQuery(file: string): string {
-	return readFileSync(join(import.meta.dir, "queries", file), "utf8");
-}
+export const peopleQuery = appleQuery("people-on-event.sql");
