@@ -254,6 +254,14 @@
         ]
       },
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/bare-refs.ts\""
+          }
+        ]
+      },
+      {
         "_otty": true,
         "hooks": [
           {
