@@ -117,6 +117,40 @@ function bracket(ere: string, at: number): [string, number] {
 
 export type Pattern = { line: number; source: string; re: RegExp };
 
+/** Whether the line names it — a *word*, not a run of letters inside another
+ *  one: `cat` is not to be found in `concatenate`.
+ *
+ *  grep's own word edges cannot do this job. A word there is `[A-Za-z0-9_]`, so
+ *  `client_acme_token` and `AcmeService` would stop matching, and those are
+ *  exactly the shapes a name leaks in. The edges are therefore judged per match:
+ *
+ *    a letter before            inside a word: `concatenate` is not `cat`
+ *    a lower-case letter after  the word goes on: `acmecorp` is not `acme`
+ *    upper case after a match
+ *      that is all upper case   a longer abbreviation: `ABC` is not `AB`
+ *
+ *  Anything else is an edge: a space, a digit (`acme2.cz`), `_`, `-`, `.`, `/`,
+ *  or the capital that starts the next camelCase word — `AcmeService` is the
+ *  name, and in code that is the common shape. The cost of the last rule is that
+ *  `ACMECORP` reads as one abbreviation and passes; a name worth hiding in
+ *  capitals is worth its own pattern.
+ *
+ *  Judging each match in code is why this is TypeScript: ERE has no lookaround,
+ *  so the shell version could only ever offer its own `[A-Za-z0-9_]` edges. */
+export function names(line: string, pattern: Pattern): boolean {
+	const re = new RegExp(pattern.re.source, `${pattern.re.flags}g`);
+	for (const match of line.matchAll(re)) {
+		const hit = match[0];
+		const before = line[match.index - 1] ?? "";
+		const after = line[match.index + hit.length] ?? "";
+		if (/[A-Za-z]/.test(before)) continue;
+		if (/[a-z]/.test(after)) continue;
+		if (/[A-Z]/.test(after) && /[A-Z]/.test(hit) && hit === hit.toUpperCase()) continue;
+		return true;
+	}
+	return false;
+}
+
 /** The patterns this repo's owner is not allowed to write, by line in the list.
  *  A trailing space would otherwise leave an empty pattern, and an empty pattern
  *  matches every line — so each line is trimmed at the end, CR included.
@@ -126,7 +160,9 @@ export type Pattern = { line: number; source: string; re: RegExp };
  *  is the only way a two-letter abbreviation can be listed at all — in lower
  *  case it collides with half of the shell (`mv`, `cp`, `ln`, `rm`) and refused
  *  every commit that moved a file. Word boundaries stay the pattern's own
- *  business: `\<AB\>` also keeps `ABC` out of it. */
+ *  business, and names() above judges every match's edges anyway. Word edges
+ *  do not help a two-letter command: `mv` is a whole word in `mv "$t"`, which
+ *  is why upper case is still how such a name is listed. */
 export function patternsFor(list: string, owner: string): Pattern[] {
 	const out: Pattern[] = [];
 	list.split("\n").forEach((raw, index) => {
@@ -236,16 +272,24 @@ async function verify(patterns: Pattern[], sample: string): Promise<never> {
 	let bad = 0;
 	for (const pattern of patterns) {
 		const theirs = await grepHits(pattern, sample);
-		const ours = new Set(sample.split("\n").filter((line) => pattern.re.test(line)));
+		const ours = new Set(sample.split("\n").filter((line) => names(line, pattern)));
 		const onlyGrep = [...theirs].filter((l) => !ours.has(l));
 		const onlyJs = [...ours].filter((l) => !theirs.has(l));
-		const mark = onlyGrep.length + onlyJs.length === 0 ? "ok  " : "DIFF";
-		console.log(`${mark} list line ${pattern.line}: ${theirs.size} grep hits, ${ours.size} js hits`);
-		for (const line of onlyGrep.slice(0, 3)) console.log(`       grep only: ${line.slice(0, 120)}`);
-		for (const line of onlyJs.slice(0, 3)) console.log(`       js only:   ${line.slice(0, 120)}`);
-		if (mark === "DIFF") bad++;
+		const narrowed = onlyGrep.filter((l) => pattern.re.test(l));
+		const lost = onlyGrep.filter((l) => !pattern.re.test(l));
+		const mark = lost.length + onlyJs.length === 0 ? "ok  " : "FAIL";
+		console.log(
+			`${mark} list line ${pattern.line}: ${theirs.size} grep, ${ours.size} js, ` +
+				`${narrowed.length} narrowed (inside a word), ${lost.length + onlyJs.length} unexplained`,
+		);
+		for (const line of [...lost, ...onlyJs].slice(0, 3)) console.log(`       unexplained: ${line.slice(0, 120)}`);
+		if (mark === "FAIL") bad++;
 	}
-	console.log(bad === 0 ? `all ${patterns.length} patterns agree` : `${bad} of ${patterns.length} patterns disagree`);
+	console.log(
+		bad === 0
+			? `all ${patterns.length} patterns translate as grep reads them`
+			: `${bad} of ${patterns.length} patterns differ for a reason the word rule does not explain`,
+	);
 	process.exit(bad === 0 ? 0 : 1);
 }
 
@@ -304,7 +348,7 @@ if (import.meta.main) {
 	}
 
 	const { where, lines } = await collect(args, stdin);
-	const hits = lines.filter((line) => patterns.some((p) => p.re.test(line)));
+	const hits = lines.filter((line) => patterns.some((p) => names(line, p)));
 	if (hits.length === 0) process.exit(0);
 	console.error(`forbidden-names: a name that belongs to another owner, in ${where}:`);
 	for (const hit of [...new Set(hits)]) console.error(`  ${hit}`);

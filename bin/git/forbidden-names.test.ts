@@ -4,7 +4,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EMAIL_RE, addedLines, messageLines, patternsFor, stdinLines, subjectOf, toRegExp } from "@bin/git/forbidden-names";
+import { EMAIL_RE, addedLines, messageLines, names, patternsFor, stdinLines, subjectOf, toRegExp } from "@bin/git/forbidden-names";
 
 describe("toRegExp: a grep ERE read by JS", () => {
 	test("word edges become \\b, so AB is a name and ABC is not", () => {
@@ -68,6 +68,43 @@ describe("patternsFor: the list, by owner", () => {
 		const abbrev = patternsFor(list, "x").find((p) => p.line === 6);
 		expect(abbrev?.re.flags).toBe("");
 		expect(patternsFor(list, "x").find((p) => p.line === 2)?.re.flags).toBe("i");
+	});
+});
+
+describe("names: a word, not a run of letters inside one", () => {
+	const of = (list: string, line: number) => {
+		const pattern = patternsFor(list, "nobody").find((p) => p.line === line);
+		if (!pattern) throw new Error(`no pattern on line ${line}`);
+		return (text: string) => names(text, pattern);
+	};
+	const acme = of("acme", 1);
+	const cat = of("cat", 1);
+	const abbrev = of("ministry AB", 1);
+
+	test("the name on its own, however it is punctuated around", () => {
+		expect(acme("for acme today")).toBe(true);
+		expect(acme("acme-bot")).toBe(true);
+		expect(acme("acme.cz")).toBe(true);
+		expect(acme("acme2.cz")).toBe(true);
+		expect(acme("ACME Ltd")).toBe(true);
+	});
+	test("inside an identifier, which is where a name really leaks", () => {
+		// grep's own word edges would lose both of these: `_` is a word character,
+		// and camelCase has no edge at all.
+		expect(acme("client_acme_token")).toBe(true);
+		expect(acme("class AcmeService {")).toBe(true);
+	});
+	test("but not in the middle of another word", () => {
+		expect(acme("acmecorp")).toBe(false);
+		expect(acme("myacme")).toBe(false);
+		expect(cat("concatenate the list")).toBe(false);
+		expect(cat("cat_token")).toBe(true);
+	});
+	test("an upper-case abbreviation is not the start of a longer one", () => {
+		expect(abbrev("rolled out for AB last spring")).toBe(true);
+		expect(abbrev("the ABC controller")).toBe(false);
+		// And the case rule still earns its place: the shell command passes.
+		expect(abbrev('ab "$t" "$priv"')).toBe(false);
 	});
 });
 
