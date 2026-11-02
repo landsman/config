@@ -30,163 +30,139 @@ import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
 import { ask, askUntil, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
-import { type CallEvent, eventsDuring } from "@bin/calls/macos/calendar";
 import { eventFilePath } from "@bin/calls/calendar/event";
-import { toBrain, transcribe } from "@bin/calls/transcribe/transcribe";
+import { type CallEvent, eventsDuring } from "@bin/calls/macos/calendar";
 import { connect, enable } from "@bin/calls/record/websocket";
+import { toBrain, transcribe } from "@bin/calls/transcribe/transcribe";
 
-type Mode = "audio" | "video";
+export enum Mode {
+	Audio = "audio",
+	Video = "video",
+}
 
-const here = import.meta.dir;
-const conf = `${homedir()}/Library/Application Support/obs-studio`;
-const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
-const obsPattern = "OBS.app/Contents/MacOS/OBS$";
+const thisFolder = import.meta.dir;
+const obsSettingsFolder = `${homedir()}/Library/Application Support/obs-studio`;
+const recordingsFolder = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
+const obsProcess = "OBS.app/Contents/MacOS/OBS$";
+const obsSavingProcess = "obs-ffmpeg-mux";
 
-export function mode(answer = ""): Mode {
-	if (["", "a", "audio"].includes(answer)) return "audio";
-	if (["v", "video"].includes(answer)) return "video";
+/** Audio or video, as answered: Enter or a is audio, v is video. */
+export function recordingMode(answer = ""): Mode {
+	if (["", "a", "audio"].includes(answer)) {
+		return Mode.Audio;
+	}
+	if (["v", "video"].includes(answer)) {
+		return Mode.Video;
+	}
 	throw new Error(`audio or video, not '${answer}'`);
 }
 
-// <dir>/YYYYMMDD-<name>/YYYYMMDD-<name>.m4a|mp4: a folder per call, for the event and
-// transcripts saved beside it, and each file still named after the call wherever it is
-// copied. The time when there is no name, and never into an earlier call's folder.
-// raw is named by config/'s FilenameFormatting: 2026-10-20_12-16-26.
-export function target(m: Mode, raw: string, dir: string, name: string): string {
-	const stamp = basename(raw).replace(/\.[^.]*$/, "");
-	const base = `${stamp.slice(0, 10).replaceAll("-", "")}-${slug(name) || stamp.slice(11)}`;
-	const ext = m === "video" ? "mp4" : "m4a";
-	let call = base;
-	for (let i = 2; existsSync(join(dir, call)); i++) call = `${base}-${i}`;
-	return join(dir, call, `${call}.${ext}`);
-}
-
-// Audio keeps every audio track and drops the black frame; video keeps all.
-// The raw file goes only once the copy is saved: it is the call.
-export async function save(m: Mode, raw: string, dir: string, name: string): Promise<string> {
-	const dst = target(m, raw, dir, name);
-	mkdirSync(dirname(dst), { recursive: true });
-	const map = m === "video" ? ["-map", "0"] : ["-map", "0:a"];
-	const r = await $`ffmpeg -nostdin -loglevel error -y -i ${raw} ${map} -c copy ${dst}`.nothrow();
-	if (r.exitCode !== 0) throw new Error(`saving failed, the recording is still at ${raw}`);
-	await $`rm ${raw}`;
-	return dst;
-}
-
-/** Quits OBS and waits until it is gone; refuses while it records. */
-async function quit() {
-	if (!(await running(obsPattern))) return;
-	if (await running("obs-ffmpeg-mux")) throw new Error("OBS is recording, stop it first");
-	await $`osascript -e ${'tell application "OBS" to quit'}`.nothrow().quiet();
-	if (!(await waitFor(async () => !(await running(obsPattern)), 20)))
-		throw new Error("OBS did not quit, a window in it may be open: close it, quit OBS, run this again");
-}
-
-async function setup() {
-	if (!existsSync("/Applications/OBS.app")) await $`brew install --cask obs`;
-	// OBS rewrites its config on quit, so it has to be closed while this writes.
-	await quit();
-	mkdirSync(`${out}/.obs`, { recursive: true });
-	// config/ mirrors OBS's own folder. Copied, not stowed: OBS replaces a
-	// symlink with a file when it saves. user.ini only on a fresh install.
-	copyTree(`${here}/config`, conf, { "@RECORDINGS@": out }, ["user.ini"]);
-	enable();
-	done("OBS is set up");
-	hint("On its first start macOS asks for Microphone and Screen Recording: allow both.");
-	tidy(out);
-}
-
-/** Moves the calls saved before they got a folder each into one. Run again it finds nothing,
- *  and it never moves over a file: a clash stays where it is. */
-export function tidy(dir: string) {
-	if (!existsSync(dir)) return;
-	let moved = 0;
-	for (const [file, call] of homes(readdirSync(dir).filter((f) => statSync(join(dir, f)).isFile()))) {
-		const dst = join(dir, call, file);
-		if (existsSync(dst)) continue;
-		mkdirSync(join(dir, call), { recursive: true });
-		renameSync(join(dir, file), dst);
-		moved++;
-	}
-	if (moved) done(`Moved ${moved} files into a folder per call`, dir);
-}
-
-/** Which call's folder each loose file goes to: a recording to its own, and its transcripts
- *  and event to the recording they are named after. X-2.txt is X's second transcript, unless
- *  X-2 is a recording of its own. Anything else stays out. */
-export function homes(files: string[]): Map<string, string> {
-	const stem = (f: string) => f.replace(/\.[^.]*$/, "");
-	const calls = new Set(files.filter((f) => /\.(m4a|mp4)$/.test(f)).map(stem));
-	const home = new Map<string, string>();
-	for (const f of files) {
-		const exact = f.match(/^(.*)\.(m4a|mp4|txt|event\.json)$/)?.[1];
-		const again = f.match(/^(.*)-\d+\.txt$/)?.[1];
-		if (exact && calls.has(exact)) home.set(f, exact);
-		else if (again && calls.has(again)) home.set(f, again);
-	}
-	return home;
-}
-
 async function start(answer?: string) {
-	roomFor(existsSync(out) ? out : homedir());
+	requireFreeSpace(existsSync(recordingsFolder) ? recordingsFolder : homedir());
 	gap();
-	const m = answer === undefined ? await askUntil("Record audio or video?", "[Enter or a = audio, v = video]", mode) : mode(answer);
-	if (!existsSync(`${conf}/basic/profiles/MeetVideo/basic.ini`)) await setup();
+	const mode = answer === undefined
+		? await askUntil("Record audio or video?", "[Enter or a = audio, v = video]", recordingMode)
+		: recordingMode(answer);
+	if (!existsSync(`${obsSettingsFolder}/basic/profiles/MeetVideo/basic.ini`)) {
+		await setup();
+	}
+
 	// -j: started hidden, it only has to record; stop() quits it again.
-	if (!(await running(obsPattern))) await $`open -g -j -a OBS`;
+	if (!(await running(obsProcess))) {
+		await $`open -g -j -a OBS`;
+	}
 	const { call, close } = await retry(connect, 30).catch(() => {
 		throw new Error("OBS does not answer: is a dialog open in its window?");
 	});
 	// Connected is not ready: right after launch OBS answers 207 for a few seconds.
-	await retry(() => call("GetSceneCollectionList"), 30, (e) => e.message.includes("(207)"));
+	await retry(
+		() => call("GetSceneCollectionList"),
+		30,
+		(error) => error.message.includes("(207)"),
+	);
+
 	// The answer comes from OBS itself, so a setting changed by hand in its window wins.
-	const use = async (list: string, current: string, set: string, field: string, value: string) => {
-		if ((await call(list))[current] === value) return;
-		await call(set, { [field]: value });
+	const switchTo = async (setting: ObsSetting, value: string) => {
+		const current = await call(setting.listRequest);
+		if (current[setting.currentField] === value) {
+			return;
+		}
+		await call(setting.setRequest, { [setting.valueField]: value });
 		await Bun.sleep(1000);
 	};
-	await use("GetSceneCollectionList", "currentSceneCollectionName", "SetCurrentSceneCollection", "sceneCollectionName", "MeetCall");
-	if (m === "video") {
-		await use("GetProfileList", "currentProfileName", "SetCurrentProfile", "profileName", "MeetVideo");
+	await switchTo(sceneCollection, "MeetCall");
+	if (mode === Mode.Video) {
+		await switchTo(profile, "MeetVideo");
 		// The display's id differs per Mac, so config/ cannot carry it. Read from
 		// macOS: asking OBS for its display list crashes it (32.2).
-		const display = (await $`osascript -l JavaScript ${`${here}/../macos/display.js`}`.text()).trim();
-		await call("SetInputSettings", { inputName: "Display", inputSettings: { display_uuid: display } });
+		const displayScript = `${thisFolder}/../macos/display.js`;
+		const displayId = (await $`osascript -l JavaScript ${displayScript}`.text()).trim();
+		await call("SetInputSettings", { inputName: "Display", inputSettings: { display_uuid: displayId } });
 		await call("SetCurrentProgramScene", { sceneName: "Screen" });
 	} else {
-		await use("GetProfileList", "currentProfileName", "SetCurrentProfile", "profileName", "MeetAudio");
+		await switchTo(profile, "MeetAudio");
 		await call("SetCurrentProgramScene", { sceneName: "Audio" });
 	}
 	await call("StartRecord");
 	close();
+
 	if (!process.stdin.isTTY || !process.stdout.isTTY) {
 		gap();
-		live(`Recording ${m}`);
+		live(`Recording ${mode}`);
 		hint("Stop it with  make record-stop");
 		return gap();
 	}
-	// Waits here with a running clock; Ctrl+C or q stops and saves. Closing the
-	// terminal leaves OBS recording, for `make record-stop` to finish.
-	const t0 = Date.now();
-	const clock = () => {
-		const s = Math.floor((Date.now() - t0) / 1000);
-		return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+	await waitWithClock(mode);
+	await stop();
+}
+
+/** A setting OBS keeps a list of, with the requests that read and change it. */
+type ObsSetting = { listRequest: string; currentField: string; setRequest: string; valueField: string };
+
+const sceneCollection: ObsSetting = {
+	listRequest: "GetSceneCollectionList",
+	currentField: "currentSceneCollectionName",
+	setRequest: "SetCurrentSceneCollection",
+	valueField: "sceneCollectionName",
+};
+
+const profile: ObsSetting = {
+	listRequest: "GetProfileList",
+	currentField: "currentProfileName",
+	setRequest: "SetCurrentProfile",
+	valueField: "profileName",
+};
+
+/** Waits here with a running clock; Ctrl+C or q stops and saves. Closing the terminal
+ *  leaves OBS recording, for `make record-stop` to finish. */
+async function waitWithClock(mode: Mode) {
+	const startedAt = Date.now();
+	const elapsed = () => {
+		const seconds = Math.floor((Date.now() - startedAt) / 1000);
+		const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
+		return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
 	};
 	gap();
-	process.stdout.write("\n"); // the clock's line, drawn by tick below
+	process.stdout.write("\n"); // the clock's line, drawn by redrawClock below
 	hint("Ctrl+C stops and saves");
 	hint("Closing the terminal keeps it recording; finish it with  make record-stop");
-	await untilKey(["\x03", "q"], () =>
-		process.stdout.write(`\x1b[3A\r\x1b[K  ${o.red("●")} ${o.bold(`Recording ${m}`)}  ${o.dim(clock())}\x1b[3B\r`));
-	await stop();
+	const redrawClock = () => {
+		const clockLine = `  ${o.red("●")} ${o.bold(`Recording ${mode}`)}  ${o.dim(elapsed())}`;
+		process.stdout.write(`\x1b[3A\r\x1b[K${clockLine}\x1b[3B\r`);
+	};
+	const ctrlC = "\x03";
+	await untilKey([ctrlC, "q"], redrawClock);
 }
 
 /** Refuses to start when the disk is nearly full: OBS keeps recording into a full disk
  *  and the call is lost, noticed only at the end. 10 GB is hours of video. */
-export function roomFor(dir: string, min = 10e9) {
-	const { bavail, bsize } = statfsSync(dir);
-	const free = bavail * bsize;
-	if (free < min) throw new Error(`only ${(free / 1e9).toFixed(1)} GB free on the disk, ${min / 1e9} GB needed to record: free some space first`);
+export function requireFreeSpace(folder: string, neededBytes = 10e9) {
+	const { bavail: freeBlocks, bsize: blockSize } = statfsSync(folder);
+	const freeBytes = freeBlocks * blockSize;
+	if (freeBytes < neededBytes) {
+		const free = (freeBytes / 1e9).toFixed(1);
+		throw new Error(`only ${free} GB free on the disk, ${neededBytes / 1e9} GB needed to record: free some space first`);
+	}
 }
 
 async function stop(name?: string) {
@@ -194,45 +170,184 @@ async function stop(name?: string) {
 	const { call, close } = await connect();
 	// The event is looked up while OBS still knows how long it has been recording.
 	const { outputDuration } = await call("GetRecordStatus");
-	const event = await pickEvent(eventsDuring(new Date(Date.now() - outputDuration), new Date()));
-	name ??= (await ask("Name the recording", `[Enter = ${event?.title || "the time"}]`)) || event?.title || "";
+	const callStart = new Date(Date.now() - outputDuration);
+	const event = await pickEvent(eventsDuring(callStart, new Date()));
+	if (name === undefined) {
+		const answer = await ask("Name the recording", `[Enter = ${event?.title || "the time"}]`);
+		name = answer || event?.title || "";
+	}
 	const { currentProfileName } = await call("GetProfileList");
-	const { outputPath } = await call("StopRecord");
+	const { outputPath: obsFile } = await call("StopRecord");
 	close();
-	// StopRecord answers before the muxer has closed the file.
-	await waitFor(async () => !(await running("obs-ffmpeg-mux")), 30);
-	await quit().catch(() => {}); // a window left open in it only keeps it running
-	const saved = await save(currentProfileName === "MeetVideo" ? "video" : "audio", outputPath, out, name);
-	if (event) await Bun.write(eventFilePath(saved), `${JSON.stringify(event, null, "\t")}\n`);
-	if (!process.stdout.isTTY) return say(saved); // a script reading it gets the path alone
+
+	// StopRecord answers before the file is closed.
+	await waitFor(async () => !(await running(obsSavingProcess)), 30);
+	await quitObs().catch(() => {}); // a window left open in it only keeps it running
+	const mode = currentProfileName === "MeetVideo" ? Mode.Video : Mode.Audio;
+	const saved = await save(mode, obsFile, recordingsFolder, name);
+	if (event) {
+		await Bun.write(eventFilePath(saved), `${JSON.stringify(event, null, "\t")}\n`);
+	}
+
+	if (!process.stdout.isTTY) {
+		return say(saved); // a script reading it gets the path alone
+	}
 	gap();
 	done(`Saved ${basename(saved)}`, await describe(saved));
 	say(`  ${link(saved)}`);
 	hint("⌘ + click to open");
 	gap();
-	if (!process.stdin.isTTY) return;
-	if (!["y", "yes"].includes((await ask("Transcribe it?", "[y/N]")).toLowerCase())) return;
-	const txt = await transcribe(saved);
+	if (!process.stdin.isTTY) {
+		return;
+	}
+	const wantsTranscript = await ask("Transcribe it?", "[y/N]");
+	if (!["y", "yes"].includes(wantsTranscript.toLowerCase())) {
+		return;
+	}
+	const transcript = await transcribe(saved);
 	gap();
-	done(`Transcribed ${basename(txt)}`);
-	say(`  ${link(txt)}`);
+	done(`Transcribed ${basename(transcript)}`);
+	say(`  ${link(transcript)}`);
 	hint("⌘ + click to open");
 	gap();
-	await toBrain(txt);
+	await toBrain(transcript);
 }
 
 /** The event the call was, asked only when Calendar has more than one at that time. */
 async function pickEvent(events: CallEvent[]): Promise<CallEvent | undefined> {
-	if (events.length < 2 || !process.stdin.isTTY) return events[0];
-	const list = events.map((e, i) => `${i + 1} = ${e.title || "untitled"}`).join(", ");
-	return askUntil("Which event was the call?", `[Enter = 1, ${list}, - = none]`, (a) => which(a, events));
+	if (events.length < 2 || !process.stdin.isTTY) {
+		return events[0];
+	}
+	const choices = events
+		.map((event, index) => `${index + 1} = ${event.title || "untitled"}`)
+		.join(", ");
+	return askUntil(
+		"Which event was the call?",
+		`[Enter = 1, ${choices}, - = none]`,
+		(answer) => chosenEvent(answer, events),
+	);
 }
 
-export function which<T>(answer: string, events: T[]): T | undefined {
-	if (answer === "-") return undefined;
-	const i = answer === "" ? 0 : Number(answer) - 1;
-	if (!Number.isInteger(i) || !events[i]) throw new Error(`a number from 1 to ${events.length}, or -`);
-	return events[i];
+/** Enter is the first, a number is that one, "-" is none. */
+export function chosenEvent<Event>(answer: string, events: Event[]): Event | undefined {
+	if (answer === "-") {
+		return undefined;
+	}
+	const index = answer === "" ? 0 : Number(answer) - 1;
+	if (!Number.isInteger(index) || !events[index]) {
+		throw new Error(`a number from 1 to ${events.length}, or -`);
+	}
+	return events[index];
 }
 
-if (import.meta.main) await cli(import.meta.path, { setup, start, stop });
+// Audio keeps every audio track and drops the black frame; video keeps all.
+// The file OBS wrote goes only once the copy is saved: it is the call.
+export async function save(mode: Mode, obsFile: string, folder: string, name: string): Promise<string> {
+	const recording = recordingPath(mode, obsFile, folder, name);
+	mkdirSync(dirname(recording), { recursive: true });
+	const streams = mode === Mode.Video ? ["-map", "0"] : ["-map", "0:a"];
+	const copied = await $`ffmpeg -nostdin -loglevel error -y -i ${obsFile} ${streams} -c copy ${recording}`.nothrow();
+	if (copied.exitCode !== 0) {
+		throw new Error(`saving failed, the recording is still at ${obsFile}`);
+	}
+	await $`rm ${obsFile}`;
+	return recording;
+}
+
+// <folder>/YYYYMMDD-<name>/YYYYMMDD-<name>.m4a|mp4: a folder per call, for the event and
+// transcripts saved beside it, and each file still named after the call wherever it is
+// copied. The time when there is no name, and never into an earlier call's folder.
+// OBS names its file by config/'s FilenameFormatting: 2026-10-20_12-16-26.
+export function recordingPath(mode: Mode, obsFile: string, folder: string, name: string): string {
+	const startedAt = basename(obsFile).replace(/\.[^.]*$/, "");
+	const date = startedAt.slice(0, 10).replaceAll("-", "");
+	const time = startedAt.slice(11);
+	const callName = `${date}-${slug(name) || time}`;
+	const extension = mode === Mode.Video ? "mp4" : "m4a";
+
+	let callFolder = callName;
+	for (let copy = 2; existsSync(join(folder, callFolder)); copy++) {
+		callFolder = `${callName}-${copy}`;
+	}
+	return join(folder, callFolder, `${callFolder}.${extension}`);
+}
+
+/** Quits OBS and waits until it is gone; refuses while it records. */
+async function quitObs() {
+	if (!(await running(obsProcess))) {
+		return;
+	}
+	if (await running(obsSavingProcess)) {
+		throw new Error("OBS is recording, stop it first");
+	}
+	await $`osascript -e ${'tell application "OBS" to quit'}`.nothrow().quiet();
+	const quit = await waitFor(async () => !(await running(obsProcess)), 20);
+	if (!quit) {
+		throw new Error("OBS did not quit, a window in it may be open: close it, quit OBS, run this again");
+	}
+}
+
+async function setup() {
+	if (!existsSync("/Applications/OBS.app")) {
+		await $`brew install --cask obs`;
+	}
+	// OBS rewrites its config on quit, so it has to be closed while this writes.
+	await quitObs();
+	mkdirSync(`${recordingsFolder}/.obs`, { recursive: true });
+	// config/ mirrors OBS's own folder. Copied, not stowed: OBS replaces a
+	// symlink with a file when it saves. user.ini only on a fresh install.
+	copyTree(`${thisFolder}/config`, obsSettingsFolder, { "@RECORDINGS@": recordingsFolder }, ["user.ini"]);
+	enable();
+	done("OBS is set up");
+	hint("On its first start macOS asks for Microphone and Screen Recording: allow both.");
+	moveLooseCallsIntoFolders(recordingsFolder);
+}
+
+/** Moves the calls saved before they got a folder each into one. Run again it finds nothing,
+ *  and it never moves over a file: a clash stays where it is. */
+export function moveLooseCallsIntoFolders(folder: string) {
+	if (!existsSync(folder)) {
+		return;
+	}
+	const looseFiles = readdirSync(folder).filter((file) => statSync(join(folder, file)).isFile());
+	let moved = 0;
+	for (const [file, callName] of callOfEachFile(looseFiles)) {
+		const destination = join(folder, callName, file);
+		if (existsSync(destination)) {
+			continue;
+		}
+		mkdirSync(join(folder, callName), { recursive: true });
+		renameSync(join(folder, file), destination);
+		moved++;
+	}
+	if (moved) {
+		done(`Moved ${moved} files into a folder per call`, folder);
+	}
+}
+
+/** Which call's folder each loose file goes to: a recording to its own, and its transcripts
+ *  and event to the recording they are named after. X-2.txt is X's second transcript, unless
+ *  X-2 is a recording of its own. Anything else stays out. */
+export function callOfEachFile(files: string[]): Map<string, string> {
+	const withoutExtension = (file: string) => file.replace(/\.[^.]*$/, "");
+	const recordings = new Set(
+		files
+			.filter((file) => /\.(m4a|mp4)$/.test(file))
+			.map(withoutExtension),
+	);
+	const callByFile = new Map<string, string>();
+	for (const file of files) {
+		const sameName = file.match(/^(.*)\.(m4a|mp4|txt|event\.json)$/)?.[1];
+		const laterTranscriptOf = file.match(/^(.*)-\d+\.txt$/)?.[1];
+		if (sameName && recordings.has(sameName)) {
+			callByFile.set(file, sameName);
+		} else if (laterTranscriptOf && recordings.has(laterTranscriptOf)) {
+			callByFile.set(file, laterTranscriptOf);
+		}
+	}
+	return callByFile;
+}
+
+if (import.meta.main) {
+	await cli(import.meta.path, { setup, start, stop });
+}
