@@ -63,4 +63,7 @@ a file. Those stay as the framework wants them; IntelliJ reads `@Query` as SQL
 on its own. A project that keeps native SQL out altogether keeps doing so: this
 says where SQL goes once it is written, not that it should be.
 
-The worked example is `bin/calls/macos/queries/` in this repo.
+The worked example is `bin/calls/macos/` in this repo: `queries/`, the one
+read-only helper in `apple-database.ts`, and `save-contact.applescript`. For
+SQLite itself — `:name` parameters, bun:sqlite's strict mode, another app's
+database — load the `sqlite` skill.
