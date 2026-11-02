@@ -8,7 +8,7 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { appleCalendarAttendees, appleEventId, attendeesSql, calendarDb, eventsDuring, occurrencesSql, peopleSql } from "@bin/calls/apple-calendar";
+import { appleCalendarAttendees, appleEventId, attendeesSql, calendarDb, eventsDuring, occurrencesSql, peopleSql, recentEvents } from "@bin/calls/apple-calendar";
 import { dropped } from "@bin/calls/transcribe";
 
 test("an event dragged out of Calendar is a link to its UUID", () => {
@@ -60,6 +60,11 @@ test("the event a call was is the one fitting its time best, at that day's time 
 	});
 	expect(eventsDuring(at(12), at(13), path).map((e) => e.title)).toEqual(["Conference"]);
 	expect(eventsDuring(at(10), at(11), "/nonexistent.sqlitedb")).toEqual([]);
+
+	// the last ones before 15:30 that day, newest first: one not started yet is left out
+	expect(recentEvents(at(15, 30), 2, path).map((e) => e.title)).toEqual(["Later", "Sync"]);
+	expect(recentEvents(at(12), 10, path).map((e) => e.title)).toEqual(["Sync", "Conference"]);
+	expect(recentEvents(at(12), 10, "/nonexistent.sqlitedb")).toEqual([]);
 });
 
 // Only on a Mac with Calendar, and read-only: preparing the query checks every

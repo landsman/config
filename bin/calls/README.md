@@ -13,8 +13,11 @@ handed to Claude to file in the brain, and that step asks first. macOS only.
 
 `record` asks audio or video, Enter = audio. Ctrl+C stops it. If Calendar has an
 event at that time, Enter takes its title as the name; with two events at once
-it asks which. `record-transcribe` asks quick or precise, transcribes, then asks
-whether to file the call in the brain.
+it asks which. `record-transcribe` asks quick or precise and, for a recording
+with no event saved, which of Calendar's last ten meetings it was (Esc = none).
+Then who was on the call: the event's names on a line to edit, another one added
+after a comma, Enter when it is right. It transcribes, then asks whether to file
+the call in the brain.
 
 | Variable | For |
 |----------|-----|
@@ -24,6 +27,7 @@ whether to file the call in the brain.
 | `MODEL=quick\|precise` | skips the question; precise is better at Czech, about 3× slower |
 | `SPOKEN=cs` | the language, instead of guessing it per track |
 | `ICS=event.ics` | an event for a recording that has none saved (an `ical://` link works too) |
+| `PEOPLE="Jana Nováková, Petr Dvořák"` | people on the call the event does not name, added to its names; asked for otherwise, and saved with the event |
 | `SPEAKERS=3` | how many voices are on the other side, when the event's people would mislead |
 | `BRAIN=n` | skips the brain step |
 

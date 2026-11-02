@@ -49,3 +49,12 @@ test("askUntil asks again after an answer parse refuses, saying why", async () =
 		"? Quick or precise? [Enter = quick] › ",
 	]);
 });
+
+test("edit hands its prefill to the line reader and asks on a line of its own", async () => {
+	const err = capture(false);
+	let given: string | undefined;
+	const t = createTerm(capture(false).stream, err.stream, async (prefill) => ((given = prefill), " Jana, Petr "));
+	expect(await t.edit("Who?", "[Enter = done]", "Jana, ")).toBe("Jana, Petr");
+	expect(given).toBe("Jana, ");
+	expect(err.lines).toEqual(["? Who? [Enter = done]\n"]);
+});
