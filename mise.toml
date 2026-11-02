@@ -18,3 +18,7 @@
 # Runs the scripts under bin/ (bin/calls/record.ts) and type-checks them, `bun check`.
 bun = "1.4.3"
 yq = "4.53.6"
+# Opens the pull requests bin/lib/bun/git/pull-request.ts proposes. The Brewfile
+# has it too, unpinned, for typing; a script gets this one through `mise x`.
+# git is not here: mise has no git, and mise itself needs one to run.
+gh = "2.103.3"

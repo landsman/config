@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      # Every tool mise.toml pins (bun, yq), at the pinned version, on both
+      # Every tool mise.toml pins (bun, yq, gh), at the pinned version, on both
       # runners: the same versions as on the laptops, one place to bump them.
       - uses: jdx/mise-action@v5
       - run: make qa
