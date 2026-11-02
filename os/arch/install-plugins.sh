@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The Omarchy shell plugins this install runs, as a list that can be run rather
-# than a README that has to be followed. Run by `make plugins`, after `make stow`
+# than a README that has to be followed. Run by `make omarchy`, after `make stow`
 # — landsman.power is stowed files, and enabling it before they are linked fails.
 #
 # Each plugin from git is pinned to a commit. A plugin is unsandboxed code inside
@@ -10,9 +10,8 @@
 # the patch is taken off, the new commit checked out, the patch put back on.
 #
 # Idempotent, and quiet when there is nothing to do: a plugin already at its
-# commit, already patched, already enabled and already set is left alone, and
-# the shell is restarted only when something changed — a plugin reload alone
-# has been seen to keep a patched widget's old label.
+# commit, already patched, already enabled and already set is left alone. The
+# shell restart is make omarchy's, so run on its own this does not apply a change.
 #
 #   bash os/arch/install-plugins.sh
 
@@ -106,9 +105,4 @@ setting kb.system-pulse separator ' · '
 
 # == end of the list
 
-if [ "$CHANGED" -eq 1 ]; then
-	echo "==> Restarting the shell"
-	omarchy restart shell
-else
-	echo "plugins: nothing to do"
-fi
+[ "$CHANGED" -eq 1 ] || echo "plugins: nothing to do"

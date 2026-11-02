@@ -551,12 +551,15 @@ hostname: ## name this install from bin/hostname/names.conf (Linux; asks for roo
 
 ##@ Omarchy
 
-.PHONY: plugins
-plugins: ## add, pin, patch and enable the shell plugins listed in os/arch/install-plugins.sh (after stow)
+.PHONY: omarchy
+omarchy: ## add, pin, patch and enable the shell plugins in os/arch/install-plugins.sh, then restart the shell (after stow)
 	@# By path, not os/$(OS)/: plugins are an Omarchy thing, not an Arch one, and
 	@# $(OS) is whichever userland is booted. The script skips itself where there
 	@# is no omarchy, so running this on the Kubuntu half is a no-op.
 	@bash os/arch/install-plugins.sh
+	@# Always: an edit to a stowed plugin changes nothing the script can see, and
+	@# a plugin reload has been seen to keep the old code.
+	@if command -v omarchy >/dev/null; then omarchy restart shell; fi
 
 ##@ Claude Code
 #

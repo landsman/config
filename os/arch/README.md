@@ -9,17 +9,18 @@ The Hyprland side of whichever machine boots Arch — currently only the
 | `.config/hypr/` | Monitors, input, window rules |
 | `.config/hyprmon/profiles/` | Saved monitor layouts for [hyprmon](https://github.com/erans/hyprmon) |
 | `.config/omarchy/plugins/landsman.power/` | The power panel, patched to count both T480 batteries — temporary, see below |
-| `install-plugins.sh` | Every shell plugin this install runs, as a list `make plugins` runs — not stowed |
+| `install-plugins.sh` | Every shell plugin this install runs, as a list `make omarchy` runs — not stowed |
 | `patches/kb.system-pulse.patch` | Separators and GB in the System Pulse bar widget — applied by that script, not stowed |
 
-## Shell plugins: `make plugins`
+## Shell plugins: `make omarchy`
 
 Which plugins are in the bar, and how each got there, is
 [`install-plugins.sh`](install-plugins.sh) — a list at the bottom, one line per
 step: add from git pinned to a commit, apply its patch from `patches/`, enable
 with a placement, set a widget setting. Run it after `make stow`, since
 `landsman.power` is stowed files. Re-running is safe; it does only what is
-missing and restarts the shell only when something changed.
+missing, then always restarts the shell, because an edit to a stowed plugin
+changes nothing the script can see and a plugin reload can keep the old code.
 
 Adding a plugin is a line in that list, not a step in this README. Updating one
 is bumping its commit there and re-running — not `omarchy plugin update`, which
@@ -41,7 +42,7 @@ The clone is a fork of the whole widget, so upstream changes to the panel stop
 arriving while it is in use. **Once #6845 ships, delete this directory** and set
 the bar entry in `~/.config/omarchy/shell.json` back to `omarchy.power`, and drop
 its two lines from `install-plugins.sh`. On a fresh install, stowing the files is
-not enough — `make plugins` points the bar at `landsman.power`.
+not enough — `make omarchy` points the bar at `landsman.power`.
 
 The panel also lists each battery: charge, Wh, draw, status and cycles, from the
 `pack` lines the local script adds to `--shell`. #6845 does not carry that, so
@@ -57,7 +58,7 @@ label with a hard-coded space and writes memory as `10.4G`; the patch adds a
 memory as GB — the bar reads `17% · 10.1GB · 47°`.
 
 The plugin is a git clone that `omarchy plugin add` owns, so the patch is kept
-here and applied on top rather than stowed over it — by `make plugins`, which
+here and applied on top rather than stowed over it — by `make omarchy`, which
 also sets `"separator": " · "` on the widget and restarts the shell, because a
 plugin reload alone kept the old label. Made against `d12eb18`, the commit the
 list pins.

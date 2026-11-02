@@ -5,7 +5,7 @@
 #
 # The cases that matter are the re-runs. The script is meant to be run again
 # and again — to bump a pin, or after a reinstall — so a second run that
-# re-patches, re-enables or restarts the shell for nothing is a failure, and so
+# re-patches or re-enables for nothing is a failure, and so
 # is a bump that throws away a local change it did not make.
 #
 #   bash os/arch/install-plugins.test.sh
