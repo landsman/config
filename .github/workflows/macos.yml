@@ -1,0 +1,33 @@
+name: macos
+
+# BSD and GNU disagree on enough to matter: BSD grep reads `-Dawt.toolkit.name=`
+# as an option, BSD sed reads `\|` as a literal pipe, and macos-latest gives
+# bash 3.2, which is what Apple still ships. Linux alone would have passed all
+# three, so anything that can reach the Mac runs here.
+#
+# Its own workflow so it can be filtered by path; a job-level filter does not
+# exist in Actions. Ignoring rather than listing: a new top-level file is checked
+# by default, and a PR touching anything outside these still runs.
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - os/arch/**
+      - os/ubuntu/**
+      - os/windows/**
+      - devices/t480/**
+      - devices/hp-prodesk-600-g3/**
+  workflow_dispatch:
+
+# A new push supersedes the run still checking the old commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+      - run: make qa
