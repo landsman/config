@@ -82,17 +82,17 @@ async function pickRecent(): Promise<Source | undefined> {
 	const events = recentEvents();
 	if (!events.length || !Bun.which("tv")) return undefined;
 
-	const byLine = new Map(events.map((e) => [label(e), e]));
+	const byLine = new Map(events.map((event) => [label(event), event]));
 	const line = await pick("Which meeting was it? Esc = none", [...byLine.keys()]);
 	const event = byLine.get(line);
 	return event ? { kind: Origin.Picked, event } : { kind: Origin.None };
 }
 
 /** 2026-11-02 10:00  Weekly sync  · Jana Nováková, Petr Dvořák */
-function label(e: CallEvent): string {
-	const title = e.title || "untitled";
-	const people = e.people.length ? `  · ${e.people.join(", ")}` : "";
-	return `${day(e.start)} ${hm(e.start)}  ${title}${people}`;
+function label(event: CallEvent): string {
+	const title = event.title || "untitled";
+	const people = event.people.length ? `  · ${event.people.join(", ")}` : "";
+	return `${localDate(event.start)} ${localTime(event.start)}  ${title}${people}`;
 }
 
 /** The names on the event. A mistyped path or a vanished event costs the names, not the transcript. */
@@ -149,14 +149,14 @@ export function dropped(text: string): string {
 		.replace(/^~(?=\/)/, homedir());
 }
 
-export function day(iso: string): string {
-	const d = new Date(iso);
-	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export function localDate(iso: string): string {
+	const date = new Date(iso);
+	return `${date.getFullYear()}-${twoDigits(date.getMonth() + 1)}-${twoDigits(date.getDate())}`;
 }
 
-export function hm(iso: string): string {
-	const d = new Date(iso);
-	return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+export function localTime(iso: string): string {
+	const date = new Date(iso);
+	return `${twoDigits(date.getHours())}:${twoDigits(date.getMinutes())}`;
 }
 
-const pad = (n: number) => String(n).padStart(2, "0");
+const twoDigits = (number: number) => String(number).padStart(2, "0");

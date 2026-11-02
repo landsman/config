@@ -22,7 +22,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } 
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import type { CallEvent } from "@bin/calls/macos/calendar";
-import { callEvent, day, hm } from "@bin/calls/calendar/event";
+import { callEvent, localDate, localTime } from "@bin/calls/calendar/event";
 import { fluid, fluidReady, model, setup } from "@bin/calls/transcribe/models";
 import { cli } from "@lib/cli";
 import { ask, askUntil, done, gap, hint, link, live, o, pick, say, warn } from "@lib/term";
@@ -155,7 +155,7 @@ export async function transcribe(file: string): Promise<string> {
  *  that files it. Names stay off the lines: who is who is decided once the whole call is read. */
 export function header(event: CallEvent | undefined, names: string[], turns: Turn[] | null | undefined, heard: { who: string; segments: Segment[] }[]): string {
 	const lines: string[] = [];
-	if (event) lines.push(`Event: ${event.title || "untitled"}, ${day(event.start)} ${hm(event.start)}–${hm(event.end)}`);
+	if (event) lines.push(`Event: ${event.title || "untitled"}, ${localDate(event.start)} ${localTime(event.start)}–${localTime(event.end)}`);
 	if (names.length) lines.push(`${event ? "Others on the event" : "On the event"}: ${names.join(", ")}`);
 	if (turns === null) lines.push("Voices on the call track: not told apart, the diarizer did not run");
 	else if (turns) {
