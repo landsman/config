@@ -3,7 +3,9 @@
 // that one database. Its schema is Apple's and undocumented, so a change to it
 // reads as no event and no names, never as a failed transcript.
 import { Database } from "bun:sqlite";
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { join } from "node:path";
 
 export const calendarDatabase = `${homedir()}/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`;
 
@@ -32,13 +34,7 @@ export function attendeesOfEvent(eventId: string, databasePath = calendarDatabas
 	});
 }
 
-export const attendeesQuery = `
-	SELECT identity.display_name AS name
-	FROM CalendarItem event
-	JOIN Participant participant ON participant.owner_id = event.ROWID
-	JOIN Identity identity ON identity.ROWID = participant.identity_id
-	WHERE event.UUID = ? AND identity.display_name IS NOT NULL
-	ORDER BY participant.ROWID`;
+export const attendeesQuery = readQuery("attendees-of-event.sql");
 
 /** The events that overlap a call, the closest fit first: how much they share over how much
  *  they cover together, so a meeting beats a two-day conference around it. */
@@ -139,14 +135,7 @@ type Occurrence = {
 	occurrenceEnd: number | null;
 };
 
-// One row per day an event happens on.
-export const occurrencesQuery = `
-	SELECT event.ROWID eventRow, event.UUID uuid, event.summary title, event.has_recurrences repeats,
-	       event.start_date eventStart, event.end_date eventEnd, occurrence.day day,
-	       occurrence.occurrence_start_date occurrenceStart, occurrence.occurrence_end_date occurrenceEnd
-	FROM OccurrenceCache occurrence
-	JOIN CalendarItem event ON event.ROWID = occurrence.event_id
-	WHERE occurrence.day BETWEEN ? AND ? AND event.all_day = 0 AND event.entity_type = 2`;
+export const occurrencesQuery = readQuery("occurrences.sql");
 
 /** An occurrence's own times are mostly empty, so a one-off or a moved repeat takes its
  *  event's times, and a plain repeat its series' time of day on that day. */
@@ -180,11 +169,8 @@ function peopleOnEvent(database: Database, eventRow: number) {
 
 type Participant = { name: string; address: string | null; isMe: number };
 
-export const peopleQuery = `
-	SELECT coalesce(identity.display_name, replace(identity.address, 'mailto:', '')) name,
-	       identity.address address, participant.ROWID = event.self_attendee_id isMe
-	FROM Participant participant
-	JOIN Identity identity ON identity.ROWID = participant.identity_id
-	JOIN CalendarItem event ON event.ROWID = participant.owner_id
-	WHERE participant.owner_id = ? AND coalesce(identity.display_name, identity.address) IS NOT NULL
-	ORDER BY participant.ROWID`;
+export const peopleQuery = readQuery("people-on-event.sql");
+
+function readQuery(file: string): string {
+	return readFileSync(join(import.meta.dir, "queries", file), "utf8");
+}

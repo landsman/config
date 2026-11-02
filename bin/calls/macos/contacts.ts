@@ -5,8 +5,9 @@
 // read-only, and written through the Contacts app.
 import { $ } from "bun";
 import { Database } from "bun:sqlite";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { join } from "node:path";
 import { ask, hint, warn } from "@lib/term";
 
 type NewContact = { name: string; email: string };
@@ -104,11 +105,7 @@ export function contactName(email: string, books: string[]): string | undefined 
 	return undefined;
 }
 
-export const contactQuery = `
-	SELECT person.ZFIRSTNAME AS firstName, person.ZLASTNAME AS lastName
-	FROM ZABCDEMAILADDRESS email
-	JOIN ZABCDRECORD person ON person.Z_PK = email.ZOWNER
-	WHERE lower(email.ZADDRESS) = lower(?)`;
+export const contactQuery = readQuery("contact-by-email.sql");
 
 /** jan.novak@, jan_novak@ or jan-novak@ → Jan Novak; a single word such as info@ is no name. */
 export function guessName(email: string): string | undefined {
@@ -154,4 +151,8 @@ async function runAppleScript(script: string, scriptArguments: string[]): Promis
 		return "";
 	}
 	return result.stderr.toString().trim() || `osascript exited ${result.exitCode}`;
+}
+
+function readQuery(file: string): string {
+	return readFileSync(join(import.meta.dir, "queries", file), "utf8");
 }
