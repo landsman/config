@@ -21,7 +21,7 @@ import { $ } from "bun";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { CallEvent } from "@bin/calls/calendar/apple";
+import type { CallEvent } from "@bin/calls/macos/calendar";
 import { callEvent, day, hm } from "@bin/calls/calendar/event";
 import { fluid, fluidReady, model, setup } from "@bin/calls/transcribe/models";
 import { cli } from "@lib/cli";

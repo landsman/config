@@ -54,6 +54,20 @@ it spoke. The lines say `Me`, and `Them 1`, `Them 2`… for the other side,
 numbered by who spoke first. No names go on the lines: who is who is decided
 once the whole call has been read, so an early guess cannot steer the rest.
 
+## Where the code is
+
+| Folder | What |
+|--------|------|
+| [`record/`](record) | drives OBS, names and saves the recording; OBS's profiles and scenes in `config/` |
+| [`calendar/`](calendar) | which meeting a recording was and who was on it, and `.ics` files |
+| [`transcribe/`](transcribe) | whisper.cpp, the diarizer, the transcript; the models in `models.ts` |
+| [`macos/`](macos) | what only a Mac has: Calendar's and Contacts' databases, the display size |
+
+Another platform is a folder beside `macos/` with the same exports. Two Mac
+dependencies still sit outside it, and move when that platform comes: OBS's
+`~/Library` paths and its AppleScript quit in `record/`, and the diarizer, built
+with Xcode for CoreML, in `transcribe/models.ts`.
+
 ## What it uses
 
 | Part | What it does | Where it lives |
@@ -65,8 +79,8 @@ once the whole call has been read, so an early guess cannot steer the rest.
 | `ggml-silero-v6.2.0.bin` | skips silence, which whisper otherwise fills with made-up sentences | `~/.cache/whisper` |
 | [FluidAudio](https://github.com/FluidInference/FluidAudio) 0.17.7 | tells the voices on the call track apart (pyannote Community-1 on CoreML) | built by `record-init` into `~/.cache/fluidaudio`, 22 MB |
 | its diarizer models | 22 MB, 21 files | `~/Library/Application Support/FluidAudio/Models/speaker-diarization` |
-| Calendar | the event during the call, and who was on it ([`calendar/`](calendar)) | read-only from its database |
-| Contacts | a name for an attendee known only by address ([`calendar/contacts.ts`](calendar/contacts.ts)) | read-only; a new name is saved through the Contacts app, when confirmed |
+| Calendar | the event during the call, and who was on it ([`macos/calendar.ts`](macos/calendar.ts), picked in [`calendar/`](calendar)) | read-only from its database |
+| Contacts | a name for an attendee known only by address ([`macos/contacts.ts`](macos/contacts.ts)) | read-only; a new name is saved through the Contacts app, when confirmed |
 | [Claude Code](https://claude.com/claude-code) | files the call in the brain, interactively, in `~/projects/landsman/brain` | asked after each transcript |
 
 Every model is pinned by sha256 and checked before it is used ([`transcribe/models.ts`](transcribe/models.ts)). The diarizer has

@@ -1,20 +1,8 @@
-// What event.ts would get wrong silently: the names from a calendar event missed
-// or mangled — folded lines, quoted names, a name listed twice — a dragged path
+// What event.ts would get wrong silently: a dragged path
 // left quoted or a typed ~ unexpanded, and names typed by hand split wrong.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { attendees, dropped, typedNames } from "@bin/calls/calendar/event";
-
-test("names come from the organizer and attendees, folded and quoted, once each", () =>
-	expect(attendees([
-		"BEGIN:VEVENT",
-		"ORGANIZER;CN=Jana Nováková:mailto:jana@example.com",
-		'ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;CN="Petr Dvořák";PARTSTAT=ACCEPTED:mai',
-		" lto:petr@example.com",
-		"ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=Jana Nováková:mailto:jana@example.com",
-		"ATTENDEE;CN=someone@example.com:mailto:someone@example.com",
-		"END:VEVENT",
-	].join("\r\n"))).toEqual(["Jana Nováková", "Petr Dvořák", "someone@example.com"]));
+import { dropped, typedNames } from "@bin/calls/calendar/event";
 
 test("a dragged-in path loses its quotes and escapes", () => {
 	expect(dropped("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe("/Users/me/Downloads/Porada Q4.ics");

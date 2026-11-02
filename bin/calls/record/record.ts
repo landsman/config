@@ -30,7 +30,7 @@ import { describe } from "@lib/media";
 import { retry, running, waitFor } from "@lib/proc";
 import { ask, askUntil, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
-import { type CallEvent, eventsDuring } from "@bin/calls/calendar/apple";
+import { type CallEvent, eventsDuring } from "@bin/calls/macos/calendar";
 import { eventFile } from "@bin/calls/calendar/event";
 import { toBrain, transcribe } from "@bin/calls/transcribe/transcribe";
 import { connect, enable } from "@bin/calls/record/websocket";
@@ -150,7 +150,7 @@ async function start(answer?: string) {
 		await use("GetProfileList", "currentProfileName", "SetCurrentProfile", "profileName", "MeetVideo");
 		// The display's id differs per Mac, so config/ cannot carry it. Read from
 		// macOS: asking OBS for its display list crashes it (32.2).
-		const display = (await $`osascript -l JavaScript ${`${here}/display.js`}`.text()).trim();
+		const display = (await $`osascript -l JavaScript ${`${here}/../macos/display.js`}`.text()).trim();
 		await call("SetInputSettings", { inputName: "Display", inputSettings: { display_uuid: display } });
 		await call("SetCurrentProgramScene", { sceneName: "Screen" });
 	} else {

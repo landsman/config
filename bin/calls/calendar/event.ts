@@ -1,14 +1,16 @@
 // Which meeting a recording was and who was on it, for whisper's prompt and the
 // transcript's header: the event ../record/record.ts found in Calendar when the call stopped
 // (<recording>.event.json), else one of Calendar's last ten picked in television,
-// else an .ics file or an event dragged out of Apple Calendar (apple.ts).
+// else an .ics file (ics.ts) or an event dragged out of Apple Calendar
+// (../macos/calendar.ts).
 // Its names are then shown on a line to edit, since someone invited along is on
 // no event; PEOPLE=… adds to them instead. One known only by address is named in
 // contacts.ts.
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/calendar/apple";
-import { realNames } from "@bin/calls/calendar/contacts";
+import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/macos/calendar";
+import { attendees } from "@bin/calls/calendar/ics";
+import { realNames } from "@bin/calls/macos/contacts";
 import { ask, edit, hint, pick, warn } from "@lib/term";
 
 /** The event a recording was, if known, and the others on the call by name. */
@@ -47,12 +49,6 @@ async function pickRecent(): Promise<CallEvent | "none" | undefined> {
 	if (!events.length || !Bun.which("tv")) return undefined;
 	const byLine = new Map(events.map((e) => [`${day(e.start)} ${hm(e.start)}  ${e.title || "untitled"}${e.people.length ? `  · ${e.people.join(", ")}` : ""}`, e]));
 	return byLine.get(await pick("Which meeting was it? Esc = none", [...byLine.keys()])) ?? "none";
-}
-
-/** The people on a calendar event, its organizer and attendees: a name, or an address when it has none. */
-export function attendees(ics: string): string[] {
-	const unfolded = ics.replace(/\r?\n[ \t]/g, ""); // a long line goes on after a newline and a space
-	return [...new Set([...unfolded.matchAll(/^(?:ATTENDEE|ORGANIZER)[^:\n]*?;CN=("?)([^";:\n]+)\1/gm)].map((m) => m[2].trim()))];
 }
 
 /** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
