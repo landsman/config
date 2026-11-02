@@ -8,6 +8,7 @@ import { Database } from "bun:sqlite";
 import { readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { throwIfOurMistake } from "@bin/calls/macos/calendar";
 import { ask, hint, warn } from "@lib/term";
 
 type NewContact = { name: string; email: string };
@@ -98,7 +99,8 @@ export function contactName(email: string, books: string[]): string | undefined 
 			} finally {
 				database.close();
 			}
-		} catch {
+		} catch (error) {
+			throwIfOurMistake(error);
 			// A book that cannot be read is skipped; the next one may have the contact.
 		}
 	}

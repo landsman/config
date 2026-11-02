@@ -35,8 +35,14 @@ there as it is.
   | PHP | `file_get_contents(__DIR__ . "/queries/$file")` |
   | Go | `//go:embed queries/people-on-event.sql` on a `string` |
 
-- **A test prepares every query** against the schema it targets, so a renamed
-  column fails the build, not the first run.
+- **A test runs every query through its caller** against the schema it
+  targets, so a renamed column or a placeholder nobody fills fails the build,
+  not the first run. The file and the code that binds its values are apart now,
+  and nothing else ties them.
+- **A wrong number of values fails loudly.** A driver may refuse it (bun:sqlite
+  throws "expected 2 values, received 1") or read the missing one as NULL and
+  answer nothing; neither may be swallowed by a catch meant for something else.
+  Type the values where the language can, as bun:sqlite's `query<Row, [string]>`.
 
 **Not SQL written by hand:** a query builder or an ORM (jOOQ, Exposed,
 Doctrine's DQL builder, Prisma), and a framework that only takes the query in

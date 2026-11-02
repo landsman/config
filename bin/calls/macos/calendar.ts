@@ -84,8 +84,17 @@ function readCalendar<T>(databasePath: string, fallback: T, read: (database: Dat
 		} finally {
 			database.close();
 		}
-	} catch {
+	} catch (error) {
+		throwIfOurMistake(error);
 		return fallback;
+	}
+}
+
+/** A query given more or fewer values than it has placeholders is a bug in this code, not
+ *  Apple changing the schema: it fails loudly instead of reading as no event. */
+export function throwIfOurMistake(error: unknown) {
+	if (error instanceof Error && /expected \d+ values?, received \d+/.test(error.message)) {
+		throw error;
 	}
 }
 
