@@ -1,24 +1,17 @@
 name: windows
 
-# Its own workflow so it can be filtered by path: little else in the repo
-# reaches a Windows machine. apply.ps1 reads os/windows and links shared/, whose
-# Claude Code settings run the hooks in bin/agents/ there; a Brewfile change has
-# no way to break it. A job-level filter does not exist in Actions, which is why
-# this is not a job in ci.yml.
+# Its own workflow so it can be filtered by path: only what apply.ps1 reads
+# reaches a Windows machine, os/windows and the shared/ it links. The hooks in
+# bin/agents/ and their bin/lib/bun/ run there too, under Git Bash, but a change
+# to them runs Windows only through workflow_dispatch: they are checked on Linux
+# in ci.yml, and a Windows-only break in one would surface on the T480. A
+# job-level filter does not exist in Actions, which is why this is not a job in
+# ci.yml.
 on:
   pull_request:
     paths:
       - os/windows/**
       - shared/**
-      - bin/agents/**
-      - bin/lib/bun/**
-      # Used only by the call recording in bin/calls, which is macOS-only. A hook
-      # that starts importing one fails bin/agents/windows-paths.test.ts.
-      - '!bin/lib/bun/cli*.ts'
-      - '!bin/lib/bun/files*.ts'
-      - '!bin/lib/bun/media*.ts'
-      - '!bin/lib/bun/proc*.ts'
-      - '!bin/lib/bun/term*.ts'
       - .gitattributes
       - .github/workflows/windows.yml
       # Rules and skills under shared/ are prose; editing one cannot break apply.ps1.
