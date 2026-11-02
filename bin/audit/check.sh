@@ -200,7 +200,7 @@ main() {
     [lL][oO][wW] | [mM][eE][dD][iI][uU][mM] | [hH][iI][gG][hH] | [cC][rR][iI][tT][iI][cC][aA][lL]) ;;
     *) echo "SEVERITY must be low, medium, high or critical, not '$severity'" >&2; exit 2 ;;
   esac
-  work=$(mktemp -d) || { echo "could not create a scratch directory" >&2; exit 1; }
+  work=$(mktemp -d "${TMPDIR:-/tmp}/audit-check.XXXXXX") || { echo "could not create a scratch directory" >&2; exit 1; }
   local failed=0 checked=0 rc
   rc=0; check_brew || rc=$?
   case $rc in 0) checked=$((checked + 1)) ;; 3) ;; *) checked=$((checked + 1)); failed=1 ;; esac
