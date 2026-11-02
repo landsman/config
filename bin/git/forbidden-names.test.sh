@@ -37,6 +37,18 @@ check "clean diff passes" 0 "$hook"
 stage "org=\${ORG:-ACME}"
 refuse "staged name refused, any case" "$hook"
 check "the hit names file and line" 0 sh -c "'$hook' 2>&1 | grep -q 'f.txt:1: org='"
+# Case: a lower-case pattern matches either case (above), an upper-case one only
+# its own — what makes a two-letter abbreviation listable beside a shell command
+# spelled the same way.
+printf '# owner regex\nacme acme|acme-bot\nother \\<AB\\>\n' > "$tmp/names"
+stage 'ab "$t" "$priv"'
+check "a lower-case word is not an upper-case pattern" 0 "$hook"
+stage "deployed for AB last spring"
+refuse "an upper-case pattern catches its own case" "$hook"
+stage "the ABC controller"
+check "…and a word boundary keeps ABC out of it" 0 "$hook"
+printf '# owner regex\nacme acme|acme-bot\n' > "$tmp/names"
+stage "org=\${ORG:?set ORG}"
 printf 'fe: fix the footer\n# acme in git'"'"'s template\n' > msg
 check "clean message passes, comments ignored" 0 "$hook" msg
 echo "be: deploy for acme" > msg
