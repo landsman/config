@@ -1,26 +1,52 @@
 // Adds every extension installed in Zed to `auto_install_extensions` in the
-// repo's Zed settings, which is what installs them on the next machine.
-// Installing from Zed's UI writes nothing to that list, so it drifts.
+// repo's Zed settings, which is what installs them on the next machine, and
+// opens a pull request with it. Installing from Zed's UI writes nothing to
+// that list, so it drifts.
 //
 // Only adds: an entry already there stays as it is, `false` included, and one
 // for an extension not installed here is kept — another machine may want it.
 //
-// usage: extensions.ts sync   add this machine's extensions to the settings
+// usage: extensions.ts sync   open a pull request adding this machine's extensions
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, hostname } from "node:os";
+import { resolve } from "node:path";
 import { cli } from "@lib/cli";
+import { openPullRequest } from "@bin/git/pull-request";
 
-const settingsPath = `${import.meta.dir}/../../shared/.config/zed/settings.json`;
+const repoRoot = resolve(import.meta.dir, "../..");
+const settingsFile = "shared/.config/zed/settings.json";
 
 if (import.meta.main) {
 	await cli(import.meta.path, { sync });
 }
 
 async function sync() {
-	const { text, added } = addExtensions(readFileSync(settingsPath, "utf8"), installedExtensions());
-	// Written in place: ~/.config/zed/settings.json is a symlink to this file.
-	writeFileSync(settingsPath, text);
-	console.log(added.length ? added.map((id) => `added ${id}`).join("\n") : "nothing to add");
+	const installed = installedExtensions();
+	const machine = hostname().split(".")[0]!;
+	const url = await openPullRequest({
+		repo: repoRoot,
+		branch: `setup/zed-extensions-${machine}-${Date.now()}`,
+		change: async (worktree) => {
+			const settingsPath = `${worktree}/${settingsFile}`;
+			const { text, added } = addExtensions(readFileSync(settingsPath, "utf8"), installed);
+			if (!added.length) {
+				return undefined;
+			}
+			writeFileSync(settingsPath, text);
+			return {
+				paths: [settingsFile],
+				title: pullRequestTitle(added, machine),
+				body: `Installed from Zed's UI on ${machine}, which writes nothing to \`auto_install_extensions\`:\n\n${added.map((id) => `- \`${id}\``).join("\n")}`,
+			};
+		},
+	});
+	console.log(url ?? "nothing to add");
+}
+
+/** Lowercase, as the commit subject it also is; a long list becomes a count. */
+export function pullRequestTitle(added: string[], machine: string) {
+	const names = added.length <= 3 ? added.join(", ") : `${added.length} extensions`;
+	return `setup(zed): install ${names} everywhere, not only on ${machine}`;
 }
 
 function installedExtensions() {

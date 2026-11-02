@@ -2,7 +2,7 @@
 // ignores the whole settings file), an entry set to false flipped back on,
 // or a duplicate key.
 import { describe, expect, test } from "bun:test";
-import { addExtensions } from "@bin/zed/extensions";
+import { addExtensions, pullRequestTitle } from "@bin/zed/extensions";
 
 const settings = `// a comment JSON.parse would refuse
 {
@@ -26,6 +26,14 @@ describe("expected use", () => {
 	});
 	test("a listed extension, false included, is left alone", () => {
 		expect(addExtensions(settings, ["emmet", "make"])).toEqual({ added: [], text: settings });
+	});
+	test("the title names a few extensions and counts many", () => {
+		expect(pullRequestTitle(["php", "toml"], "air")).toBe(
+			"setup(zed): install php, toml everywhere, not only on air",
+		);
+		expect(pullRequestTitle(["a", "b", "c", "d"], "air")).toBe(
+			"setup(zed): install 4 extensions everywhere, not only on air",
+		);
 	});
 	test("a second run changes nothing", () => {
 		const once = addExtensions(settings, ["php"]).text;

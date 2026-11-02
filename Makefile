@@ -672,7 +672,7 @@ jetbrains: ## set the JVM options this repo owns in every JetBrains config dir
 #
 
 .PHONY: zed-extensions
-zed-extensions: ## add every extension installed in Zed here to the repo's Zed settings
+zed-extensions: ## open a pull request adding every extension installed in Zed here to its settings
 	@$(BUN) bin/zed/extensions.ts sync
 
 ##@ Google Chrome
