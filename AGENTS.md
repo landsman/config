@@ -85,9 +85,8 @@ the formatter's to see:
   block of its own. A line that fits in 100 columns is not thereby readable.
 - **A closed set of values is an `enum`**, branched over with a ts-pattern
   `match` that ends in `.exhaustive()`.
-- **SQL lives in a `.sql` file** beside the code that runs it, in a
-  `queries/` folder, read with `readFileSync`. Every editor highlights and
-  formats a `.sql` file; none agrees on how to spot SQL inside a string.
+- **SQL lives in a `.sql` file** in a `queries/` folder beside its caller,
+  as the [SQL is a file](shared/.agents/rules/sql-files.md) rule says.
 - **Tests sit in two groups**, `describe("expected use")` and
   `describe("bad input")`: what it is for, then what someone will feed it by
   mistake — a broken file, a typo, a folder for a file, nothing at all.
