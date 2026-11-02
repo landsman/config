@@ -11,7 +11,7 @@ test("tracks are merged by time, one line per turn", () =>
 		{ who: "Me", segments: [{ from: 5000, text: " Jo, slyším." }, { from: 3_725_000, text: " Čau." }] },
 	])).toBe("[00:00] Them: Ahoj. Slyšíš mě?\n[00:05] Me: Jo, slyším.\n[00:09] Them: Super.\n[1:02:05] Me: Čau.\n"));
 
-test("whisper's notes and empty segments are dropped", () =>
+test("whisper's notes and empty segments are draggedPath", () =>
 	expect(merge([{ who: "Me", segments: [{ from: 0, text: " [BLANK_AUDIO]" }, { from: 1, text: " (hudba)" }, { from: 2, text: " " }] }])).toBe(""));
 
 test("a long turn starts a new line every minute", () =>

@@ -14,7 +14,7 @@
 // seconds. MODEL=quick|precise skips the question which model.
 //
 // usage: transcribe.ts setup        install whisper.cpp, download its models (4.7 GB, once)
-//        transcribe.ts run [file]   the one given, or picked from ~/Recordings in television
+//        transcribe.ts run [file]   the one eventFromText, or picked from ~/Recordings in television
 //                                   (type 202610 for October): writes <recording>.txt beside it,
 //                                   then offers to open Claude on it to file the call in the brain
 import { $ } from "bun";

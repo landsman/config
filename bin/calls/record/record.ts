@@ -31,7 +31,7 @@ import { retry, running, waitFor } from "@lib/proc";
 import { ask, askUntil, done, gap, hint, link, live, o, say, untilKey } from "@lib/term";
 import { slug } from "@lib/text";
 import { type CallEvent, eventsDuring } from "@bin/calls/macos/calendar";
-import { eventFile } from "@bin/calls/calendar/event";
+import { eventFilePath } from "@bin/calls/calendar/event";
 import { toBrain, transcribe } from "@bin/calls/transcribe/transcribe";
 import { connect, enable } from "@bin/calls/record/websocket";
 
@@ -203,7 +203,7 @@ async function stop(name?: string) {
 	await waitFor(async () => !(await running("obs-ffmpeg-mux")), 30);
 	await quit().catch(() => {}); // a window left open in it only keeps it running
 	const saved = await save(currentProfileName === "MeetVideo" ? "video" : "audio", outputPath, out, name);
-	if (event) await Bun.write(eventFile(saved), `${JSON.stringify(event, null, "\t")}\n`);
+	if (event) await Bun.write(eventFilePath(saved), `${JSON.stringify(event, null, "\t")}\n`);
 	if (!process.stdout.isTTY) return say(saved); // a script reading it gets the path alone
 	gap();
 	done(`Saved ${basename(saved)}`, await describe(saved));

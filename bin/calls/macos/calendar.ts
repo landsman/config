@@ -1,115 +1,179 @@
-// The names on an event dragged out of Apple Calendar into a terminal, for
-// whisper's prompt. It arrives as an ical:// link rather than a file, so the
-// names are read from Calendar's own database, read-only.
+// Events and the people on them, read from the database of Calendar.app,
+// read-only. Every account added to Calendar (iCloud, Google, Exchange) is in
+// that one database. Its schema is Apple's and undocumented, so a change to it
+// reads as no event and no names, never as a failed transcript.
 import { Database } from "bun:sqlite";
 import { homedir } from "node:os";
 
-/** The event's UUID in a link dragged out of Calendar: ical://occurrence/<start>/<UUID>?method=show. */
-export const appleEventId = (s: string) => s.match(/^ical:\/\/[^/]+\/[^/]+\/([0-9A-F-]{36})\b/i)?.[1];
-
-export const calendarDb = `${homedir()}/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`;
-
-/** The names on an event in Calendar's database, bare addresses included. Its schema is
- *  Apple's and undocumented, so a change to it reads as no names, never as a failed transcript. */
-export function appleCalendarAttendees(uuid: string, path = calendarDb): string[] {
-	try {
-		const db = new Database(path, { readonly: true });
-		try {
-			return db.query<{ name: string }, [string]>(attendeesSql).all(uuid).map((r) => r.name.trim());
-		} finally {
-			db.close();
-		}
-	} catch {
-		return [];
-	}
-}
-
-export const attendeesSql = `
-	SELECT i.display_name AS name FROM CalendarItem c
-	JOIN Participant p ON p.owner_id = c.ROWID JOIN Identity i ON i.ROWID = p.identity_id
-	WHERE c.UUID = ? AND i.display_name IS NOT NULL ORDER BY p.ROWID`;
+export const calendarDatabase = `${homedir()}/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`;
 
 /** A call's event as it was when the call ended: saved beside the recording, so the
- *  transcript still knows it once the event moves or is deleted. people leaves me out. */
+ *  transcript still knows it once the event moves or is deleted. people leaves me out.
+ *  The field names are what .event.json files already hold. */
 export type CallEvent = { uuid: string; title: string; start: string; end: string; me: string | null; people: string[] };
 
-/** The timed events overlapping [from, to], the closest fit first — overlap over union, so a
- *  meeting beats a two-day conference around it — and none when the schema changed. */
-export function eventsDuring(from: Date, to: Date, path = calendarDb): CallEvent[] {
-	try {
-		const db = new Database(path, { readonly: true });
-		try {
-			const a = from.getTime() / 1000 - epoch, b = to.getTime() / 1000 - epoch;
-			const seen = new Set<string>();
-			return db.query<Occurrence, [number, number]>(occurrencesSql).all(a - 86_400, b)
-				.map((r) => ({ r, ...window(r) }))
-				.map((x) => ({ ...x, overlap: Math.min(x.end, b) - Math.max(x.start, a), union: Math.max(x.end, b) - Math.min(x.start, a) }))
-				.filter((x) => x.overlap > 0 && !seen.has(`${x.r.id}@${x.start}`) && seen.add(`${x.r.id}@${x.start}`))
-				.sort((x, y) => y.overlap / y.union - x.overlap / x.union)
-				.map(({ r, start, end }) => ({ uuid: r.uuid, title: r.title ?? "", start: iso(start), end: iso(end), ...people(db, r.id) }));
-		} finally {
-			db.close();
-		}
-	} catch {
-		return [];
-	}
+/** The event's id in a link dragged out of Calendar: ical://occurrence/<start>/<id>?method=show. */
+export function eventIdInLink(link: string): string | undefined {
+	return link.match(/^ical:\/\/[^/]+\/[^/]+\/([0-9A-F-]{36})\b/i)?.[1];
 }
 
-/** The last timed events that started before now, the newest first, for a recording that
- *  saved none. Every calendar on the Mac, iCloud, Google or Exchange, is in the one database. */
-export function recentEvents(now = new Date(), count = 10, path = calendarDb): CallEvent[] {
+/** The names on an event, bare addresses included. */
+export function attendeesOfEvent(eventId: string, databasePath = calendarDatabase): string[] {
+	return readCalendar(databasePath, [], (database) => {
+		const attendees = database
+			.query<{ name: string }, [string]>(attendeesQuery)
+			.all(eventId);
+		return attendees.map((attendee) => attendee.name.trim());
+	});
+}
+
+export const attendeesQuery = `
+	SELECT identity.display_name AS name
+	FROM CalendarItem event
+	JOIN Participant participant ON participant.owner_id = event.ROWID
+	JOIN Identity identity ON identity.ROWID = participant.identity_id
+	WHERE event.UUID = ? AND identity.display_name IS NOT NULL
+	ORDER BY participant.ROWID`;
+
+/** The events that overlap a call, the closest fit first: how much they share over how much
+ *  they cover together, so a meeting beats a two-day conference around it. */
+export function eventsDuring(callStart: Date, callEnd: Date, databasePath = calendarDatabase): CallEvent[] {
+	return readCalendar(databasePath, [], (database) => {
+		const from = toCalendarSeconds(callStart);
+		const to = toCalendarSeconds(callEnd);
+		const closestFit = (meeting: Meeting) => {
+			const shared = Math.min(meeting.end, to) - Math.max(meeting.start, from);
+			const covered = Math.max(meeting.end, to) - Math.min(meeting.start, from);
+			return shared / covered;
+		};
+		return meetingsBetween(database, from - secondsInDay, to)
+			.filter((meeting) => meeting.start < to && meeting.end > from)
+			.sort((first, second) => closestFit(second) - closestFit(first))
+			.map((meeting) => toCallEvent(database, meeting));
+	});
+}
+
+/** The last events that started before now, the newest first, for a recording that saved none. */
+export function recentEvents(now = new Date(), count = 10, databasePath = calendarDatabase): CallEvent[] {
+	return readCalendar(databasePath, [], (database) => {
+		const until = toCalendarSeconds(now);
+		// ponytail: a month back; ten meetings older than that are not worth a list
+		return meetingsBetween(database, until - 31 * secondsInDay, until)
+			.filter((meeting) => meeting.start <= until)
+			.sort((first, second) => second.start - first.start)
+			.slice(0, count)
+			.map((meeting) => toCallEvent(database, meeting));
+	});
+}
+
+/** Opens the database read-only for one read, and answers `fallback` when it cannot be read. */
+function readCalendar<T>(databasePath: string, fallback: T, read: (database: Database) => T): T {
 	try {
-		const db = new Database(path, { readonly: true });
+		const database = new Database(databasePath, { readonly: true });
 		try {
-			const b = now.getTime() / 1000 - epoch;
-			const seen = new Set<string>();
-			// ponytail: a month back; ten meetings older than that are not worth a list
-			return db.query<Occurrence, [number, number]>(occurrencesSql).all(b - 31 * 86_400, b)
-				.map((r) => ({ r, ...window(r) }))
-				.filter((x) => x.start <= b && !seen.has(`${x.r.id}@${x.start}`) && seen.add(`${x.r.id}@${x.start}`))
-				.sort((x, y) => y.start - x.start)
-				.slice(0, count)
-				.map(({ r, start, end }) => ({ uuid: r.uuid, title: r.title ?? "", start: iso(start), end: iso(end), ...people(db, r.id) }));
+			return read(database);
 		} finally {
-			db.close();
+			database.close();
 		}
 	} catch {
-		return [];
+		return fallback;
 	}
 }
 
 // Calendar counts seconds from 2001-01-01, Core Data's epoch.
-const epoch = 978_307_200;
-const iso = (s: number) => new Date((s + epoch) * 1000).toISOString();
+const calendarEpoch = 978_307_200;
+const secondsInDay = 86_400;
+const toCalendarSeconds = (date: Date) => date.getTime() / 1000 - calendarEpoch;
+const toIsoDate = (calendarSeconds: number) => new Date((calendarSeconds + calendarEpoch) * 1000).toISOString();
 
-type Occurrence = { id: number; uuid: string; title: string | null; rec: number; s: number; e: number; day: number; os: number | null; oe: number | null };
+/** One timed event on one day, at the time it really happens. */
+type Meeting = { occurrence: Occurrence; start: number; end: number };
 
-// One row per day an event happens on. An occurrence's own times are mostly empty, so a
-// one-off or a moved repeat takes its event's times, and a plain repeat its series' time of day.
-export const occurrencesSql = `
-	SELECT c.ROWID id, c.UUID uuid, c.summary title, c.has_recurrences rec, c.start_date s, c.end_date e,
-	       o.day day, o.occurrence_start_date os, o.occurrence_end_date oe
-	FROM OccurrenceCache o JOIN CalendarItem c ON c.ROWID = o.event_id
-	WHERE o.day BETWEEN ? AND ? AND c.all_day = 0 AND c.entity_type = 2`;
+/** Every timed event on the days between `from` and `to`, each once. */
+function meetingsBetween(database: Database, from: number, to: number): Meeting[] {
+	const seen = new Set<string>();
+	const occurrences = database
+		.query<Occurrence, [number, number]>(occurrencesQuery)
+		.all(from, to);
+	return occurrences
+		.map((occurrence) => ({ occurrence, ...whenItHappens(occurrence) }))
+		.filter((meeting) => {
+			const key = `${meeting.occurrence.eventRow}@${meeting.start}`;
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
+}
 
-function window(r: Occurrence) {
-	if (r.os != null && r.oe != null) return { start: r.os, end: r.oe };
-	if (!r.rec) return { start: r.s, end: r.e };
+function toCallEvent(database: Database, { occurrence, start, end }: Meeting): CallEvent {
+	return {
+		uuid: occurrence.uuid,
+		title: occurrence.title ?? "",
+		start: toIsoDate(start),
+		end: toIsoDate(end),
+		...peopleOnEvent(database, occurrence.eventRow),
+	};
+}
+
+type Occurrence = {
+	eventRow: number;
+	uuid: string;
+	title: string | null;
+	repeats: number;
+	eventStart: number;
+	eventEnd: number;
+	day: number;
+	occurrenceStart: number | null;
+	occurrenceEnd: number | null;
+};
+
+// One row per day an event happens on.
+export const occurrencesQuery = `
+	SELECT event.ROWID eventRow, event.UUID uuid, event.summary title, event.has_recurrences repeats,
+	       event.start_date eventStart, event.end_date eventEnd, occurrence.day day,
+	       occurrence.occurrence_start_date occurrenceStart, occurrence.occurrence_end_date occurrenceEnd
+	FROM OccurrenceCache occurrence
+	JOIN CalendarItem event ON event.ROWID = occurrence.event_id
+	WHERE occurrence.day BETWEEN ? AND ? AND event.all_day = 0 AND event.entity_type = 2`;
+
+/** An occurrence's own times are mostly empty, so a one-off or a moved repeat takes its
+ *  event's times, and a plain repeat its series' time of day on that day. */
+function whenItHappens(occurrence: Occurrence): { start: number; end: number } {
+	if (occurrence.occurrenceStart != null && occurrence.occurrenceEnd != null) {
+		return { start: occurrence.occurrenceStart, end: occurrence.occurrenceEnd };
+	}
+	if (!occurrence.repeats) return { start: occurrence.eventStart, end: occurrence.eventEnd };
+
 	// ponytail: this Mac's time zone; a series set in another one lands off by the difference
-	const d = new Date((r.s + epoch) * 1000);
-	const start = r.day + d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
-	return { start, end: start + r.e - r.s };
+	const firstTime = new Date((occurrence.eventStart + calendarEpoch) * 1000);
+	const timeOfDay = firstTime.getHours() * 3600 + firstTime.getMinutes() * 60 + firstTime.getSeconds();
+	const start = occurrence.day + timeOfDay;
+	return { start, end: start + occurrence.eventEnd - occurrence.eventStart };
 }
 
-/** Me and everyone else on the event, the organizer included unless that is me. */
-function people(db: Database, id: number) {
-	const rows = db.query<{ name: string; address: string | null; me: number }, [number]>(peopleSql).all(id);
-	const mine = rows.find((p) => p.me);
-	const others = rows.filter((p) => !p.me && !(mine?.address && p.address === mine.address)).map((p) => p.name.trim());
-	return { me: mine?.name.trim() ?? null, people: [...new Set(others)] };
+/** Me, and everyone else on the event, the organizer included unless that is me. */
+function peopleOnEvent(database: Database, eventRow: number) {
+	const participants = database
+		.query<Participant, [number]>(peopleQuery)
+		.all(eventRow);
+	const me = participants.find((participant) => participant.isMe);
+	// The organizer can be me a second time, under the same address.
+	const isMeAgain = (participant: Participant) => {
+		return Boolean(me?.address && participant.address === me.address);
+	};
+	const others = participants
+		.filter((participant) => !participant.isMe && !isMeAgain(participant))
+		.map((participant) => participant.name.trim());
+	return { me: me?.name.trim() ?? null, people: [...new Set(others)] };
 }
 
-export const peopleSql = `
-	SELECT coalesce(i.display_name, replace(i.address, 'mailto:', '')) name, i.address address, p.ROWID = c.self_attendee_id me
-	FROM Participant p JOIN Identity i ON i.ROWID = p.identity_id JOIN CalendarItem c ON c.ROWID = p.owner_id
-	WHERE p.owner_id = ? AND coalesce(i.display_name, i.address) IS NOT NULL ORDER BY p.ROWID`;
+type Participant = { name: string; address: string | null; isMe: number };
+
+export const peopleQuery = `
+	SELECT coalesce(identity.display_name, replace(identity.address, 'mailto:', '')) name,
+	       identity.address address, participant.ROWID = event.self_attendee_id isMe
+	FROM Participant participant
+	JOIN Identity identity ON identity.ROWID = participant.identity_id
+	JOIN CalendarItem event ON event.ROWID = participant.owner_id
+	WHERE participant.owner_id = ? AND coalesce(identity.display_name, identity.address) IS NOT NULL
+	ORDER BY participant.ROWID`;

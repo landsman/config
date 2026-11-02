@@ -7,18 +7,18 @@
 // Its names are then shown on a line to edit, since someone invited along is on
 // no event; PEOPLE=… adds to them instead. One known only by address is named in
 // ../macos/contacts.ts.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { match } from "ts-pattern";
 import { attendees } from "@bin/calls/calendar/ics";
-import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/macos/calendar";
+import { attendeesOfEvent, type CallEvent, eventIdInLink, recentEvents } from "@bin/calls/macos/calendar";
 import { realNames } from "@bin/calls/macos/contacts";
 import { ask, edit, hint, pick, warn } from "@lib/term";
 
 /** The event a recording was, if known, and the others on the call by name. */
-export async function callEvent(file: string): Promise<{ event?: CallEvent; names: string[] }> {
-	const source = await findEvent(file);
-	const found = await peopleOn(source);
+export async function callEvent(recording: string): Promise<{ event?: CallEvent; names: string[] }> {
+	const source = await findEvent(recording);
+	const found = peopleFrom(source);
 	const people = await confirmPeople(found.people);
 
 	let event = found.event;
@@ -26,12 +26,16 @@ export async function callEvent(file: string): Promise<{ event?: CallEvent; name
 		const edited = people.join(", ") !== found.people.join(", ");
 		event = { ...event, people };
 		// Saved as record.ts would have, with the names as edited, so the next run has them too.
-		if (source.kind === Origin.Picked || edited) await saveEvent(file, event);
+		if (source.kind === Origin.Picked || edited) {
+			await saveEvent(recording, event);
+		}
 		hint(`Event: ${event.title}`);
 	}
 
 	const names = await realNames(people);
-	if (names.length) hint(`Names: ${names.join(", ")}`);
+	if (names.length) {
+		hint(`Names: ${names.join(", ")}`);
+	}
 	return { event, names };
 }
 
@@ -48,99 +52,175 @@ export enum Origin {
 type Source =
 	| { kind: Origin.Saved; event: CallEvent }
 	| { kind: Origin.Picked; event: CallEvent }
-	| { kind: Origin.Dragged; uuid: string }
+	| { kind: Origin.Dragged; eventId: string }
 	| { kind: Origin.Ics; path: string }
 	| { kind: Origin.Missing; path: string }
 	| { kind: Origin.None };
 
-async function findEvent(file: string): Promise<Source> {
-	if (existsSync(eventFile(file))) {
-		return { kind: Origin.Saved, event: JSON.parse(readFileSync(eventFile(file), "utf8")) };
+async function findEvent(recording: string): Promise<Source> {
+	const saved = savedEvent(recording);
+	if (saved) {
+		return { kind: Origin.Saved, event: saved };
 	}
-	if (process.env.ICS) return given(process.env.ICS);
-	if (!process.stdin.isTTY) return { kind: Origin.None };
+	if (process.env.ICS) {
+		return eventFromText(process.env.ICS);
+	}
+	if (!process.stdin.isTTY) {
+		return { kind: Origin.None };
+	}
 
-	const picked = await pickRecent();
-	if (picked) return picked;
-	return given(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
+	const picked = await pickRecentMeeting();
+	if (picked) {
+		return picked;
+	}
+	const typed = await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]");
+	return eventFromText(typed);
+}
+
+/** The event saved beside the recording. One that cannot be read, edited by hand or cut
+ *  short, is left where it is and treated as none, rather than costing the transcript. */
+function savedEvent(recording: string): CallEvent | undefined {
+	const path = eventFilePath(recording);
+	if (!existsSync(path)) {
+		return undefined;
+	}
+	try {
+		const saved = JSON.parse(readFileSync(path, "utf8"));
+		if (typeof saved?.title !== "string" || typeof saved?.start !== "string" || typeof saved?.end !== "string") {
+			throw new Error("not an event");
+		}
+		const people = Array.isArray(saved.people) ? saved.people.filter((person: unknown) => typeof person === "string") : [];
+		return { ...saved, people };
+	} catch {
+		warn(`cannot read the saved event, going on as if there were none: ${path}`);
+		return undefined;
+	}
 }
 
 /** What was typed or dragged in: a link to an event in Calendar, or a path to an .ics. */
-export function given(text: string): Source {
-	const path = dropped(text);
-	if (!path) return { kind: Origin.None };
+export function eventFromText(text: string): Source {
+	const path = draggedPath(text);
+	if (!path) {
+		return { kind: Origin.None };
+	}
 
-	const uuid = appleEventId(path);
-	if (uuid) return { kind: Origin.Dragged, uuid };
+	const eventId = eventIdInLink(path);
+	if (eventId) {
+		return { kind: Origin.Dragged, eventId };
+	}
 
-	return existsSync(path) ? { kind: Origin.Ics, path } : { kind: Origin.Missing, path };
+	// A folder dragged in by mistake is no calendar file either.
+	if (existsSync(path) && statSync(path).isFile()) {
+		return { kind: Origin.Ics, path };
+	}
+	return { kind: Origin.Missing, path };
 }
 
 /** One of Calendar's last ten, since dragging one into a terminal does not always work.
  *  Esc is no event; undefined when there is nothing to pick from. */
-async function pickRecent(): Promise<Source | undefined> {
-	const events = recentEvents();
-	if (!events.length || !Bun.which("tv")) return undefined;
+async function pickRecentMeeting(): Promise<Source | undefined> {
+	const meetings = recentEvents();
+	if (!meetings.length || !Bun.which("tv")) {
+		return undefined;
+	}
 
-	const byLine = new Map(events.map((event) => [label(event), event]));
-	const line = await pick("Which meeting was it? Esc = none", [...byLine.keys()]);
-	const event = byLine.get(line);
-	return event ? { kind: Origin.Picked, event } : { kind: Origin.None };
+	const meetingByLine = new Map(meetings.map((meeting) => [menuLine(meeting), meeting]));
+	const pickedLine = await pick("Which meeting was it? Esc = none", [...meetingByLine.keys()]);
+	const meeting = meetingByLine.get(pickedLine);
+	if (!meeting) {
+		return { kind: Origin.None };
+	}
+	return { kind: Origin.Picked, event: meeting };
 }
 
 /** 2026-11-02 10:00  Weekly sync  · Jana Nováková, Petr Dvořák */
-function label(event: CallEvent): string {
-	const title = event.title || "untitled";
-	const people = event.people.length ? `  · ${event.people.join(", ")}` : "";
-	return `${localDate(event.start)} ${localTime(event.start)}  ${title}${people}`;
+function menuLine(meeting: CallEvent): string {
+	const title = meeting.title || "untitled";
+	const people = meeting.people.length ? `  · ${meeting.people.join(", ")}` : "";
+	return `${localDate(meeting.start)} ${localTime(meeting.start)}  ${title}${people}`;
 }
 
 /** The names on the event. A mistyped path or a vanished event costs the names, not the transcript. */
-async function peopleOn(source: Source): Promise<{ event?: CallEvent; people: string[] }> {
+function peopleFrom(source: Source): { event?: CallEvent; people: string[] } {
 	return match(source)
-		.with({ kind: Origin.Saved }, { kind: Origin.Picked }, ({ event }) => ({ event, people: event.people }))
-		.with({ kind: Origin.Dragged }, ({ uuid }) => {
-			const people = appleCalendarAttendees(uuid);
-			if (!people.length) warn("no such event in Calendar, going on without names");
+		.with({ kind: Origin.Saved }, { kind: Origin.Picked }, ({ event }) => {
+			return { event, people: event.people };
+		})
+		.with({ kind: Origin.Dragged }, ({ eventId }) => {
+			const people = attendeesOfEvent(eventId);
+			if (!people.length) {
+				warn("no such event in Calendar, going on without names");
+			}
 			return { people };
 		})
-		.with({ kind: Origin.Ics }, ({ path }) => ({ people: attendees(readFileSync(path, "utf8")) }))
+		.with({ kind: Origin.Ics }, ({ path }) => {
+			const calendarFile = readFileSync(path, "utf8");
+			return { people: attendees(calendarFile) };
+		})
 		.with({ kind: Origin.Missing }, ({ path }) => {
 			warn(`no such file, going on without names: ${path}`);
 			return { people: [] };
 		})
-		.with({ kind: Origin.None }, () => ({ people: [] }))
+		.with({ kind: Origin.None }, () => {
+			return { people: [] };
+		})
 		.exhaustive();
 }
 
 /** The event's names, to fix, cross out or add to: someone invited along is on no event.
  *  PEOPLE=… adds to them without asking. */
 async function confirmPeople(people: string[]): Promise<string[]> {
-	if (process.env.PEOPLE) return [...new Set([...people, ...typedNames(process.env.PEOPLE)])];
-	if (!process.stdin.isTTY) return people;
+	if (process.env.PEOPLE) {
+		const added = typedNames(process.env.PEOPLE);
+		return uniqueNames([...people, ...added]);
+	}
+	if (!process.stdin.isTTY) {
+		return people;
+	}
 
-	const prefill = people.length ? `${people.join(", ")}, ` : "";
-	const answer = await edit("Who was on the call, besides me?", "[edit, add after a comma or semicolon; Enter = done]", prefill);
+	const prefilled = people.length ? `${people.join(", ")}, ` : "";
+	const answer = await edit(
+		"Who was on the call, besides me?",
+		"[edit, add after a comma or semicolon; Enter = done]",
+		prefilled,
+	);
 	return typedNames(answer);
 }
 
-/** Names typed as "Jana Nováková, Petr Dvořák" or with semicolons: spaces collapsed, without blanks or repeats. */
+/** Names typed as "Jana Nováková, Petr Dvořák" or with semicolons: spaces collapsed,
+ *  without blanks, and one name typed twice in another case kept once, as first typed. */
 export function typedNames(text: string): string[] {
 	const names = text
 		.split(/[,;]/)
 		.map((name) => name.replace(/\s+/g, " ").trim())
 		.filter(Boolean);
-	return [...new Set(names)];
+	return uniqueNames(names);
 }
 
-async function saveEvent(file: string, event: CallEvent) {
-	await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
+/** Each name once, one written twice in another case kept as it came first. */
+function uniqueNames(names: string[]): string[] {
+	const nameByLowerCase = new Map<string, string>();
+	for (const name of names) {
+		if (!nameByLowerCase.has(name.toLowerCase())) {
+			nameByLowerCase.set(name.toLowerCase(), name);
+		}
+	}
+	return [...nameByLowerCase.values()];
 }
 
-export const eventFile = (recording: string) => recording.replace(/\.[^.]*$/, ".event.json");
+async function saveEvent(recording: string, event: CallEvent) {
+	const json = JSON.stringify(event, null, "\t");
+	await Bun.write(eventFilePath(recording), `${json}\n`);
+}
+
+/** <recording>.event.json, beside the recording: its extension swapped, never a dot in a folder's name. */
+export function eventFilePath(recording: string): string {
+	const withoutExtension = recording.replace(/\.[^./]*$/, "");
+	return `${withoutExtension}.event.json`;
+}
 
 /** A path dragged into a terminal arrives quoted or with escaped spaces; a typed one may start with ~. */
-export function dropped(text: string): string {
+export function draggedPath(text: string): string {
 	return text
 		.trim()
 		.replace(/^'(.*)'$/, "$1")
@@ -149,13 +229,13 @@ export function dropped(text: string): string {
 		.replace(/^~(?=\/)/, homedir());
 }
 
-export function localDate(iso: string): string {
-	const date = new Date(iso);
+export function localDate(isoDate: string): string {
+	const date = new Date(isoDate);
 	return `${date.getFullYear()}-${twoDigits(date.getMonth() + 1)}-${twoDigits(date.getDate())}`;
 }
 
-export function localTime(iso: string): string {
-	const date = new Date(iso);
+export function localTime(isoDate: string): string {
+	const date = new Date(isoDate);
 	return `${twoDigits(date.getHours())}:${twoDigits(date.getMinutes())}`;
 }
 
