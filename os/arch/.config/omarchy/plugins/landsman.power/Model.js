@@ -20,7 +20,26 @@ function parseKeyValue(raw) {
   return next
 }
 
-// The script's `pack` lines, one per battery, in the order it listed them.
+/**
+ * One battery, as omarchy-battery-status --shell reports it. Figures stay strings,
+ * as printed, and are empty where the firmware does not report them.
+ *
+ * @typedef {Object} Pack
+ * @property {string} name Kernel name, such as BAT0.
+ * @property {number} percent Charge from 0 to 100, or -1 when not reported.
+ * @property {string} energy Stored energy in Wh.
+ * @property {string} full Capacity in Wh.
+ * @property {string} watts Current draw or charge rate in W.
+ * @property {string} status Kernel status, such as Discharging.
+ * @property {string} cycles Charge cycles.
+ */
+
+/**
+ * Reads the script's `pack` lines and ignores every other line.
+ *
+ * @param {string} raw Output of omarchy-battery-status --shell.
+ * @returns {Pack[]} One per battery, in the order the script listed them.
+ */
 function parsePacks(raw) {
   var packs = []
   var lines = String(raw || "").split("\n")
@@ -40,10 +59,18 @@ function parsePacks(raw) {
   return packs
 }
 
+/**
+ * @param {Pack} pack
+ * @returns {number} Charge from 0 to 1 for the progress bar; 0 when not reported.
+ */
 function packFraction(pack) {
   return pack && pack.percent > 0 ? Math.min(1, pack.percent / 100) : 0
 }
 
+/**
+ * @param {Pack} pack
+ * @returns {string} The line under the battery's bar. Leaves out unreported values and a draw of zero.
+ */
 function packDetail(pack) {
   var parts = []
   if (pack.energy && pack.full) parts.push(pack.energy + " / " + pack.full + " Wh")
