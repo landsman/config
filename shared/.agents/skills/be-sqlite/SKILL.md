@@ -11,9 +11,18 @@ NULL and the query answers nothing, which reads as "no data", not as a bug. Most
 of what follows exists to turn that silence into an error.
 
 The query itself lives in a `.sql` file beside its caller, as the
-[SQL is a file](../../rules/sql-files.md) rule says. The worked example is
-`bin/calls/macos/` in the config repo: `apple-database.ts`, `queries/`, and their
-tests.
+[SQL is a file](../../rules/sql-files.md) rule says, and the code names it by its
+whole path from the root of the repo, read once when the module loads:
+
+    export const contactQuery = appleQuery("bin/calls/macos/queries/contact-by-email.sql");
+
+That path goes into ⌘P or a terminal as it is, and JetBrains opens it on a
+click. Importing the file instead (`with { type: "text" }` in Bun) does not get
+the editor there: TypeScript's language server jumps to the `declare module
+"*.sql"` the import needs, not to the file.
+
+The worked example is `bin/calls/macos/` in the config repo: `apple-database.ts`,
+`queries/`, `save-contact.applescript`, and their tests.
 
 ## Parameters: `:name`, bound from an object
 
@@ -69,7 +78,9 @@ read it, and a byte changed by you is the app's data corrupted.
   test fails when any other source file opens a database itself
   (`new Database(` outside the helper).
 - **Add data through the app**, never through its file: Contacts through
-  AppleScript, with the values as script arguments, never pasted into the script.
+  AppleScript, kept in its own `.applescript` file named by its path from the
+  root, run as `osascript <file> <arguments>`, the values as arguments and never
+  pasted into the script.
 
 ## A schema that is not yours: catch it, but not your own bugs
 
