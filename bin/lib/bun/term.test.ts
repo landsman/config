@@ -9,7 +9,8 @@ const capture = (tty: boolean) => {
 };
 
 test("piped output is bare: no colour, no indent, no link", () => {
-	const out = capture(false), err = capture(false);
+	const out = capture(false),
+		err = capture(false);
 	const t = createTerm(out.stream, err.stream);
 	t.done("Saved x.m4a", "1.2 MB");
 	t.say(t.link("/tmp/x.m4a"));
@@ -28,7 +29,8 @@ test("a terminal gets the indent, colour and a ⌘-clickable link", () => {
 });
 
 test("stdout and stderr are judged apart", () => {
-	const out = capture(false), err = capture(true);
+	const out = capture(false),
+		err = capture(true);
 	const t = createTerm(out.stream, err.stream);
 	t.done("ok");
 	t.warn("no");
@@ -37,7 +39,8 @@ test("stdout and stderr are judged apart", () => {
 });
 
 test("askUntil asks again after an answer parse refuses, saying why", async () => {
-	const answers = ["test-icalc", " p "], err = capture(false);
+	const answers = ["test-icalc", " p "],
+		err = capture(false);
 	const t = createTerm(capture(false).stream, err.stream, async () => answers.shift() ?? "");
 	const parse = (a: string) => {
 		if (a !== "p") throw new Error(`quick or precise, not '${a}'`);
@@ -45,7 +48,8 @@ test("askUntil asks again after an answer parse refuses, saying why", async () =
 	};
 	expect(await t.askUntil("Quick or precise?", "[Enter = quick]", parse)).toBe("precise");
 	expect(err.lines).toEqual([
-		"? Quick or precise? [Enter = quick] › ", "✗ quick or precise, not 'test-icalc'\n",
+		"? Quick or precise? [Enter = quick] › ",
+		"✗ quick or precise, not 'test-icalc'\n",
 		"? Quick or precise? [Enter = quick] › ",
 	]);
 });
@@ -53,7 +57,11 @@ test("askUntil asks again after an answer parse refuses, saying why", async () =
 test("edit hands its prefill to the line reader and asks on a line of its own", async () => {
 	const err = capture(false);
 	let given: string | undefined;
-	const t = createTerm(capture(false).stream, err.stream, async (prefill) => ((given = prefill), " Jana, Petr "));
+	const t = createTerm(
+		capture(false).stream,
+		err.stream,
+		async (prefill) => ((given = prefill), " Jana, Petr "),
+	);
 	expect(await t.edit("Who?", "[Enter = done]", "Jana, ")).toBe("Jana, Petr");
 	expect(given).toBe("Jana, ");
 	expect(err.lines).toEqual(["? Who? [Enter = done]\n"]);

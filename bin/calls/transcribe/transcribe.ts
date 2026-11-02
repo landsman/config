@@ -23,7 +23,13 @@ import { homedir, tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { callEvent, localDate, localTime } from "@bin/calls/calendar/event";
 import type { CallEvent } from "@bin/calls/macos/calendar";
-import { diarizer, diarizerModelsReady, setup, WhisperModel, whisperModelPath } from "@bin/calls/transcribe/models";
+import {
+	diarizer,
+	diarizerModelsReady,
+	setup,
+	WhisperModel,
+	whisperModelPath,
+} from "@bin/calls/transcribe/models";
 import { cli } from "@lib/cli";
 import { ask, askUntil, done, gap, hint, link, live, o, pick, say, warn } from "@lib/term";
 
@@ -45,10 +51,17 @@ export async function transcribe(recording: string): Promise<string> {
 	if (!existsSync(recording)) {
 		throw new Error(`no such recording: ${recording}`);
 	}
-	const model = process.env.MODEL || !process.stdin.isTTY
-		? chosenModel(process.env.MODEL)
-		: await askUntil("Quick or precise?", "[Enter or q = quick, p = precise: better Czech, about 3× slower]", chosenModel);
-	const modelsMissing = !existsSync(whisperModelPath(model)) || !existsSync(whisperModelPath(WhisperModel.SilenceDetector));
+	const model =
+		process.env.MODEL || !process.stdin.isTTY
+			? chosenModel(process.env.MODEL)
+			: await askUntil(
+					"Quick or precise?",
+					"[Enter or q = quick, p = precise: better Czech, about 3× slower]",
+					chosenModel,
+				);
+	const modelsMissing =
+		!existsSync(whisperModelPath(model)) ||
+		!existsSync(whisperModelPath(WhisperModel.SilenceDetector));
 	if (modelsMissing) {
 		await setup();
 	}
@@ -74,7 +87,9 @@ export async function transcribe(recording: string): Promise<string> {
 
 		const lines = transcriptLines(heard);
 		if (!lines) {
-			throw new Error(`no speech in ${basename(recording)}, nothing written: a muted mic, or the wrong input recorded?`);
+			throw new Error(
+				`no speech in ${basename(recording)}, nothing written: a muted mic, or the wrong input recorded?`,
+			);
 		}
 		const transcript = transcriptHeader(event, names, turns, heard) + lines;
 		const transcriptFile = freeTranscriptPath(recording);
@@ -88,7 +103,8 @@ export async function transcribe(recording: string): Promise<string> {
 /** OBS tracks 1 = both mixed, 2 = the call, 3 = me, so audio streams 0, 1, 2.
  *  A recording made otherwise is one voice. */
 async function tracksOf(recording: string): Promise<{ who: string; track: number }[]> {
-	const streams = await $`ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 ${recording}`.text();
+	const streams =
+		await $`ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 ${recording}`.text();
 	const audioStreams = streams.trim().split("\n").length;
 	if (audioStreams >= 3) {
 		return [
@@ -106,7 +122,12 @@ async function extractTrack(recording: string, track: number, workFolder: string
 	return audio;
 }
 
-async function runWhisper(audio: string, model: WhisperModel, namesToSpell: string[], whose: string): Promise<Segment[]> {
+async function runWhisper(
+	audio: string,
+	model: WhisperModel,
+	namesToSpell: string[],
+	whose: string,
+): Promise<Segment[]> {
 	const title = `Transcribing ${whose}`;
 	live(title);
 	const output = audio.replace(/\.wav$/, "");
@@ -114,13 +135,21 @@ async function runWhisper(audio: string, model: WhisperModel, namesToSpell: stri
 	const whisper = Bun.spawn(
 		[
 			"whisper-cli",
-			"-m", whisperModelPath(model),
-			"--vad", "-vm", whisperModelPath(WhisperModel.SilenceDetector),
-			"-l", process.env.SPOKEN || "auto",
+			"-m",
+			whisperModelPath(model),
+			"--vad",
+			"-vm",
+			whisperModelPath(WhisperModel.SilenceDetector),
+			"-l",
+			process.env.SPOKEN || "auto",
 			...prompt,
-			"-np", "-pp", "-oj",
-			"-of", output,
-			"-f", audio,
+			"-np",
+			"-pp",
+			"-oj",
+			"-of",
+			output,
+			"-f",
+			audio,
 		],
 		{ stdout: "ignore", stderr: "pipe" },
 	);
@@ -131,7 +160,9 @@ async function runWhisper(audio: string, model: WhisperModel, namesToSpell: stri
 		lastOutput = (lastOutput + chunk).slice(-2000);
 		const percent = [...chunk.matchAll(/progress = +(\d+)%/g)].at(-1)?.[1];
 		if (percent && process.stdout.isTTY) {
-			process.stdout.write(`\x1b[1A\r\x1b[K  ${o.red("●")} ${o.bold(title)}  ${o.dim(`${percent}%`)}\n`);
+			process.stdout.write(
+				`\x1b[1A\r\x1b[K  ${o.red("●")} ${o.bold(title)}  ${o.dim(`${percent}%`)}\n`,
+			);
 		}
 	}
 	if ((await whisper.exited) !== 0) {
@@ -172,7 +203,8 @@ export function splitByVoice(who: string, segments: Segment[], turns: Turn[]): T
 	if (speakersInOrder.length < 2) {
 		return [{ who, segments }];
 	}
-	const label = (speaker: string) => (speaker ? `${who} ${speakersInOrder.indexOf(speaker) + 1}` : who);
+	const label = (speaker: string) =>
+		speaker ? `${who} ${speakersInOrder.indexOf(speaker) + 1}` : who;
 	const labels = [...new Set(speakerOfSegment.map(label))];
 	return labels.map((voice) => {
 		const theirs = segments.filter((_, index) => label(speakerOfSegment[index]) === voice);
@@ -181,7 +213,9 @@ export function splitByVoice(who: string, segments: Segment[], turns: Turn[]): T
 }
 
 /** One line per turn: [mm:ss] Who: text, consecutive segments of one speaker joined up to a minute. */
-export function transcriptLines(tracks: { who: string; segments: Pick<Segment, "from" | "text">[] }[]): string {
+export function transcriptLines(
+	tracks: { who: string; segments: Pick<Segment, "from" | "text">[] }[],
+): string {
 	const spoken = tracks
 		.flatMap(({ who, segments }) => {
 			return segments.map((segment) => ({ who, from: segment.from, text: segment.text.trim() }));
@@ -238,7 +272,9 @@ export function transcriptHeader(
 	} else if (turns) {
 		const voices = new Set(turns.map((turn) => turn.speaker)).size;
 		lines.push(`Voices on the call track: ${voices}, told apart by sound only`);
-		const otherSide = heard.filter((track) => track.who.startsWith("Them") && track.segments.length);
+		const otherSide = heard.filter(
+			(track) => track.who.startsWith("Them") && track.segments.length,
+		);
 		for (const { who, segments } of otherSide) {
 			const spoke = segments.reduce((total, segment) => total + segment.to - segment.from, 0);
 			const firstWords = Math.min(...segments.map((segment) => segment.from));
@@ -278,9 +314,14 @@ async function whoSpeaksWhen(audio: string, peopleOnEvent: number): Promise<Turn
 			? ["--max-speakers", String(peopleOnEvent)]
 			: [];
 	const output = `${audio}.voices.json`;
-	const diarized = await $`${diarizer.program} process ${audio} --mode offline ${howMany} --output ${output}`.quiet().nothrow();
+	const diarized =
+		await $`${diarizer.program} process ${audio} --mode offline ${howMany} --output ${output}`
+			.quiet()
+			.nothrow();
 	if (diarized.exitCode !== 0) {
-		warn(`diarization failed, Them stays one voice:\n${diarized.stderr.toString().trim().slice(-500)}`);
+		warn(
+			`diarization failed, Them stays one voice:\n${diarized.stderr.toString().trim().slice(-500)}`,
+		);
 		return null;
 	}
 	const { segments } = JSON.parse(readFileSync(output, "utf8")) as {
@@ -337,7 +378,9 @@ async function pickRecording(): Promise<string> {
 	if (!Bun.which("tv")) {
 		throw new Error("television is missing: brew install television, or give FILE=…");
 	}
-	const recordingByName = new Map(allRecordings().map((recording) => [basename(recording), recording]));
+	const recordingByName = new Map(
+		allRecordings().map((recording) => [basename(recording), recording]),
+	);
 	const picked = await pick("Recording to transcribe", [...recordingByName.keys()]);
 	if (!picked) {
 		throw new Error("no recording picked");
@@ -353,7 +396,8 @@ export async function fileInBrain(transcript: string) {
 	if (!Bun.which("claude")) {
 		return warn("claude is missing, the transcript stays out of the brain");
 	}
-	const answer = process.env.BRAIN ?? (await ask("File it in the brain with Claude?", "[Enter = yes, n = no]"));
+	const answer =
+		process.env.BRAIN ?? (await ask("File it in the brain with Claude?", "[Enter = yes, n = no]"));
 	if (["n", "no"].includes(answer.toLowerCase())) {
 		return;
 	}

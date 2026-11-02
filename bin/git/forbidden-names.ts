@@ -59,7 +59,7 @@ const POSIX_CLASSES: Record<string, string> = {
  *  expanded, and a construct with no JS equivalent throws. */
 export function toRegExp(ere: string, flags = ""): RegExp {
 	let out = "";
-	for (let i = 0; i < ere.length; ) {
+	for (let i = 0; i < ere.length;) {
 		const c = ere[i];
 		if (c === "\\") {
 			const next = ere[i + 1];
@@ -242,7 +242,13 @@ async function collect(args: string[], stdin: string): Promise<Source> {
 	if (args.length === 0) {
 		// The prefixes are pinned against a diff.noprefix in anyone's config.
 		const diff = await git(
-			"diff", "--cached", "-U0", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/",
+			"diff",
+			"--cached",
+			"-U0",
+			"--no-color",
+			"--no-ext-diff",
+			"--src-prefix=a/",
+			"--dst-prefix=b/",
 		);
 		// The names too: an empty or binary file has no added line to carry its path.
 		const names = (await git("diff", "--cached", "--name-only", "--diff-filter=d"))
@@ -259,7 +265,11 @@ async function collect(args: string[], stdin: string): Promise<Source> {
 /** grep's answer for one pattern, to hold the JS one against. */
 async function grepHits(pattern: Pattern, sample: string): Promise<Set<string>> {
 	const flags = /[A-Z]/.test(pattern.source) ? "-E" : "-iE";
-	const proc = Bun.spawn(["grep", flags, "-e", pattern.source], { stdin: new Blob([sample]), stdout: "pipe", stderr: "pipe" });
+	const proc = Bun.spawn(["grep", flags, "-e", pattern.source], {
+		stdin: new Blob([sample]),
+		stdout: "pipe",
+		stderr: "pipe",
+	});
 	const out = await new Response(proc.stdout).text();
 	await proc.exited;
 	return new Set(out.split("\n").filter(Boolean));
@@ -282,7 +292,8 @@ async function verify(patterns: Pattern[], sample: string): Promise<never> {
 			`${mark} list line ${pattern.line}: ${theirs.size} grep, ${ours.size} js, ` +
 				`${narrowed.length} narrowed (inside a word), ${lost.length + onlyJs.length} unexplained`,
 		);
-		for (const line of [...lost, ...onlyJs].slice(0, 3)) console.log(`       unexplained: ${line.slice(0, 120)}`);
+		for (const line of [...lost, ...onlyJs].slice(0, 3))
+			console.log(`       unexplained: ${line.slice(0, 120)}`);
 		if (mark === "FAIL") bad++;
 	}
 	console.log(

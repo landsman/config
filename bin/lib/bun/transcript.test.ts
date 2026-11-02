@@ -17,31 +17,67 @@ function transcript(...lines: string[]) {
 	return path;
 }
 const skill = (name: string, extra = {}) =>
-	JSON.stringify({ type: "assistant", ...extra, message: { content: [{ type: "tool_use", name: "Skill", input: { skill: name } }] } });
+	JSON.stringify({
+		type: "assistant",
+		...extra,
+		message: { content: [{ type: "tool_use", name: "Skill", input: { skill: name } }] },
+	});
 
 test("every call, the last line read without a trailing newline", () =>
-	expect(calls(transcript(skill("a"), '{"type":"user","message":{"content":"hi"}}', skill("ž")), "Skill"))
-		.toEqual([{ skill: "a" }, { skill: "ž" }]));
+	expect(
+		calls(
+			transcript(skill("a"), '{"type":"user","message":{"content":"hi"}}', skill("ž")),
+			"Skill",
+		),
+	).toEqual([{ skill: "a" }, { skill: "ž" }]));
 
 test("a line with the marker twice is read once", () =>
-	expect(entries(transcript(JSON.stringify({ type: "user", message: { content: "Skill and Skill" } })), "Skill"))
-		.toHaveLength(1));
+	expect(
+		entries(
+			transcript(JSON.stringify({ type: "user", message: { content: "Skill and Skill" } })),
+			"Skill",
+		),
+	).toHaveLength(1));
 
 test("a subagent's entries, the harness's and broken lines are skipped", () =>
-	expect(calls(transcript(skill("sub", { isSidechain: true }), '{"type":"system","Skill":1}', '{"Skill', skill("main")), "Skill"))
-		.toEqual([{ skill: "main" }]));
+	expect(
+		calls(
+			transcript(
+				skill("sub", { isSidechain: true }),
+				'{"type":"system","Skill":1}',
+				'{"Skill',
+				skill("main"),
+			),
+			"Skill",
+		),
+	).toEqual([{ skill: "main" }]));
 
 test("no file is no entries", () => expect(calls(join(dir, "missing.jsonl"), "Skill")).toEqual([]));
 
 const prompt = (text: string) => JSON.stringify({ type: "user", message: { content: text } });
-const say = (text: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } });
-const toolResult = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", content: "ok" }] } });
-const reminder = JSON.stringify({ type: "user", isMeta: true, message: { content: [{ type: "text", text: "reminder" }] } });
-const texts = (path: string) => lastTurn(path).flatMap(content).map((b) => b.text ?? b.type);
+const say = (text: string) =>
+	JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } });
+const toolResult = JSON.stringify({
+	type: "user",
+	message: { content: [{ type: "tool_result", content: "ok" }] },
+});
+const reminder = JSON.stringify({
+	type: "user",
+	isMeta: true,
+	message: { content: [{ type: "text", text: "reminder" }] },
+});
+const texts = (path: string) =>
+	lastTurn(path)
+		.flatMap(content)
+		.map((b) => b.text ?? b.type);
 
 test("the last turn starts after the last prompt, tool results and reminders inside it", () =>
-	expect(texts(transcript(prompt("one"), say("a"), prompt("two"), say("b"), toolResult, reminder, say("c"))))
-		.toEqual(["b", "tool_result", "reminder", "c"]));
+	expect(
+		texts(
+			transcript(prompt("one"), say("a"), prompt("two"), say("b"), toolResult, reminder, say("c")),
+		),
+	).toEqual(["b", "tool_result", "reminder", "c"]));
 test("the last turn of a file ending in a newline", () =>
 	expect(texts(transcript(prompt("one"), say("a"), ""))).toEqual(["a"]));
-test("no prompt at all is the whole file", () => expect(texts(transcript(say("a"), say("b")))).toEqual(["a", "b"]));
+test("no prompt at all is the whole file", () =>
+	expect(texts(transcript(say("a"), say("b")))).toEqual(["a", "b"]));

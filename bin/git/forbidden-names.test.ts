@@ -4,7 +4,16 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EMAIL_RE, addedLines, messageLines, names, patternsFor, stdinLines, subjectOf, toRegExp } from "@bin/git/forbidden-names";
+import {
+	EMAIL_RE,
+	addedLines,
+	messageLines,
+	names,
+	patternsFor,
+	stdinLines,
+	subjectOf,
+	toRegExp,
+} from "@bin/git/forbidden-names";
 
 describe("toRegExp: a grep ERE read by JS", () => {
 	test("word edges become \\b, so AB is a name and ABC is not", () => {
@@ -127,7 +136,8 @@ describe("what gets searched", () => {
 		expect(addedLines(diff).join()).not.toContain("removed");
 	});
 	test("git's template comments and the commit -v diff are not the message", () => {
-		const raw = "fe: subject\n# a template comment\n# ------------------------ >8 ------------------------\n-removed acme\n";
+		const raw =
+			"fe: subject\n# a template comment\n# ------------------------ >8 ------------------------\n-removed acme\n";
 		expect(messageLines(raw)).toEqual(["1:fe: subject", "3:"]);
 	});
 	test("in a PR body a leading # is a heading, so nothing is dropped", () => {
@@ -151,7 +161,12 @@ describe("the script, as git runs it", () => {
 	const tmp = realpathSync(mkdtempSync(join(tmpdir(), "forbidden-names-")));
 	afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
-	const env = { ...process.env, HOME: tmp, GIT_CONFIG_GLOBAL: join(tmp, "gitconfig"), GIT_CONFIG_NOSYSTEM: "1" };
+	const env = {
+		...process.env,
+		HOME: tmp,
+		GIT_CONFIG_GLOBAL: join(tmp, "gitconfig"),
+		GIT_CONFIG_NOSYSTEM: "1",
+	};
 	const git = (cwd: string, ...args: string[]) => Bun.spawnSync(["git", ...args], { cwd, env });
 	const run = (cwd: string, ...args: string[]) => {
 		const p = Bun.spawnSync([process.execPath, hook, ...args], { cwd, env });
@@ -229,7 +244,13 @@ describe("the script, as git runs it", () => {
 		git(public_, "config", "--global", "commit.gpgsign", "false");
 		git(public_, "config", "--global", "user.email", "t@t");
 		git(public_, "config", "--global", "user.name", "t");
-		git(public_, "config", "--global", "hook.forbidden-names.command", join(import.meta.dir, "forbidden-names.sh"));
+		git(
+			public_,
+			"config",
+			"--global",
+			"hook.forbidden-names.command",
+			join(import.meta.dir, "forbidden-names.sh"),
+		);
 		git(public_, "config", "--global", "--add", "hook.forbidden-names.event", "pre-commit");
 		stage(public_, "org=acme");
 		const commit = git(public_, "commit", "-qm", "fe: a clean subject");

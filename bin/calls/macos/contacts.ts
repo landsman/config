@@ -4,9 +4,10 @@
 // so the next call already knows them. Contacts is read from its own databases,
 // read-only, and written through the Contacts app.
 import { $ } from "bun";
-import { Database } from "bun:sqlite";
 import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
+import { join } from "node:path";
+import { appleQuery, readAppleDatabase, repoPath } from "@bin/calls/macos/apple-database";
 import { ask, hint, warn } from "@lib/term";
 
 type NewContact = { name: string; email: string };
@@ -84,47 +85,32 @@ export function addressBooks(): string[] {
  *  so a change to it reads as not found, and the name is asked for instead. */
 export function contactName(email: string, books: string[]): string | undefined {
 	for (const bookPath of books) {
-		try {
-			const database = new Database(bookPath, { readonly: true });
-			try {
-				const contact = database
-					.query<{ firstName: string | null; lastName: string | null }, [string]>(contactQuery)
-					.get(email);
-				const name = [contact?.firstName, contact?.lastName]
-					.filter(Boolean)
-					.join(" ")
-					.trim();
-				if (name) {
-					return name;
-				}
-			} finally {
-				database.close();
-			}
-		} catch {
-			// A book that cannot be read is skipped; the next one may have the contact.
+		const name = readAppleDatabase(bookPath, undefined, (database) => {
+			const contact = database
+				.query<{ firstName: string | null; lastName: string | null }, { email: string }>(
+					contactQuery,
+				)
+				.get({ email });
+			return [contact?.firstName, contact?.lastName].filter(Boolean).join(" ").trim();
+		});
+		// A book that cannot be read, or has no such contact, is skipped; the next one may have it.
+		if (name) {
+			return name;
 		}
 	}
 	return undefined;
 }
 
-export const contactQuery = `
-	SELECT person.ZFIRSTNAME AS firstName, person.ZLASTNAME AS lastName
-	FROM ZABCDEMAILADDRESS email
-	JOIN ZABCDRECORD person ON person.Z_PK = email.ZOWNER
-	WHERE lower(email.ZADDRESS) = lower(?)`;
+export const contactQuery = appleQuery("bin/calls/macos/queries/contact-by-email.sql");
 
 /** jan.novak@, jan_novak@ or jan-novak@ → Jan Novak; a single word such as info@ is no name. */
 export function guessName(email: string): string | undefined {
 	const mailbox = email.split("@")[0];
-	const words = mailbox
-		.split(/[._-]+/)
-		.filter((word) => /^\p{L}+$/u.test(word));
+	const words = mailbox.split(/[._-]+/).filter((word) => /^\p{L}+$/u.test(word));
 	if (words.length < 2) {
 		return undefined;
 	}
-	return words
-		.map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
-		.join(" ");
+	return words.map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase()).join(" ");
 }
 
 /** What I typed over the guess: Enter keeps it, "-" drops it, anything else replaces it. */
@@ -146,17 +132,12 @@ export async function saveContact(name: string, email: string, runScript = runAp
 	}
 }
 
-export const saveContactScript = `on run argv
-		tell application "Contacts"
-			set newPerson to make new person with properties {first name:item 1 of argv, last name:item 2 of argv}
-			make new email at end of emails of newPerson with properties {label:"work", value:item 3 of argv}
-			save
-		end tell
-	end run`;
+/** Saves a person with an email to Contacts; run with first name, last name and email as arguments. */
+export const saveContactScript = repoPath("bin/calls/macos/save-contact.applescript");
 
-/** Runs an AppleScript with its arguments; its error, or "" when it went through. */
-async function runAppleScript(script: string, scriptArguments: string[]): Promise<string> {
-	const result = await $`osascript -e ${script} ${scriptArguments}`.nothrow().quiet();
+/** Runs an AppleScript file with its arguments; its error, or "" when it went through. */
+async function runAppleScript(scriptFile: string, scriptArguments: string[]): Promise<string> {
+	const result = await $`osascript ${scriptFile} ${scriptArguments}`.nothrow().quiet();
 	if (!result.exitCode) {
 		return "";
 	}

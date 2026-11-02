@@ -15,18 +15,31 @@ import { createInterface } from "node:readline";
 
 type Stream = { tty: boolean; write: (s: string) => void };
 
-export function createTerm(out: Stream, err: Stream, readLine: (prefill?: string) => Promise<string> = stdinLine) {
+export function createTerm(
+	out: Stream,
+	err: Stream,
+	readLine: (prefill?: string) => Promise<string> = stdinLine,
+) {
 	const style = (s: Stream) => {
 		const sgr = (code: string) => (t: string) => (s.tty ? `\x1b[${code}m${t}\x1b[0m` : t);
-		return { bold: sgr("1"), dim: sgr("2"), red: sgr("1;31"), green: sgr("1;32"), cyan: sgr("1;36") };
+		return {
+			bold: sgr("1"),
+			dim: sgr("2"),
+			red: sgr("1;31"),
+			green: sgr("1;32"),
+			cyan: sgr("1;36"),
+		};
 	};
-	const o = style(out), e = style(err);
+	const o = style(out),
+		e = style(err);
 	const line = (s: Stream, text: string) => s.write(`${s.tty ? "  " : ""}${text}\n`);
 	/** An error, on stderr: ✗ text. */
 	const warn = (text: string) => line(err, e.red(`✗ ${text}`));
 	/** A question on stderr, answered with one line of stdin; "" on Enter or no input. */
 	async function ask(question: string, hint: string): Promise<string> {
-		err.write(`${err.tty ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `);
+		err.write(
+			`${err.tty ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `,
+		);
 		return (await readLine()).trim();
 	}
 	/** A question whose answer starts as `prefill`, edited in place on the line below it:
@@ -36,7 +49,11 @@ export function createTerm(out: Stream, err: Stream, readLine: (prefill?: string
 		return (await readLine(prefill)).trim();
 	}
 	/** ask() until parse() takes the answer: a typo gets the question again, not a crash. */
-	async function askUntil<T>(question: string, hint: string, parse: (answer: string) => T): Promise<T> {
+	async function askUntil<T>(
+		question: string,
+		hint: string,
+		parse: (answer: string) => T,
+	): Promise<T> {
 		for (;;) {
 			try {
 				return parse(await ask(question, hint));
@@ -52,7 +69,8 @@ export function createTerm(out: Stream, err: Stream, readLine: (prefill?: string
 		/** Plain lines on stdout, indented on a terminal. */
 		say: (...lines: string[]) => lines.forEach((l) => line(out, l)),
 		/** Something finished: ✓ title, and a dimmed detail after it. */
-		done: (title: string, detail = "") => line(out, `${o.green("✓")} ${o.bold(title)}${detail && `  ${o.dim(detail)}`}`),
+		done: (title: string, detail = "") =>
+			line(out, `${o.green("✓")} ${o.bold(title)}${detail && `  ${o.dim(detail)}`}`),
 		/** Something is running now: ● title. */
 		live: (title: string) => line(out, `${o.red("●")} ${o.bold(title)}`),
 		/** An empty line between steps, on a terminal only. */
@@ -61,7 +79,8 @@ export function createTerm(out: Stream, err: Stream, readLine: (prefill?: string
 		hint: (text: string) => line(out, o.dim(`  ${text}`)),
 		warn,
 		/** A path as a terminal link (OSC 8), so ⌘-click opens it whatever the terminal makes of a bare path. */
-		link: (path: string) => (out.tty ? `\x1b]8;;file://${encodeURI(path)}\x1b\\${path}\x1b]8;;\x1b\\` : path),
+		link: (path: string) =>
+			out.tty ? `\x1b]8;;file://${encodeURI(path)}\x1b\\${path}\x1b]8;;\x1b\\` : path,
 		ask,
 		askUntil,
 		edit,
@@ -70,7 +89,11 @@ export function createTerm(out: Stream, err: Stream, readLine: (prefill?: string
 
 /** One line picked in television; empty on Esc. */
 export async function pick(header: string, lines: string[]): Promise<string> {
-	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", header], { stdin: new Blob([lines.join("\n")]), stdout: "pipe", stderr: "inherit" });
+	const tv = Bun.spawn(["tv", "--no-preview", "--input-header", header], {
+		stdin: new Blob([lines.join("\n")]),
+		stdout: "pipe",
+		stderr: "inherit",
+	});
 	return (await new Response(tv.stdout).text()).trim();
 }
 
@@ -79,7 +102,14 @@ export async function pick(header: string, lines: string[]): Promise<string> {
 async function stdinLine(prefill?: string): Promise<string> {
 	// Only a terminal can show text to edit; readline then draws the line itself, on stderr like the question.
 	const editing = prefill !== undefined && process.stdin.isTTY;
-	const rl = editing ? createInterface({ input: process.stdin, output: process.stderr, terminal: true, prompt: "  › " }) : createInterface({ input: process.stdin });
+	const rl = editing
+		? createInterface({
+				input: process.stdin,
+				output: process.stderr,
+				terminal: true,
+				prompt: "  › ",
+			})
+		: createInterface({ input: process.stdin });
 	if (editing) {
 		rl.prompt();
 		rl.write(prefill ?? "");

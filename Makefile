@@ -62,7 +62,7 @@ help: ## show this help
 # because CI runs the lot on macOS and Ubuntu on every pull request.
 #
 
-.PHONY: qa qa-deps lint bin-test
+.PHONY: qa qa-deps lint format bin-test
 qa: qa-deps lint git-config-test apps-test stow-test bin-test claude-settings-test opencode-config-test skills-index-test ## run all checks — this is what CI runs
 
 qa-deps:
@@ -95,7 +95,7 @@ qa-deps:
 	@command -v bun >/dev/null || command -v mise >/dev/null || \
 		{ echo "qa needs bun - run: make apps, then mise install"; exit 1; }
 
-lint: ## parse every shell file without running it
+lint: ## parse every shell file without running it, type-check and format-check the Bun scripts
 	@# -n is parse-only, so nothing here is sourced or executed. A typo in a
 	@# stowed rc file otherwise surfaces as a broken login shell on the next
 	@# machine, which is a bad place to find out.
@@ -111,6 +111,12 @@ lint: ## parse every shell file without running it
 	@echo "== bin/**/*.ts (bun check)"; if command -v bun >/dev/null || command -v mise >/dev/null; then \
 		cd bin && $(BUN) install --frozen-lockfile --ignore-scripts >/dev/null && $(BUN) check --no-pretty; \
 	else echo "   SKIPPED (no bun)"; fi
+	@# Formatted as `make format` leaves it: oxfmt, pinned in bin/package.json,
+	@# set in bin/.oxfmtrc.json. Long lines are wrapped by it; the naming and
+	@# the one-step-per-line it cannot see are in AGENTS.md.
+	@echo "== bin/**/*.ts (oxfmt --check)"; if command -v bun >/dev/null || command -v mise >/dev/null; then \
+		cd bin && $(BUN) x oxfmt --check '**/*.ts'; \
+	else echo "   SKIPPED (no bun)"; fi
 	@# The zsh file gets the zsh parser: bash accepts most of it and would miss
 	@# the rest (fpath arrays, autoload).
 	@# Skipped where there is no zsh, which is every Linux box here — the file is
@@ -125,6 +131,9 @@ lint: ## parse every shell file without running it
 	@# os/windows/apply.ps1 still turns a pull request red.
 	@if command -v pwsh >/dev/null; then for f in $$(git ls-files '*.ps1'); do echo "== $$f"; F="$$f" pwsh -NoProfile -Command '$$e = $$null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $$env:F), [ref]$$null, [ref]$$e); if ($$e) { $$e | ForEach-Object { "$$_" }; exit 1 }' || exit 1; done; \
 	else echo "== *.ps1  SKIPPED (no pwsh here - CI parses them)"; fi
+
+format: ## format the Bun scripts under bin/ with oxfmt, as make lint checks them
+	@cd bin && $(BUN) install --frozen-lockfile --ignore-scripts >/dev/null && $(BUN) x oxfmt '**/*.ts'
 
 bin-test: ## run every *.test.sh and *.test.ts — self-contained, no machine state touched
 	@# Found by git, not by a glob per directory: a test one level deeper, or in a

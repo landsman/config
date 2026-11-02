@@ -74,7 +74,9 @@ async function buildDiarizer() {
 		await $`git -c advice.detachedHead=false clone -q --depth 1 --branch ${diarizer.tag} https://github.com/FluidInference/FluidAudio.git ${sourceFolder}`;
 		const commit = (await $`git -C ${sourceFolder} rev-parse HEAD`.text()).trim();
 		if (commit !== diarizer.commit) {
-			throw new Error(`FluidAudio ${diarizer.tag} is ${commit} now, not ${diarizer.commit}: the tag moved`);
+			throw new Error(
+				`FluidAudio ${diarizer.tag} is ${commit} now, not ${diarizer.commit}: the tag moved`,
+			);
 		}
 		await $`swift build -c release --product fluidaudiocli --package-path ${sourceFolder}`.quiet();
 		const built = `${sourceFolder}/.build/release/fluidaudiocli`;
@@ -107,7 +109,9 @@ async function folderChecksum(folder: string): Promise<string> {
 async function downloadDiarizerModels() {
 	live("Downloading the diarization models (22 MB)");
 	const listing = `https://huggingface.co/api/models/${diarizer.repository}/revision/${diarizer.revision}`;
-	const { siblings: repositoryFiles } = (await (await fetch(listing)).json()) as { siblings: { rfilename: string }[] };
+	const { siblings: repositoryFiles } = (await (await fetch(listing)).json()) as {
+		siblings: { rfilename: string }[];
+	};
 	const modelFiles = repositoryFiles
 		.map((repositoryFile) => repositoryFile.rfilename)
 		.filter((path) => diarizer.modelFiles.test(path));

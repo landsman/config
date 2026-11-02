@@ -23,7 +23,8 @@ const QUOTE = /^ {0,3}> ?/;
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)/;
 const WAIT = 5; // seconds; Claude Code's own timeout for this event is 10
 
-const longestTicks = (line: string) => Math.max(0, ...(line.match(/`+/g) ?? []).map((run) => run.length));
+const longestTicks = (line: string) =>
+	Math.max(0, ...(line.match(/`+/g) ?? []).map((run) => run.length));
 
 /** The batch as it is to be shown, and the state after it. */
 function rewrite(delta: string, { fence, ours }: State, final: boolean): [string, State] {
@@ -52,7 +53,12 @@ function rewrite(delta: string, { fence, ours }: State, final: boolean): [string
 		if (fence === null) {
 			// A backtick in a backtick fence's info string makes it inline code, not a fence.
 			if (opener && !(opener[1][0] === "`" && opener[2].includes("`"))) fence = opener[1];
-		} else if (opener && opener[1][0] === fence[0] && opener[1].length >= fence.length && !opener[2].trim()) {
+		} else if (
+			opener &&
+			opener[1][0] === fence[0] &&
+			opener[1].length >= fence.length &&
+			!opener[2].trim()
+		) {
 			// CommonMark: the closer is the same character, at least as long, with nothing after it.
 			fence = null;
 		}
@@ -66,23 +72,37 @@ function rewrite(delta: string, { fence, ours }: State, final: boolean): [string
 }
 
 /** The batch to show, keeping the message's state across its concurrent batches. */
-async function show(delta: string, message: string, index: number, final: boolean): Promise<string> {
+async function show(
+	delta: string,
+	message: string,
+	index: number,
+	final: boolean,
+): Promise<string> {
 	if (!message) return rewrite(delta, { fence: null, ours: null }, true)[0];
 	const file = relayFile("claude-quote-to-fence", message);
-	const before = index === 0 ? { fence: null, ours: null } : await awaitTurn<State>(file, index, WAIT);
+	const before =
+		index === 0 ? { fence: null, ours: null } : await awaitTurn<State>(file, index, WAIT);
 	// Lost track (a batch timed out or failed): show the rest as it came, and tell
 	// the later batches so, rather than have each of them wait out WAIT too.
 	const broken = !before || before.broken === true;
-	const [shown, after] = broken ? [delta, { fence: null, ours: null }] : rewrite(delta, before, final);
+	const [shown, after] = broken
+		? [delta, { fence: null, ours: null }]
+		: rewrite(delta, before, final);
 	if (final) endRelay(file);
 	else passTurn(file, index, { ...after, broken });
 	return shown;
 }
 
-const input = await event<{ delta?: string; message_id?: unknown; index?: number; final?: boolean }>();
+const input = await event<{
+	delta?: string;
+	message_id?: unknown;
+	index?: number;
+	final?: boolean;
+}>();
 if (input) {
 	const delta = input.delta ?? "";
 	const message = String(input.message_id ?? "").replace(/[^\p{L}\p{N}_-]/gu, "");
 	const shown = await show(delta, message, input.index ?? 0, Boolean(input.final));
-	if (shown !== delta) answer({ hookSpecificOutput: { hookEventName: "MessageDisplay", displayContent: shown } });
+	if (shown !== delta)
+		answer({ hookSpecificOutput: { hookEventName: "MessageDisplay", displayContent: shown } });
 }

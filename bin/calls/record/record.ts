@@ -60,9 +60,10 @@ export function recordingMode(answer = ""): Mode {
 async function start(answer?: string) {
 	requireFreeSpace(existsSync(recordingsFolder) ? recordingsFolder : homedir());
 	gap();
-	const mode = answer === undefined
-		? await askUntil("Record audio or video?", "[Enter or a = audio, v = video]", recordingMode)
-		: recordingMode(answer);
+	const mode =
+		answer === undefined
+			? await askUntil("Record audio or video?", "[Enter or a = audio, v = video]", recordingMode)
+			: recordingMode(answer);
 	if (!existsSync(`${obsSettingsFolder}/basic/profiles/MeetVideo/basic.ini`)) {
 		await setup();
 	}
@@ -97,7 +98,10 @@ async function start(answer?: string) {
 		// macOS: asking OBS for its display list crashes it (32.2).
 		const displayScript = `${thisFolder}/../macos/display.js`;
 		const displayId = (await $`osascript -l JavaScript ${displayScript}`.text()).trim();
-		await call("SetInputSettings", { inputName: "Display", inputSettings: { display_uuid: displayId } });
+		await call("SetInputSettings", {
+			inputName: "Display",
+			inputSettings: { display_uuid: displayId },
+		});
 		await call("SetCurrentProgramScene", { sceneName: "Screen" });
 	} else {
 		await switchTo(profile, "MeetAudio");
@@ -117,7 +121,12 @@ async function start(answer?: string) {
 }
 
 /** A setting OBS keeps a list of, with the requests that read and change it. */
-type ObsSetting = { listRequest: string; currentField: string; setRequest: string; valueField: string };
+type ObsSetting = {
+	listRequest: string;
+	currentField: string;
+	setRequest: string;
+	valueField: string;
+};
 
 const sceneCollection: ObsSetting = {
 	listRequest: "GetSceneCollectionList",
@@ -161,7 +170,9 @@ export function requireFreeSpace(folder: string, neededBytes = 10e9) {
 	const freeBytes = freeBlocks * blockSize;
 	if (freeBytes < neededBytes) {
 		const free = (freeBytes / 1e9).toFixed(1);
-		throw new Error(`only ${free} GB free on the disk, ${neededBytes / 1e9} GB needed to record: free some space first`);
+		throw new Error(
+			`only ${free} GB free on the disk, ${neededBytes / 1e9} GB needed to record: free some space first`,
+		);
 	}
 }
 
@@ -221,10 +232,8 @@ async function pickEvent(events: CallEvent[]): Promise<CallEvent | undefined> {
 	const choices = events
 		.map((event, index) => `${index + 1} = ${event.title || "untitled"}`)
 		.join(", ");
-	return askUntil(
-		"Which event was the call?",
-		`[Enter = 1, ${choices}, - = none]`,
-		(answer) => chosenEvent(answer, events),
+	return askUntil("Which event was the call?", `[Enter = 1, ${choices}, - = none]`, (answer) =>
+		chosenEvent(answer, events),
 	);
 }
 
@@ -242,11 +251,17 @@ export function chosenEvent<Event>(answer: string, events: Event[]): Event | und
 
 // Audio keeps every audio track and drops the black frame; video keeps all.
 // The file OBS wrote goes only once the copy is saved: it is the call.
-export async function save(mode: Mode, obsFile: string, folder: string, name: string): Promise<string> {
+export async function save(
+	mode: Mode,
+	obsFile: string,
+	folder: string,
+	name: string,
+): Promise<string> {
 	const recording = recordingPath(mode, obsFile, folder, name);
 	mkdirSync(dirname(recording), { recursive: true });
 	const streams = mode === Mode.Video ? ["-map", "0"] : ["-map", "0:a"];
-	const copied = await $`ffmpeg -nostdin -loglevel error -y -i ${obsFile} ${streams} -c copy ${recording}`.nothrow();
+	const copied =
+		await $`ffmpeg -nostdin -loglevel error -y -i ${obsFile} ${streams} -c copy ${recording}`.nothrow();
 	if (copied.exitCode !== 0) {
 		throw new Error(`saving failed, the recording is still at ${obsFile}`);
 	}
@@ -283,7 +298,9 @@ async function quitObs() {
 	await $`osascript -e ${'tell application "OBS" to quit'}`.nothrow().quiet();
 	const quit = await waitFor(async () => !(await running(obsProcess)), 20);
 	if (!quit) {
-		throw new Error("OBS did not quit, a window in it may be open: close it, quit OBS, run this again");
+		throw new Error(
+			"OBS did not quit, a window in it may be open: close it, quit OBS, run this again",
+		);
 	}
 }
 
@@ -296,7 +313,9 @@ async function setup() {
 	mkdirSync(`${recordingsFolder}/.obs`, { recursive: true });
 	// config/ mirrors OBS's own folder. Copied, not stowed: OBS replaces a
 	// symlink with a file when it saves. user.ini only on a fresh install.
-	copyTree(`${thisFolder}/config`, obsSettingsFolder, { "@RECORDINGS@": recordingsFolder }, ["user.ini"]);
+	copyTree(`${thisFolder}/config`, obsSettingsFolder, { "@RECORDINGS@": recordingsFolder }, [
+		"user.ini",
+	]);
 	enable();
 	done("OBS is set up");
 	hint("On its first start macOS asks for Microphone and Screen Recording: allow both.");
@@ -331,9 +350,7 @@ export function moveLooseCallsIntoFolders(folder: string) {
 export function callOfEachFile(files: string[]): Map<string, string> {
 	const withoutExtension = (file: string) => file.replace(/\.[^.]*$/, "");
 	const recordings = new Set(
-		files
-			.filter((file) => /\.(m4a|mp4)$/.test(file))
-			.map(withoutExtension),
+		files.filter((file) => /\.(m4a|mp4)$/.test(file)).map(withoutExtension),
 	);
 	const callByFile = new Map<string, string>();
 	for (const file of files) {

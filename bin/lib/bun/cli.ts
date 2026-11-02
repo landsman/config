@@ -4,11 +4,16 @@
 import { readFileSync } from "node:fs";
 import { warn } from "@lib/term";
 
-export async function cli(path: string, commands: Record<string, (arg?: string) => Promise<unknown>>) {
+export async function cli(
+	path: string,
+	commands: Record<string, (arg?: string) => Promise<unknown>>,
+) {
 	const [cmd, arg] = process.argv.slice(2);
 	const run = commands[cmd ?? ""];
 	if (!run) {
-		const usage = readFileSync(path, "utf8").match(/^\/\/ usage:[\s\S]*?(?=^(?!\/\/))/m)?.[0] ?? `usage: ${path} <command>`;
+		const usage =
+			readFileSync(path, "utf8").match(/^\/\/ usage:[\s\S]*?(?=^(?!\/\/))/m)?.[0] ??
+			`usage: ${path} <command>`;
 		process.stderr.write(usage.replace(/^\/\/ ?/gm, ""));
 		process.exit(2);
 	}

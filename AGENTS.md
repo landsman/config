@@ -70,6 +70,27 @@ any other file, tests included. Both are in [`bin/tsconfig.json`](bin/tsconfig.j
 which Bun, editors and `bun check` all read. A path then says the same thing
 wherever it is written, and moving a file does not break the imports beside it.
 
+## Writing the Bun scripts
+
+Code under `bin/` is read cold, by someone who does not know the script, so it
+has to say what it does without context. `make format` lays it out (oxfmt, 100
+columns, tabs) and `make lint` fails on what it would change. The rest is not
+the formatter's to see:
+
+- **Names say what the thing is in real life.** `localTime`, not `hm`;
+  `meeting`, not `e`; `recordingsFolder`, not `out`. No abbreviations and no
+  one-letter names, a short arrow function's argument included.
+- **One step per line.** A chain gets a line per call, an arrow that does more
+  than return one value gets a block body, and each branch of a `match` is a
+  block of its own. A line that fits in 100 columns is not thereby readable.
+- **A closed set of values is an `enum`**, branched over with a ts-pattern
+  `match` that ends in `.exhaustive()`.
+- **SQL lives in a `.sql` file** in a `queries/` folder beside its caller,
+  as the [SQL is a file](shared/.agents/rules/sql-files.md) rule says.
+- **Tests sit in two groups**, `describe("expected use")` and
+  `describe("bad input")`: what it is for, then what someone will feed it by
+  mistake — a broken file, a typo, a folder for a file, nothing at all.
+
 ## Pull requests
 
 When the work is done and pushed, open the pull request. Do not ask first —
