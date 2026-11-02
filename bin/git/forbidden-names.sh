@@ -1,109 +1,22 @@
 #!/usr/bin/env bash
-# Refuses a commit that names a client or an employer outside their own repos —
-# the check where-repos-live.md asks for before anything leaves the machine.
+# Runs forbidden-names.ts, and exists only to find bun.
 #
-#   forbidden-names.sh          the staged diff (pre-commit)
-#   forbidden-names.sh <file>   a commit message file (commit-msg), or any text
-#   forbidden-names.sh -        stdin, e.g. a PR body before it is posted
+# git hooks run from wherever git was started: a terminal, but also an IDE, a GUI
+# client or an agent, and those inherit a PATH that often has neither brew nor
+# mise on it. A `#!/usr/bin/env bun` shebang would then fail, and a failing
+# pre-commit hook means no commits at all — so the search for an interpreter is
+# written down here instead of being left to whoever launched git. .gitconfig
+# keeps pointing at this path, so nothing on any machine needs rewiring.
 #
-# Wired as a config-based hook in .gitconfig (git 2.54+), not through
-# core.hooksPath: that would replace every repo's own hooks, and a husky or a
-# pre-commit framework setting its own path would switch this one off.
-#
-# The names are not in this repo, which is public — listing them here would be
-# the leak. They live in the file `git config forbiddenNames.file` points at,
-# one `<owner> <extended regex>` per line, # comments allowed. <owner> is the
-# directory under ~/projects the name belongs to: inside that owner's repos its
-# own names are fine, everywhere else they are not. A name shared by several
-# folders (a client whose product lives under another one) lists them all,
-# comma-separated: `acme,acme-holding acme`.
+# Fail closed, like the rest of this check: a machine with no bun cannot commit
+# until it has one, rather than committing unchecked. Skip a repo on purpose with
+#   git config hook.forbidden-names.enabled false
 set -euo pipefail
-
-# An email address in the subject line, the one line a squash-merge copies from
-# the PR title, refused regardless of the names list. It also ends up in
-# `git log --oneline`, every changelog and every notification. The body may
-# carry one. Stdin (a PR) is read here once, so its title is line 1.
-if [ $# -gt 0 ]; then
-	if [ "$1" = - ]; then input=$(cat); subject=$(head -1 <<<"$input")
-	else subject=$(grep -v '^#' "$1" | grep -m1 . || true); fi
-	if grep -qE '[[:alnum:]._%+-]+@[[:alnum:]-]+(\.[[:alnum:]-]+)+' <<<"$subject"; then
-		echo "forbidden-names: an email address in the subject or PR title: $subject" >&2
-		echo "forbidden-names: say whose address it is (the work address), not the address." >&2
-		exit 1
-	fi
-fi
-
-file=$(git config --get forbiddenNames.file || true)
-# Unset means a machine this repo never set up (a CI runner): nothing to check.
-[ -n "$file" ] || exit 0
-file="${file/#\~/$HOME}"
-if [ ! -f "$file" ]; then
-	echo "forbidden-names: $file is missing, refusing to commit unchecked." >&2
-	echo "forbidden-names: clone the brain, or skip this repo: git config hook.forbidden-names.enabled false" >&2
-	exit 1
-fi
-
-# The main checkout, also from a linked worktree, which may sit outside ~/projects.
-repo=$(cd "$(git rev-parse --path-format=absolute --git-common-dir)/.." && pwd -P)
-case "$file" in
-	# The repo that holds the list is private by definition.
-	"$repo"/*) exit 0 ;;
-esac
-owner=""
-case "$repo" in
-	"$HOME"/projects/*) owner=${repo#"$HOME"/projects/}; owner=${owner%%/*} ;;
-esac
-
-# Trailing whitespace or a CR first: `acme ` would otherwise leave an empty
-# pattern, and an empty pattern matches every line.
-patterns=$(awk -v o="$owner" '{ sub(/[[:space:]]+$/, "") }
-	!/^[[:space:]]*(#|$)/ && index("," $1 ",", "," o ",") == 0 { sub(/^[^[:space:]]+[[:space:]]+/, ""); print }' "$file")
-if ! grep -qvE '^[[:space:]]*(#|$)' "$file"; then
-	echo "forbidden-names: $file holds no patterns, refusing to commit unchecked." >&2
-	exit 1
-fi
-# Every name belongs to this repo's owner: nothing is forbidden here. (An empty
-# pattern list must not reach grep -f, where it would match every line.)
-[ -n "$patterns" ] || exit 0
-
-if [ $# -eq 0 ]; then
-	# Added lines as file:line:text, so a hit points at the place to edit. The
-	# prefixes are pinned against diff.noprefix, and `+++ ` is a header only
-	# before a file's first hunk: inside one it is an added line starting `++ `.
-	text=$(git diff --cached -U0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ | awk '
-		/^diff --git / { h = 1; next }
-		h && /^\+\+\+ / { f = substr($0, 7); next }
-		/^@@/ { h = 0; split($3, a, ","); n = substr(a[1], 2); next }
-		/^\+/ && !h { print f ":" n ": " substr($0, 2); n++ }')
-	# The names too: an empty or binary file has no added line to carry its path.
-	text+=$'\n'$(git diff --cached --name-only --diff-filter=d | sed 's/$/: (file name)/')
-	where="staged"
-elif [ "$1" = - ]; then
-	# A PR body: a line starting with # is a Markdown heading, not a comment.
-	text=$(grep -n '' <<<"$input" || true)
-	where="stdin"
-else
-	# git's template comments are not the message, and neither is the diff that
-	# `commit -v` appends below the scissors line — its removed lines included.
-	text=$(sed '/^# -\{24\} >8 -\{24\}$/,$d' "$1" | grep -nv '^#' || true)
-	where="the commit message"
-fi
-
-# A pattern in lower case matches either case — a name is the name however it is
-# typed. One carrying an upper-case letter is matched case-sensitively, and that
-# is the only way a two-letter abbreviation can be listed at all: lower case, it
-# collides with half of the shell (`mv`, `cp`, `ln`, `rm`), and under `grep -i`
-# such a line refused every commit that moved a file. In upper case it is still
-# a name and no longer a command. Word boundaries stay the pattern's own
-# business — `\<AB\>` also keeps `ABC` out of it.
-ci=$(printf '%s\n' "$patterns" | grep -v '[[:upper:]]' || true)
-cs=$(printf '%s\n' "$patterns" | grep    '[[:upper:]]' || true)
-hits=$({
-	[ -z "$ci" ] || printf '%s\n' "$text" | grep -iE -f <(printf '%s\n' "$ci") || true
-	[ -z "$cs" ] || printf '%s\n' "$text" | grep -E  -f <(printf '%s\n' "$cs") || true
-} | awk '!seen[$0]++')
-[ -z "$hits" ] && exit 0
-echo "forbidden-names: a name that belongs to another owner, in $where:" >&2
-printf '  %s\n' "$hits" >&2
-echo "forbidden-names: use a placeholder (<org>, <host>) — see where-repos-live.md." >&2
+dir=$(cd "$(dirname "$0")" && pwd)
+for bun in bun /opt/homebrew/bin/bun /home/linuxbrew/.linuxbrew/bin/bun \
+	"$HOME/.local/share/mise/shims/bun" "$HOME/.bun/bin/bun"; do
+	if command -v "$bun" >/dev/null 2>&1; then exec "$bun" "$dir/forbidden-names.ts" "$@"; fi
+done
+echo "forbidden-names: no bun found, refusing to commit unchecked." >&2
+echo "forbidden-names: run make apps, or skip this repo: git config hook.forbidden-names.enabled false" >&2
 exit 1
