@@ -8,6 +8,7 @@
 ^/patches$
 ^/install-plugins\.sh$
 .*\.test\.sh$
+.*\.test\.ts$
 ^/\.stow-local-ignore$
 \.git
 \.gitignore

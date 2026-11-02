@@ -43,6 +43,11 @@ the bar entry in `~/.config/omarchy/shell.json` back to `omarchy.power`, and dro
 its two lines from `install-plugins.sh`. On a fresh install, stowing the files is
 not enough — `make plugins` points the bar at `landsman.power`.
 
+The panel also lists each battery: charge, Wh, draw, status and cycles, from the
+`pack` lines the local script adds to `--shell`. #6845 does not carry that, so
+deleting the clone loses the breakdown. It takes those lines and that section of
+`Panel.qml` upstream, or a clone kept for them alone.
+
 ## System Pulse: separators and GB, patched
 
 [System Pulse](https://github.com/KabirBhattarai/omarchy-system-pulse) shows

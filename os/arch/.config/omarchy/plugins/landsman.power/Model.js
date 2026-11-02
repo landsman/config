@@ -20,6 +20,39 @@ function parseKeyValue(raw) {
   return next
 }
 
+// The script's `pack` lines, one per battery, in the order it listed them.
+function parsePacks(raw) {
+  var packs = []
+  var lines = String(raw || "").split("\n")
+  for (var i = 0; i < lines.length; i++) {
+    var f = lines[i].split("\t")
+    if (f[0] !== "pack" || !f[1]) continue
+    packs.push({
+      name: f[1],
+      percent: f[2] === "" || f[2] === undefined ? -1 : Number(f[2]),
+      energy: f[3] || "",
+      full: f[4] || "",
+      watts: f[5] || "",
+      status: f[6] || "",
+      cycles: f[7] || ""
+    })
+  }
+  return packs
+}
+
+function packFraction(pack) {
+  return pack && pack.percent > 0 ? Math.min(1, pack.percent / 100) : 0
+}
+
+function packDetail(pack) {
+  var parts = []
+  if (pack.energy && pack.full) parts.push(pack.energy + " / " + pack.full + " Wh")
+  if (Number(pack.watts) > 0) parts.push(pack.watts + " W")
+  if (pack.status) parts.push(pack.status)
+  if (pack.cycles) parts.push(pack.cycles + " cycles")
+  return parts.join(" · ")
+}
+
 function parseProfiles(raw, previousIndex) {
   var lines = String(raw || "").split("\n")
   var list = []
@@ -94,6 +127,9 @@ if (typeof module !== "undefined") {
     clampIndex: clampIndex,
     selectProfileIndex: selectProfileIndex,
     parseKeyValue: parseKeyValue,
+    parsePacks: parsePacks,
+    packFraction: packFraction,
+    packDetail: packDetail,
     parseProfiles: parseProfiles,
     profileIcon: profileIcon,
     batteryFraction: batteryFraction,
