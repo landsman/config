@@ -9,39 +9,72 @@ import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { ask, hint, warn } from "@lib/term";
 
+type NewContact = { name: string; email: string };
+
 /** The attendees as names for whisper: an address becomes the name in Contacts,
  *  or on a terminal the one confirmed by me, or else the one guessed from it. */
-export async function realNames(attendees: string[], books = addressBooks(), io = { tty: !!process.stdin.isTTY, ask, save: saveContact }): Promise<string[]> {
-	const names: string[] = [], fresh: { name: string; email: string }[] = [];
-	for (const a of new Set(attendees)) {
-		if (!a.includes("@")) {
-			names.push(a);
+export async function realNames(
+	attendees: string[],
+	books = addressBooks(),
+	terminal = { interactive: !!process.stdin.isTTY, ask, save: saveContact },
+): Promise<string[]> {
+	const names: string[] = [];
+	const newContacts: NewContact[] = [];
+
+	for (const attendee of new Set(attendees)) {
+		if (!attendee.includes("@")) {
+			names.push(attendee);
 			continue;
 		}
-		const known = contactName(a, books);
+		const email = attendee;
+
+		const known = contactName(email, books);
 		if (known) {
 			names.push(known);
 			continue;
 		}
-		const guess = guessName(a);
-		const name = io.tty ? edited(await io.ask(`Name for ${a}`, guess ? `[Enter = ${guess}, - = skip]` : "[Enter = skip]"), guess) : guess;
-		if (!name) continue;
+
+		const guess = guessName(email);
+		const name = terminal.interactive ? await askForName(email, guess, terminal.ask) : guess;
+		if (!name) {
+			continue;
+		}
 		names.push(name);
-		if (io.tty) fresh.push({ name, email: a });
+		if (terminal.interactive) {
+			newContacts.push({ name, email });
+		}
 	}
-	if (fresh.length && ["y", "yes"].includes((await io.ask(`Save ${fresh.map((f) => f.name).join(", ")} to Contacts?`, "[y/N]")).toLowerCase())) {
-		for (const f of fresh) await io.save(f.name, f.email);
-		hint(`Saved to Contacts: ${fresh.length}`);
+
+	if (newContacts.length) {
+		const who = newContacts.map((contact) => contact.name).join(", ");
+		const answer = await terminal.ask(`Save ${who} to Contacts?`, "[y/N]");
+		if (["y", "yes"].includes(answer.toLowerCase())) {
+			for (const contact of newContacts) {
+				await terminal.save(contact.name, contact.email);
+			}
+			hint(`Saved to Contacts: ${newContacts.length}`);
+		}
 	}
+
 	return [...new Set(names)];
+}
+
+async function askForName(email: string, guess: string | undefined, askQuestion: typeof ask) {
+	const choices = guess ? `[Enter = ${guess}, - = skip]` : "[Enter = skip]";
+	const answer = await askQuestion(`Name for ${email}`, choices);
+	return typedOverGuess(answer, guess);
 }
 
 /** Every Contacts database on this Mac: the local one and one per account. */
 export function addressBooks(): string[] {
-	const root = `${homedir()}/Library/Application Support/AddressBook`;
-	const file = "AddressBook-v22.abcddb";
+	const addressBookFolder = `${homedir()}/Library/Application Support/AddressBook`;
+	const databaseFile = "AddressBook-v22.abcddb";
 	try {
-		return [`${root}/${file}`, ...readdirSync(`${root}/Sources`).map((s) => `${root}/Sources/${s}/${file}`)];
+		const accounts = readdirSync(`${addressBookFolder}/Sources`);
+		return [
+			`${addressBookFolder}/${databaseFile}`,
+			...accounts.map((account) => `${addressBookFolder}/Sources/${account}/${databaseFile}`),
+		];
 	} catch {
 		return [];
 	}
@@ -50,51 +83,82 @@ export function addressBooks(): string[] {
 /** The name of the contact with this address. The schema is Apple's and undocumented,
  *  so a change to it reads as not found, and the name is asked for instead. */
 export function contactName(email: string, books: string[]): string | undefined {
-	for (const path of books) {
+	for (const bookPath of books) {
 		try {
-			const db = new Database(path, { readonly: true });
+			const database = new Database(bookPath, { readonly: true });
 			try {
-				const row = db.query<{ first: string | null; last: string | null }, [string]>(contactSql).get(email);
-				const name = [row?.first, row?.last].filter(Boolean).join(" ").trim();
-				if (name) return name;
+				const contact = database
+					.query<{ firstName: string | null; lastName: string | null }, [string]>(contactQuery)
+					.get(email);
+				const name = [contact?.firstName, contact?.lastName]
+					.filter(Boolean)
+					.join(" ")
+					.trim();
+				if (name) {
+					return name;
+				}
 			} finally {
-				db.close();
+				database.close();
 			}
-		} catch {}
+		} catch {
+			// A book that cannot be read is skipped; the next one may have the contact.
+		}
 	}
+	return undefined;
 }
 
-export const contactSql = `
-	SELECT r.ZFIRSTNAME AS first, r.ZLASTNAME AS last FROM ZABCDEMAILADDRESS e
-	JOIN ZABCDRECORD r ON r.Z_PK = e.ZOWNER WHERE lower(e.ZADDRESS) = lower(?)`;
+export const contactQuery = `
+	SELECT person.ZFIRSTNAME AS firstName, person.ZLASTNAME AS lastName
+	FROM ZABCDEMAILADDRESS email
+	JOIN ZABCDRECORD person ON person.Z_PK = email.ZOWNER
+	WHERE lower(email.ZADDRESS) = lower(?)`;
 
 /** jan.novak@, jan_novak@ or jan-novak@ → Jan Novak; a single word such as info@ is no name. */
 export function guessName(email: string): string | undefined {
-	const words = email.split("@")[0].split(/[._-]+/).filter((w) => /^\p{L}+$/u.test(w));
-	if (words.length < 2) return;
-	return words.map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+	const mailbox = email.split("@")[0];
+	const words = mailbox
+		.split(/[._-]+/)
+		.filter((word) => /^\p{L}+$/u.test(word));
+	if (words.length < 2) {
+		return undefined;
+	}
+	return words
+		.map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
+		.join(" ");
 }
 
 /** What I typed over the guess: Enter keeps it, "-" drops it, anything else replaces it. */
-export const edited = (answer: string, guess?: string) => (answer === "-" ? undefined : answer || guess);
-
-/** A new contact: the last word is the surname. Values go in as arguments, never into the script. */
-export async function saveContact(name: string, email: string, osascript = runOsascript) {
-	const [last, ...first] = name.split(" ").reverse();
-	const error = await osascript(contactScript, [first.reverse().join(" "), last, email]);
-	if (error) warn(`not saved to Contacts: ${name}, ${error}`);
+export function typedOverGuess(answer: string, guess?: string): string | undefined {
+	if (answer === "-") {
+		return undefined;
+	}
+	return answer || guess;
 }
 
-export const contactScript = `on run argv
+/** A new contact: the last word is the surname. Values go in as arguments, never into the script. */
+export async function saveContact(name: string, email: string, runScript = runAppleScript) {
+	const words = name.split(" ");
+	const lastName = words.pop() ?? "";
+	const firstName = words.join(" ");
+	const error = await runScript(saveContactScript, [firstName, lastName, email]);
+	if (error) {
+		warn(`not saved to Contacts: ${name}, ${error}`);
+	}
+}
+
+export const saveContactScript = `on run argv
 		tell application "Contacts"
-			set p to make new person with properties {first name:item 1 of argv, last name:item 2 of argv}
-			make new email at end of emails of p with properties {label:"work", value:item 3 of argv}
+			set newPerson to make new person with properties {first name:item 1 of argv, last name:item 2 of argv}
+			make new email at end of emails of newPerson with properties {label:"work", value:item 3 of argv}
 			save
 		end tell
 	end run`;
 
 /** Runs an AppleScript with its arguments; its error, or "" when it went through. */
-async function runOsascript(script: string, args: string[]): Promise<string> {
-	const r = await $`osascript -e ${script} ${args}`.nothrow().quiet();
-	return r.exitCode ? r.stderr.toString().trim() || `osascript exited ${r.exitCode}` : "";
+async function runAppleScript(script: string, scriptArguments: string[]): Promise<string> {
+	const result = await $`osascript -e ${script} ${scriptArguments}`.nothrow().quiet();
+	if (!result.exitCode) {
+		return "";
+	}
+	return result.stderr.toString().trim() || `osascript exited ${result.exitCode}`;
 }

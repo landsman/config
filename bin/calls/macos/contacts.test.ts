@@ -9,16 +9,16 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { addressBooks, contactName, contactScript, contactSql, edited, guessName, realNames, saveContact } from "@bin/calls/macos/contacts";
+import { addressBooks, contactName, saveContactScript, contactQuery, typedOverGuess, guessName, realNames, saveContact } from "@bin/calls/macos/contacts";
 
 async function book() {
-	const db = new Database(":memory:");
-	db.run("CREATE TABLE ZABCDRECORD (Z_PK INTEGER PRIMARY KEY, ZFIRSTNAME TEXT, ZLASTNAME TEXT)");
-	db.run("CREATE TABLE ZABCDEMAILADDRESS (ZOWNER INTEGER, ZADDRESS TEXT)");
-	db.run("INSERT INTO ZABCDRECORD VALUES (1, 'Jan', 'Purkrábek')");
-	db.run("INSERT INTO ZABCDEMAILADDRESS VALUES (1, 'Jan.Purkrabek@example.com')");
+	const database = new Database(":memory:");
+	database.run("CREATE TABLE ZABCDRECORD (Z_PK INTEGER PRIMARY KEY, ZFIRSTNAME TEXT, ZLASTNAME TEXT)");
+	database.run("CREATE TABLE ZABCDEMAILADDRESS (ZOWNER INTEGER, ZADDRESS TEXT)");
+	database.run("INSERT INTO ZABCDRECORD VALUES (1, 'Jan', 'Purkrábek')");
+	database.run("INSERT INTO ZABCDEMAILADDRESS VALUES (1, 'Jan.Purkrabek@example.com')");
 	const path = join(mkdtempSync(join(tmpdir(), "contacts-")), "AddressBook-v22.abcddb");
-	await Bun.write(path, db.serialize());
+	await Bun.write(path, database.serialize());
 	return path;
 }
 
@@ -37,23 +37,23 @@ test("a name is guessed from first.last, first_last or first-last, never from on
 });
 
 test("Enter keeps the guess, - drops it, anything typed replaces it", () => {
-	expect(edited("", "Jan Novak")).toBe("Jan Novak");
-	expect(edited("-", "Jan Novak")).toBeUndefined();
-	expect(edited("Jan Novák", "Jan Novak")).toBe("Jan Novák");
-	expect(edited("")).toBeUndefined();
+	expect(typedOverGuess("", "Jan Novak")).toBe("Jan Novak");
+	expect(typedOverGuess("-", "Jan Novak")).toBeUndefined();
+	expect(typedOverGuess("Jan Novák", "Jan Novak")).toBe("Jan Novák");
+	expect(typedOverGuess("")).toBeUndefined();
 });
 
 test("without a terminal, an address becomes its contact, its guess, or nothing", async () =>
 	expect(await realNames(["Michal Landsman", "jan.purkrabek@example.com", "pavel.teichman@example.com", "info@example.com"], [await book()]))
 		.toEqual(["Michal Landsman", "Jan Purkrábek", "Pavel Teichman"]));
 
-test("on a terminal each guess is offered, edited or skipped, and saved only on yes", async () => {
+test("on a terminal each guess is offered, typedOverGuess or skipped, and saved only on yes", async () => {
 	const run = async (answers: string[]) => {
 		const asked: string[] = [], saved: string[][] = [];
 		const ask = async (q: string, hint: string) => (asked.push(`${q} ${hint}`), answers.shift() ?? "");
 		const save = async (name: string, email: string) => void saved.push([name, email]);
 		const names = await realNames(["Michal Landsman", "jan.purkrabek@example.com", "pavel.teichman@example.com", "eva.mala@example.com", "info@example.com"],
-			[await book()], { tty: true, ask, save });
+			[await book()], { interactive: true, ask, save });
 		return { names, asked, saved };
 	};
 	const yes = await run(["", "Eva Malá", "", "y"]);
@@ -74,25 +74,25 @@ test("on a terminal each guess is offered, edited or skipped, and saved only on 
 test("a contact is saved with the last word as its surname, values as arguments", async () => {
 	const calls: [string, string[]][] = [];
 	await saveContact("Anna Marie Dvořák", "anna@example.com", async (script, args) => (calls.push([script, args]), ""));
-	expect(calls).toEqual([[contactScript, ["Anna Marie", "Dvořák", "anna@example.com"]]]);
+	expect(calls).toEqual([[saveContactScript, ["Anna Marie", "Dvořák", "anna@example.com"]]]);
 });
 
 test.skipIf(!Bun.which("osacompile"))("the script that saves a contact compiles", async () => {
 	const dir = mkdtempSync(join(tmpdir(), "contact-script-"));
-	await Bun.write(`${dir}/save.applescript`, contactScript);
+	await Bun.write(`${dir}/save.applescript`, saveContactScript);
 	expect((await $`osacompile -o ${dir}/save.scpt ${dir}/save.applescript`.nothrow().quiet()).exitCode).toBe(0);
 });
 
 // Only on a Mac with Contacts, and read-only: preparing a query checks every
 // table and column it names against the real schema without reading a row.
-const books = addressBooks().filter((b) => existsSync(b));
+const books = addressBooks().filter((bookPath) => existsSync(bookPath));
 test.skipIf(!books.length)("the query still fits the schema of Contacts on this Mac", () => {
 	for (const path of books) {
-		const db = new Database(path, { readonly: true });
+		const database = new Database(path, { readonly: true });
 		try {
-			expect(() => db.query(contactSql)).not.toThrow();
+			expect(() => database.query(contactQuery)).not.toThrow();
 		} finally {
-			db.close();
+			database.close();
 		}
 	}
 });
