@@ -8,7 +8,7 @@ make shell   # hook the alias loader into ~/.bashrc
 make git     # hook in .gitconfig, set email + commit signing
 make claude  # ask for the Azure DevOps org the MCP server needs (once per machine)
 make hostname  # Linux: name this install from bin/hostname/names.conf (asks for root)
-make plugins   # Omarchy: the shell plugins in os/arch/install-plugins.sh, pinned and patched
+make omarchy   # Omarchy: the shell plugins in os/arch/install-plugins.sh, pinned and patched
 
 make macos       # macOS only: menu bar, Dock, Finder, trackpad, formats, file associations
 make macos-hosts     # macOS only: install /etc/hosts from os/macos/system (asks for root)
