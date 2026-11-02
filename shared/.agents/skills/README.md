@@ -25,7 +25,6 @@ skills-index-test` fails when a skill has no row.
 | [spring-boot](be-spring-boot/SKILL.md) | Boot 3 against Boot 4, transactions, error handling |
 | [orm](be-orm/SKILL.md) | Hibernate, JPA and Doctrine: N+1, fetch plans, batches |
 | [postgres](be-postgres/SKILL.md) | tables, indexes, upserts, contended writes, live migrations |
-| [sqlite](be-sqlite/SKILL.md) | `:name` parameters, bun:sqlite strict mode, another app's database read-only, tests |
 | [liquibase](be-liquibase/SKILL.md) | changelogs and what makes a changeset immutable |
 | [caching](be-caching/SKILL.md) | when a cache is justified, keys, invalidation |
 | [kotlin](be-kotlin/SKILL.md) | own file or nested, enums, a member shadowing an import, money, what gets a unit test |
