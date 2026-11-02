@@ -4,10 +4,7 @@
 // reads as no event and no names, never as a failed transcript.
 import type { Database } from "bun:sqlite";
 import { homedir } from "node:os";
-import { readAppleDatabase } from "@bin/calls/macos/apple-database";
-import attendeesQuery from "@bin/calls/macos/queries/attendees-of-event.sql" with { type: "text" };
-import occurrencesQuery from "@bin/calls/macos/queries/occurrences.sql" with { type: "text" };
-import peopleQuery from "@bin/calls/macos/queries/people-on-event.sql" with { type: "text" };
+import { appleQuery, readAppleDatabase } from "@bin/calls/macos/apple-database";
 
 export const calendarDatabase = `${homedir()}/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`;
 
@@ -37,6 +34,8 @@ export function attendeesOfEvent(eventId: string, databasePath = calendarDatabas
 		return attendees.map((attendee) => attendee.name.trim());
 	});
 }
+
+export const attendeesQuery = appleQuery("bin/calls/macos/queries/attendees-of-event.sql");
 
 /** The events that overlap a call, the closest fit first: how much they share over how much
  *  they cover together, so a meeting beats a two-day conference around it. */
@@ -125,6 +124,8 @@ type Occurrence = {
 	occurrenceEnd: number | null;
 };
 
+export const occurrencesQuery = appleQuery("bin/calls/macos/queries/occurrences.sql");
+
 /** An occurrence's own times are mostly empty, so a one-off or a moved repeat takes its
  *  event's times, and a plain repeat its series' time of day on that day. */
 function whenItHappens(occurrence: Occurrence): { start: number; end: number } {
@@ -159,5 +160,4 @@ function peopleOnEvent(database: Database, eventRow: number) {
 
 type Participant = { name: string; address: string | null; isMe: number };
 
-// Exported for the test that checks them against the real schema.
-export { attendeesQuery, occurrencesQuery, peopleQuery };
+export const peopleQuery = appleQuery("bin/calls/macos/queries/people-on-event.sql");

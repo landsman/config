@@ -3,6 +3,8 @@
 // read, so nothing here may ever change a byte in them. Contacts are added
 // through the Contacts app instead (contacts.ts).
 import { Database } from "bun:sqlite";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 /** Opens the database read-only for one read, and answers `fallback` when it cannot be read:
  *  Apple's schema is undocumented, so a change to it reads as nothing, never as a failure. */
@@ -24,6 +26,17 @@ export function readAppleDatabase<Result>(
 		throwIfOurMistake(error);
 		return fallback;
 	}
+}
+
+/** A query read once when the module loads, by its path from the root of the repo:
+ *  the path ⌘P, a terminal and a JetBrains click all take as it is written. */
+export function appleQuery(pathInRepo: string): string {
+	return readFileSync(repoPath(pathInRepo), "utf8");
+}
+
+/** A file in this repo, by its path from the root, wherever the script is run from. */
+export function repoPath(pathInRepo: string): string {
+	return join(import.meta.dir, "../../..", pathInRepo);
 }
 
 /** A query not given a value it names, or given the wrong number of `?` values, is a bug in

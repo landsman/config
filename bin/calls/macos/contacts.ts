@@ -6,9 +6,8 @@
 import { $ } from "bun";
 import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { readAppleDatabase } from "@bin/calls/macos/apple-database";
-import contactQuery from "@bin/calls/macos/queries/contact-by-email.sql" with { type: "text" };
-import saveContactScript from "@bin/calls/macos/save-contact.applescript" with { type: "file" };
+import { join } from "node:path";
+import { appleQuery, readAppleDatabase, repoPath } from "@bin/calls/macos/apple-database";
 import { ask, hint, warn } from "@lib/term";
 
 type NewContact = { name: string; email: string };
@@ -102,6 +101,8 @@ export function contactName(email: string, books: string[]): string | undefined 
 	return undefined;
 }
 
+export const contactQuery = appleQuery("bin/calls/macos/queries/contact-by-email.sql");
+
 /** jan.novak@, jan_novak@ or jan-novak@ → Jan Novak; a single word such as info@ is no name. */
 export function guessName(email: string): string | undefined {
 	const mailbox = email.split("@")[0];
@@ -131,6 +132,9 @@ export async function saveContact(name: string, email: string, runScript = runAp
 	}
 }
 
+/** Saves a person with an email to Contacts; run with first name, last name and email as arguments. */
+export const saveContactScript = repoPath("bin/calls/macos/save-contact.applescript");
+
 /** Runs an AppleScript file with its arguments; its error, or "" when it went through. */
 async function runAppleScript(scriptFile: string, scriptArguments: string[]): Promise<string> {
 	const result = await $`osascript ${scriptFile} ${scriptArguments}`.nothrow().quiet();
@@ -139,6 +143,3 @@ async function runAppleScript(scriptFile: string, scriptArguments: string[]): Pr
 	}
 	return result.stderr.toString().trim() || `osascript exited ${result.exitCode}`;
 }
-
-// Exported for the tests: the query against the real schema, the script compiled.
-export { contactQuery, saveContactScript };
