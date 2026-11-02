@@ -19,12 +19,18 @@ const CODE = /```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]*`/g;
 
 /** What the assistant wrote since the last prompt. */
 const turnText = (transcript: string) =>
-	lastTurn(transcript).filter((e) => e.type === "assistant").flatMap(content)
-		.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n");
+	lastTurn(transcript)
+		.filter((e) => e.type === "assistant")
+		.flatMap(content)
+		.filter((b) => b.type === "text")
+		.map((b) => b.text ?? "")
+		.join("\n");
 
 export function bare(text: string): string[] {
 	const linked = new Set([...text.matchAll(LINKED)].map((m) => m[1]));
-	const named = [...text.replace(CODE, "").matchAll(REF)].filter((m) => !linked.has(m[1])).map((m) => m[0]);
+	const named = [...text.replace(CODE, "").matchAll(REF)]
+		.filter((m) => !linked.has(m[1]))
+		.map((m) => m[0]);
 	return [...new Set(named)];
 }
 
@@ -33,11 +39,14 @@ if (import.meta.main) {
 	const path = input?.transcript_path;
 	if (path && !input.stop_hook_active && statSync(path, { throwIfNoEntry: false })?.isFile()) {
 		const missing = bare(turnText(path));
-		if (missing.length) answer({
-			decision: "block",
-			reason: "The reply names a PR, issue or CI run by number without its full URL, and a number in the terminal "
-				+ "is a lookup handed back to the user (rules/linking-work.md). Add the URL beside each, or drop the "
-				+ "number. A Forgejo run's URL carries its id, not the #number the API lists:\n" + missing.join("\n"),
-		});
+		if (missing.length)
+			answer({
+				decision: "block",
+				reason:
+					"The reply names a PR, issue or CI run by number without its full URL, and a number in the terminal " +
+					"is a lookup handed back to the user (rules/linking-work.md). Add the URL beside each, or drop the " +
+					"number. A Forgejo run's URL carries its id, not the #number the API lists:\n" +
+					missing.join("\n"),
+			});
 	}
 }
