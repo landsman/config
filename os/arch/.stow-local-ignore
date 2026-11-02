@@ -7,6 +7,7 @@
 ^/README.*
 ^/patches$
 ^/install-plugins\.sh$
+^/check\.sh$
 .*\.test\.sh$
 .*\.test\.ts$
 ^/\.stow-local-ignore$

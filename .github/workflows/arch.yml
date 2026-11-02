@@ -1,0 +1,31 @@
+name: arch
+
+# Its own workflow so it can be filtered by path; a job-level filter does not
+# exist in Actions. What it adds to ci.yml is Arch itself: its packages, and the
+# Qt that parses the shell plugin's QML, which Ubuntu's runner does not have.
+on:
+  pull_request:
+    paths:
+      - os/arch/**
+      - mise.toml
+      - .github/workflows/arch.yml
+      - '!**.md'
+  workflow_dispatch:
+
+# A new push supersedes the run still checking the old commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arch:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      # Before checkout: without git it downloads a tarball, and git ls-files finds nothing.
+      - run: pacman -Syu --noconfirm --needed git jq qt6-declarative
+      - uses: actions/checkout@v7
+      # The container runs as root over a workspace the runner owns.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: jdx/mise-action@v5
+      - run: bash os/arch/check.sh

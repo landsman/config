@@ -75,7 +75,7 @@ qa-deps:
 	@# stow only: zsh is the Mac's system shell and nothing on Linux pulls it in,
 	@# `make apps` included — there is no `brew "zsh"` in the Brewfile and there
 	@# is no reason to add one. `lint` skips the one file that needs it when it is
-	@# missing, and the macOS leg of the matrix is where that file gets parsed.
+	@# missing, and macos.yml is where that file gets parsed.
 	@command -v stow >/dev/null && exit 0; \
 	if [ -z "$$CI" ]; then echo "qa needs stow - run: make apps"; exit 1; \
 	elif command -v brew >/dev/null; then brew install stow; \
@@ -116,10 +116,10 @@ lint: ## parse every shell file without running it
 	@# Skipped where there is no zsh, which is every Linux box here — the file is
 	@# macOS-only by nature, and `make lint` that cannot be run on the machine in
 	@# front of me is a check I stop running. It is not thereby unchecked: CI's
-	@# matrix has a macOS leg, zsh is the system shell there, and fail-fast is
-	@# off, so a syntax error still turns a pull request red.
+	@# macos.yml runs this too and zsh is the system shell there, so a syntax
+	@# error in it still turns a pull request red.
 	@if command -v zsh >/dev/null; then echo "== os/macos/.zshrc"; zsh -n os/macos/.zshrc; \
-	else echo "== os/macos/.zshrc  SKIPPED (no zsh here - CI's macOS leg parses it)"; fi
+	else echo "== os/macos/.zshrc  SKIPPED (no zsh here - CI's macOS job parses it)"; fi
 	@# PowerShell the same way, with its own parser and skipped the same way:
 	@# Windows never runs make, but both CI runners ship pwsh, so a broken
 	@# os/windows/apply.ps1 still turns a pull request red.
