@@ -74,7 +74,8 @@ of the brain — the one list, which the hook below reads too.
 moment the [brain](brain.md) rule already says to look there.
 
 **A git hook checks the diff and the commit message**:
-`bin/git/forbidden-names.sh`, wired in `.gitconfig` for every repo. It reads that
+`bin/git/forbidden-names.ts`, wired in `.gitconfig` for every repo through the
+`.sh` of the same name, whose only job is to find bun. It reads that
 same file, one `<owner> <regex>` per line, so the list never enters this repo,
 and lets each owner's names through inside that owner's own repos. A name that
 belongs to more than one folder — a client whose product sits under another
