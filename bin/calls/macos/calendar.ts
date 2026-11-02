@@ -10,7 +10,14 @@ export const calendarDatabase = `${homedir()}/Library/Group Containers/group.com
 /** A call's event as it was when the call ended: saved beside the recording, so the
  *  transcript still knows it once the event moves or is deleted. people leaves me out.
  *  The field names are what .event.json files already hold. */
-export type CallEvent = { uuid: string; title: string; start: string; end: string; me: string | null; people: string[] };
+export type CallEvent = {
+	uuid: string;
+	title: string;
+	start: string;
+	end: string;
+	me: string | null;
+	people: string[];
+};
 
 /** The event's id in a link dragged out of Calendar: ical://occurrence/<start>/<id>?method=show. */
 export function eventIdInLink(link: string): string | undefined {
@@ -20,9 +27,7 @@ export function eventIdInLink(link: string): string | undefined {
 /** The names on an event, bare addresses included. */
 export function attendeesOfEvent(eventId: string, databasePath = calendarDatabase): string[] {
 	return readCalendar(databasePath, [], (database) => {
-		const attendees = database
-			.query<{ name: string }, [string]>(attendeesQuery)
-			.all(eventId);
+		const attendees = database.query<{ name: string }, [string]>(attendeesQuery).all(eventId);
 		return attendees.map((attendee) => attendee.name.trim());
 	});
 }
@@ -37,7 +42,11 @@ export const attendeesQuery = `
 
 /** The events that overlap a call, the closest fit first: how much they share over how much
  *  they cover together, so a meeting beats a two-day conference around it. */
-export function eventsDuring(callStart: Date, callEnd: Date, databasePath = calendarDatabase): CallEvent[] {
+export function eventsDuring(
+	callStart: Date,
+	callEnd: Date,
+	databasePath = calendarDatabase,
+): CallEvent[] {
 	return readCalendar(databasePath, [], (database) => {
 		const from = toCalendarSeconds(callStart);
 		const to = toCalendarSeconds(callEnd);
@@ -54,7 +63,11 @@ export function eventsDuring(callStart: Date, callEnd: Date, databasePath = cale
 }
 
 /** The last events that started before now, the newest first, for a recording that saved none. */
-export function recentEvents(now = new Date(), count = 10, databasePath = calendarDatabase): CallEvent[] {
+export function recentEvents(
+	now = new Date(),
+	count = 10,
+	databasePath = calendarDatabase,
+): CallEvent[] {
 	return readCalendar(databasePath, [], (database) => {
 		const until = toCalendarSeconds(now);
 		// ponytail: a month back; ten meetings older than that are not worth a list
@@ -84,7 +97,8 @@ function readCalendar<T>(databasePath: string, fallback: T, read: (database: Dat
 const calendarEpoch = 978_307_200;
 const secondsInDay = 86_400;
 const toCalendarSeconds = (date: Date) => date.getTime() / 1000 - calendarEpoch;
-const toIsoDate = (calendarSeconds: number) => new Date((calendarSeconds + calendarEpoch) * 1000).toISOString();
+const toIsoDate = (calendarSeconds: number) =>
+	new Date((calendarSeconds + calendarEpoch) * 1000).toISOString();
 
 /** One timed event on one day, at the time it really happens. */
 type Meeting = { occurrence: Occurrence; start: number; end: number };
@@ -92,9 +106,7 @@ type Meeting = { occurrence: Occurrence; start: number; end: number };
 /** Every timed event on the days between `from` and `to`, each once. */
 function meetingsBetween(database: Database, from: number, to: number): Meeting[] {
 	const seen = new Set<string>();
-	const occurrences = database
-		.query<Occurrence, [number, number]>(occurrencesQuery)
-		.all(from, to);
+	const occurrences = database.query<Occurrence, [number, number]>(occurrencesQuery).all(from, to);
 	return occurrences
 		.map((occurrence) => ({ occurrence, ...whenItHappens(occurrence) }))
 		.filter((meeting) => {
@@ -146,16 +158,15 @@ function whenItHappens(occurrence: Occurrence): { start: number; end: number } {
 
 	// ponytail: this Mac's time zone; a series set in another one lands off by the difference
 	const firstTime = new Date((occurrence.eventStart + calendarEpoch) * 1000);
-	const timeOfDay = firstTime.getHours() * 3600 + firstTime.getMinutes() * 60 + firstTime.getSeconds();
+	const timeOfDay =
+		firstTime.getHours() * 3600 + firstTime.getMinutes() * 60 + firstTime.getSeconds();
 	const start = occurrence.day + timeOfDay;
 	return { start, end: start + occurrence.eventEnd - occurrence.eventStart };
 }
 
 /** Me, and everyone else on the event, the organizer included unless that is me. */
 function peopleOnEvent(database: Database, eventRow: number) {
-	const participants = database
-		.query<Participant, [number]>(peopleQuery)
-		.all(eventRow);
+	const participants = database.query<Participant, [number]>(peopleQuery).all(eventRow);
 	const me = participants.find((participant) => participant.isMe);
 	// The organizer can be me a second time, under the same address.
 	const isMeAgain = (participant: Participant) => {

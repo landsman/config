@@ -15,24 +15,38 @@ function skill(dir: string, frontmatter: string) {
 	mkdirSync(dir, { recursive: true });
 	writeFileSync(join(dir, "SKILL.md"), `---\n${frontmatter}\n---\n`);
 }
-skill(join(home, ".claude/skills/git"), "name: commit-messages\ntrigger-keywords: commit*, pull request");
-skill(join(home, ".claude/skills/pg"), "name: postgres\ntrigger-keywords: postgres, index*, rešerš*");
+skill(
+	join(home, ".claude/skills/git"),
+	"name: commit-messages\ntrigger-keywords: commit*, pull request",
+);
+skill(
+	join(home, ".claude/skills/pg"),
+	"name: postgres\ntrigger-keywords: postgres, index*, rešerš*",
+);
 skill(join(home, ".claude/skills/quiet"), "name: quiet\ndescription: no keywords");
 skill(join(home, ".claude/skills/forge"), "name: forgejo\ntrigger-keywords: git.insuit.cz");
 skill(join(home, "project/.claude/skills/local"), "name: local\ntrigger-keywords: deploy");
 
 /** The skills the hook reminds of for this prompt. */
 async function reminded(prompt: string, more: { transcript_path?: string; project?: string } = {}) {
-	const answer = await runHook(hook, { prompt, transcript_path: more.transcript_path },
-		{ HOME: home, CLAUDE_PROJECT_DIR: more.project });
-	return [...(answer?.hookSpecificOutput.additionalContext ?? "").matchAll(/matches the (\S+) skill/g)].map((m) => m[1]);
+	const answer = await runHook(
+		hook,
+		{ prompt, transcript_path: more.transcript_path },
+		{ HOME: home, CLAUDE_PROJECT_DIR: more.project },
+	);
+	return [
+		...(answer?.hookSpecificOutput.additionalContext ?? "").matchAll(/matches the (\S+) skill/g),
+	].map((m) => m[1]);
 }
 
-test("a whole word, in any case", async () => expect(await reminded("why is Postgres slow")).toEqual(["postgres"]));
+test("a whole word, in any case", async () =>
+	expect(await reminded("why is Postgres slow")).toEqual(["postgres"]));
 test("a prefix keyword catches an inflected form", async () =>
 	expect(await reminded("napiš zprávu ke commitu")).toEqual(["commit-messages"]));
-test("a multi-word keyword", async () => expect(await reminded("open a pull request")).toEqual(["commit-messages"]));
-test("no partial word without *", async () => expect(await reminded("postgresql is fine")).toEqual([]));
+test("a multi-word keyword", async () =>
+	expect(await reminded("open a pull request")).toEqual(["commit-messages"]));
+test("no partial word without *", async () =>
+	expect(await reminded("postgresql is fine")).toEqual([]));
 test("no match inside a word", async () => expect(await reminded("the recommit flag")).toEqual([]));
 test("a keyword with diacritics matches a prompt without", async () =>
 	expect(await reminded("udelej reserse")).toEqual(["postgres"]));
@@ -42,8 +56,13 @@ test("an unrelated prompt is silent", async () => expect(await reminded("hello")
 
 test("a skill loaded this session is not repeated", async () => {
 	const transcript = join(home, "t.jsonl");
-	writeFileSync(transcript, `${JSON.stringify({ type: "assistant", message: { content: [
-		{ type: "tool_use", name: "Skill", input: { skill: "postgres" } }] } })}\n`);
+	writeFileSync(
+		transcript,
+		`${JSON.stringify({
+			type: "assistant",
+			message: { content: [{ type: "tool_use", name: "Skill", input: { skill: "postgres" } }] },
+		})}\n`,
+	);
 	expect(await reminded("add an index", { transcript_path: transcript })).toEqual([]);
 });
 

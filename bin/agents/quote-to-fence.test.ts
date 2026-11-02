@@ -18,21 +18,28 @@ const batch = (message: string, index: number, final: boolean, delta: string) =>
 
 /** What the user sees of a message sent in these batches, all started at once. */
 async function shown(message: string, ...batches: string[]) {
-	const answers = await Promise.all(batches.map((delta, i) => batch(message, i, i === batches.length - 1, delta)));
+	const answers = await Promise.all(
+		batches.map((delta, i) => batch(message, i, i === batches.length - 1, delta)),
+	);
 	return answers.map((a, i) => a?.hookSpecificOutput.displayContent ?? batches[i]).join("");
 }
 
 test("a quote becomes a fenced block", async () =>
-	expect(await shown("m1", "Hi\n> Dobrý den,\n> [odkaz](https://x.cz)\nend"))
-		.toBe("Hi\n```markdown\nDobrý den,\n[odkaz](https://x.cz)\n```\nend"));
+	expect(await shown("m1", "Hi\n> Dobrý den,\n> [odkaz](https://x.cz)\nend")).toBe(
+		"Hi\n```markdown\nDobrý den,\n[odkaz](https://x.cz)\n```\nend",
+	));
 test("a quote run over three batches stays one block", async () =>
 	expect(await shown("m2", "> a\n", "> b\n", "> c\nend")).toBe("```markdown\na\nb\nc\n```\nend"));
 test("a run still open at the end is closed", async () =>
 	expect(await shown("m3", "x\n", "> a")).toBe("x\n```markdown\na\n```\n"));
 test("a > inside the message's own fence is content", async () =>
-	expect(await shown("m4", "```bash\n", "> inside\n", "```\n> q\n")).toBe("```bash\n> inside\n```\n```markdown\nq\n```\n"));
+	expect(await shown("m4", "```bash\n", "> inside\n", "```\n> q\n")).toBe(
+		"```bash\n> inside\n```\n```markdown\nq\n```\n",
+	));
 test("a four-backtick fence holds a three-backtick one", async () =>
-	expect(await shown("m5", "````md\n```\n", "> nested\n```\n````\n")).toBe("````md\n```\n> nested\n```\n````\n"));
+	expect(await shown("m5", "````md\n```\n", "> nested\n```\n````\n")).toBe(
+		"````md\n```\n> nested\n```\n````\n",
+	));
 test("a quote holding backticks gets a longer fence", async () =>
 	expect(await shown("m6", "> run ```make```")).toBe("````markdown\nrun ```make```\n````\n"));
 test("a nested list quote loses its marker", async () =>
@@ -47,4 +54,5 @@ test("a lost batch passes the rest through, once, within the wait", async () => 
 	expect(await batch("m9", 4, true, "> later\n")).toBeUndefined();
 }, 15_000);
 
-test("no state is left behind", () => expect(readdirSync(join(dir, "claude-quote-to-fence"))).toEqual([]));
+test("no state is left behind", () =>
+	expect(readdirSync(join(dir, "claude-quote-to-fence"))).toEqual([]));

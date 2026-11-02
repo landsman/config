@@ -23,12 +23,24 @@ test("waitFor gives up after its seconds, checking once more at the end", async 
 
 test("retry returns the first success", async () => {
 	let tries = 0;
-	expect(await retry(async () => { if (++tries < 2) throw new Error("not yet"); return "ok"; }, 5)).toBe("ok");
+	expect(
+		await retry(async () => {
+			if (++tries < 2) throw new Error("not yet");
+			return "ok";
+		}, 5),
+	).toBe("ok");
 });
 
 test("retry throws the error it may not retry, at once", async () => {
 	let tries = 0;
-	const fail = retry(async () => { tries++; throw new Error("fatal"); }, 5, (e) => e.message !== "fatal");
+	const fail = retry(
+		async () => {
+			tries++;
+			throw new Error("fatal");
+		},
+		5,
+		(e) => e.message !== "fatal",
+	);
 	expect(fail).rejects.toThrow("fatal");
 	await fail.catch(() => {});
 	expect(tries).toBe(1);

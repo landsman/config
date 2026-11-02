@@ -9,11 +9,22 @@ import { expect, test } from "bun:test";
 import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { addressBooks, contactName, saveContactScript, contactQuery, typedOverGuess, guessName, realNames, saveContact } from "@bin/calls/macos/contacts";
+import {
+	addressBooks,
+	contactName,
+	saveContactScript,
+	contactQuery,
+	typedOverGuess,
+	guessName,
+	realNames,
+	saveContact,
+} from "@bin/calls/macos/contacts";
 
 async function book() {
 	const database = new Database(":memory:");
-	database.run("CREATE TABLE ZABCDRECORD (Z_PK INTEGER PRIMARY KEY, ZFIRSTNAME TEXT, ZLASTNAME TEXT)");
+	database.run(
+		"CREATE TABLE ZABCDRECORD (Z_PK INTEGER PRIMARY KEY, ZFIRSTNAME TEXT, ZLASTNAME TEXT)",
+	);
 	database.run("CREATE TABLE ZABCDEMAILADDRESS (ZOWNER INTEGER, ZADDRESS TEXT)");
 	database.run("INSERT INTO ZABCDRECORD VALUES (1, 'Jan', 'Purkrábek')");
 	database.run("INSERT INTO ZABCDEMAILADDRESS VALUES (1, 'Jan.Purkrabek@example.com')");
@@ -44,16 +55,38 @@ test("Enter keeps the guess, - drops it, anything typed replaces it", () => {
 });
 
 test("without a terminal, an address becomes its contact, its guess, or nothing", async () =>
-	expect(await realNames(["Michal Landsman", "jan.purkrabek@example.com", "pavel.teichman@example.com", "info@example.com"], [await book()]))
-		.toEqual(["Michal Landsman", "Jan Purkrábek", "Pavel Teichman"]));
+	expect(
+		await realNames(
+			[
+				"Michal Landsman",
+				"jan.purkrabek@example.com",
+				"pavel.teichman@example.com",
+				"info@example.com",
+			],
+			[await book()],
+		),
+	).toEqual(["Michal Landsman", "Jan Purkrábek", "Pavel Teichman"]));
 
 test("on a terminal each guess is offered, typedOverGuess or skipped, and saved only on yes", async () => {
 	const run = async (answers: string[]) => {
-		const asked: string[] = [], saved: string[][] = [];
-		const ask = async (q: string, hint: string) => (asked.push(`${q} ${hint}`), answers.shift() ?? "");
+		const asked: string[] = [],
+			saved: string[][] = [];
+		const ask = async (q: string, hint: string) => (
+			asked.push(`${q} ${hint}`),
+			answers.shift() ?? ""
+		);
 		const save = async (name: string, email: string) => void saved.push([name, email]);
-		const names = await realNames(["Michal Landsman", "jan.purkrabek@example.com", "pavel.teichman@example.com", "eva.mala@example.com", "info@example.com"],
-			[await book()], { interactive: true, ask, save });
+		const names = await realNames(
+			[
+				"Michal Landsman",
+				"jan.purkrabek@example.com",
+				"pavel.teichman@example.com",
+				"eva.mala@example.com",
+				"info@example.com",
+			],
+			[await book()],
+			{ interactive: true, ask, save },
+		);
 		return { names, asked, saved };
 	};
 	const yes = await run(["", "Eva Malá", "", "y"]);
@@ -64,7 +97,10 @@ test("on a terminal each guess is offered, typedOverGuess or skipped, and saved 
 		"Save Pavel Teichman, Eva Malá to Contacts? [y/N]",
 	]);
 	expect(yes.names).toEqual(["Michal Landsman", "Jan Purkrábek", "Pavel Teichman", "Eva Malá"]);
-	expect(yes.saved).toEqual([["Pavel Teichman", "pavel.teichman@example.com"], ["Eva Malá", "eva.mala@example.com"]]);
+	expect(yes.saved).toEqual([
+		["Pavel Teichman", "pavel.teichman@example.com"],
+		["Eva Malá", "eva.mala@example.com"],
+	]);
 
 	const no = await run(["-", "", "", ""]);
 	expect(no.names).toEqual(["Michal Landsman", "Jan Purkrábek", "Eva Mala"]);
@@ -73,14 +109,21 @@ test("on a terminal each guess is offered, typedOverGuess or skipped, and saved 
 
 test("a contact is saved with the last word as its surname, values as arguments", async () => {
 	const calls: [string, string[]][] = [];
-	await saveContact("Anna Marie Dvořák", "anna@example.com", async (script, args) => (calls.push([script, args]), ""));
+	await saveContact(
+		"Anna Marie Dvořák",
+		"anna@example.com",
+		async (script, args) => (calls.push([script, args]), ""),
+	);
 	expect(calls).toEqual([[saveContactScript, ["Anna Marie", "Dvořák", "anna@example.com"]]]);
 });
 
 test.skipIf(!Bun.which("osacompile"))("the script that saves a contact compiles", async () => {
 	const folder = mkdtempSync(join(tmpdir(), "contact-script-"));
 	await Bun.write(`${folder}/save.applescript`, saveContactScript);
-	expect((await $`osacompile -o ${folder}/save.scpt ${folder}/save.applescript`.nothrow().quiet()).exitCode).toBe(0);
+	expect(
+		(await $`osacompile -o ${folder}/save.scpt ${folder}/save.applescript`.nothrow().quiet())
+			.exitCode,
+	).toBe(0);
 });
 
 // Only on a Mac with Contacts, and read-only: preparing a query checks every

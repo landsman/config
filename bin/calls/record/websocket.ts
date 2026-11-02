@@ -45,7 +45,10 @@ type WaitingRequest = {
  *  rejects with "<type> failed (<code>): <comment>". */
 export function connect(): Promise<{ call: Call; close: () => void }> {
 	const settings = JSON.parse(readFileSync(settingsFile, "utf8"));
-	const socket = new WebSocket(`ws://127.0.0.1:${settings.server_port ?? defaultPort}`, "obswebsocket.json");
+	const socket = new WebSocket(
+		`ws://127.0.0.1:${settings.server_port ?? defaultPort}`,
+		"obswebsocket.json",
+	);
 	const send = (opCode: OpCode, data: object) => {
 		socket.send(JSON.stringify({ op: opCode, d: data }));
 	};
@@ -96,7 +99,9 @@ export function connect(): Promise<{ call: Call; close: () => void }> {
 					if (status.result) {
 						request.answer(data.responseData ?? {});
 					} else {
-						request.fail(new Error(`${request.requestType} failed (${status.code}): ${status.comment ?? ""}`));
+						request.fail(
+							new Error(`${request.requestType} failed (${status.code}): ${status.comment ?? ""}`),
+						);
 					}
 				})
 				// The op code comes from OBS: events and anything newer in the protocol are not asked for.

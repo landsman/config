@@ -90,10 +90,7 @@ export function contactName(email: string, books: string[]): string | undefined 
 				const contact = database
 					.query<{ firstName: string | null; lastName: string | null }, [string]>(contactQuery)
 					.get(email);
-				const name = [contact?.firstName, contact?.lastName]
-					.filter(Boolean)
-					.join(" ")
-					.trim();
+				const name = [contact?.firstName, contact?.lastName].filter(Boolean).join(" ").trim();
 				if (name) {
 					return name;
 				}
@@ -116,15 +113,11 @@ export const contactQuery = `
 /** jan.novak@, jan_novak@ or jan-novak@ → Jan Novak; a single word such as info@ is no name. */
 export function guessName(email: string): string | undefined {
 	const mailbox = email.split("@")[0];
-	const words = mailbox
-		.split(/[._-]+/)
-		.filter((word) => /^\p{L}+$/u.test(word));
+	const words = mailbox.split(/[._-]+/).filter((word) => /^\p{L}+$/u.test(word));
 	if (words.length < 2) {
 		return undefined;
 	}
-	return words
-		.map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
-		.join(" ");
+	return words.map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase()).join(" ");
 }
 
 /** What I typed over the guess: Enter keeps it, "-" drops it, anything else replaces it. */

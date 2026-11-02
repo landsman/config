@@ -3,8 +3,18 @@
 // here parses all of it: only the lines that can matter are decoded.
 import { readFileSync } from "node:fs";
 
-export type Block = { type?: string; text?: string; name?: string; input?: Record<string, unknown> };
-export type Entry = { type?: string; isSidechain?: boolean; isMeta?: boolean; message?: { content?: string | Block[] } };
+export type Block = {
+	type?: string;
+	text?: string;
+	name?: string;
+	input?: Record<string, unknown>;
+};
+export type Entry = {
+	type?: string;
+	isSidechain?: boolean;
+	isMeta?: boolean;
+	message?: { content?: string | Block[] };
+};
 
 const NEWLINE = 10;
 
@@ -26,7 +36,10 @@ export function lastTurn(path: string | undefined): Entry[] {
 
 /** The input of every call the model made to `tool` in the session. */
 export const calls = (path: string | undefined, tool: string) =>
-	entries(path, `"${tool}"`).flatMap(content).filter((b) => b.name === tool).map((b) => b.input ?? {});
+	entries(path, `"${tool}"`)
+		.flatMap(content)
+		.filter((b) => b.name === tool)
+		.map((b) => b.input ?? {});
 
 /** An entry's content as blocks; a plain string is one text block. */
 export function content(entry: Entry): Block[] {
@@ -36,14 +49,18 @@ export function content(entry: Entry): Block[] {
 
 /** A prompt the user typed, not a tool result or a reminder the harness injected. */
 export const isPrompt = (entry: Entry) =>
-	entry.type === "user" && !entry.isMeta && content(entry).some((b) => b.type === "text" || b.type === "image");
+	entry.type === "user" &&
+	!entry.isMeta &&
+	content(entry).some((b) => b.type === "text" || b.type === "image");
 
 /** A user or assistant entry of the main conversation; not a subagent's
  *  (sidechain), not the harness's bookkeeping, not a broken line. */
 function mainEntry(line: string): Entry | undefined {
 	try {
 		const entry: Entry = JSON.parse(line);
-		return (entry.type === "user" || entry.type === "assistant") && !entry.isSidechain ? entry : undefined;
+		return (entry.type === "user" || entry.type === "assistant") && !entry.isSidechain
+			? entry
+			: undefined;
 	} catch {
 		return undefined;
 	}
@@ -62,7 +79,7 @@ function read(path: string | undefined): Buffer | undefined {
 function linesWith(path: string | undefined, marker: string): string[] {
 	const bytes = read(path);
 	const lines: string[] = [];
-	for (let at = bytes?.indexOf(marker) ?? -1; bytes && at !== -1; ) {
+	for (let at = bytes?.indexOf(marker) ?? -1; bytes && at !== -1;) {
 		const start = bytes.lastIndexOf(NEWLINE, at) + 1;
 		let end = bytes.indexOf(NEWLINE, at);
 		if (end === -1) end = bytes.length;
@@ -75,7 +92,7 @@ function linesWith(path: string | undefined, marker: string): string[] {
 /** The lines from the last one back, decoded only as far as the caller reads. */
 function* linesFromEnd(path: string | undefined): Generator<string> {
 	const bytes = read(path);
-	for (let end = bytes?.length ?? 0; bytes && end > 0; ) {
+	for (let end = bytes?.length ?? 0; bytes && end > 0;) {
 		const start = bytes.lastIndexOf(NEWLINE, end - 1) + 1;
 		yield bytes.toString("utf8", start, end);
 		end = start - 1;

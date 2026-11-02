@@ -24,9 +24,7 @@ export function attendees(calendarFile: string): string[] {
 
 /** A long line goes on in the next one, which starts with a space or a tab. */
 function unfoldedLines(calendarFile: string): string[] {
-	return calendarFile
-		.replace(/\r?\n[ \t]/g, "")
-		.split(/\r?\n/);
+	return calendarFile.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
 }
 
 type Person = { name: string; address?: string };

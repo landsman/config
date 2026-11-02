@@ -7,7 +7,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { callEvent, draggedPath, eventFilePath, eventFromText, Origin, typedNames } from "@bin/calls/calendar/event";
+import {
+	callEvent,
+	draggedPath,
+	eventFilePath,
+	eventFromText,
+	Origin,
+	typedNames,
+} from "@bin/calls/calendar/event";
 
 // bun test runs without a terminal, so callEvent asks nothing and takes ICS and PEOPLE.
 afterEach(() => {
@@ -32,27 +39,44 @@ const savedEventJson = {
 
 describe("expected use", () => {
 	test("a dragged-in path loses its quotes and escapes", () => {
-		expect(draggedPath("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe("/Users/me/Downloads/Porada Q4.ics");
+		expect(draggedPath("/Users/me/Downloads/Porada\\ Q4.ics ")).toBe(
+			"/Users/me/Downloads/Porada Q4.ics",
+		);
 		expect(draggedPath("'/Users/me/a b.ics'")).toBe("/Users/me/a b.ics");
 		expect(draggedPath("~/a.ics")).toBe(`${homedir()}/a.ics`);
 	});
 
 	test("names typed by hand are split on commas or semicolons, spaces collapsed, without blanks or repeats", () => {
-		expect(typedNames(" Jana Nováková, Petr Dvořák,, Jana  Nováková ")).toEqual(["Jana Nováková", "Petr Dvořák"]);
-		expect(typedNames("Jana Nováková; Petr\tDvořák ;Tomáš Novák")).toEqual(["Jana Nováková", "Petr Dvořák", "Tomáš Novák"]);
+		expect(typedNames(" Jana Nováková, Petr Dvořák,, Jana  Nováková ")).toEqual([
+			"Jana Nováková",
+			"Petr Dvořák",
+		]);
+		expect(typedNames("Jana Nováková; Petr\tDvořák ;Tomáš Novák")).toEqual([
+			"Jana Nováková",
+			"Petr Dvořák",
+			"Tomáš Novák",
+		]);
 		expect(typedNames("")).toEqual([]);
 	});
 
 	test("what is dragged in is a link to an event, an .ics there, one that is not, or nothing", () => {
 		const uuid = "55F9EE9B-1377-4F01-A442-79E9AC71B5BC";
-		expect(eventFromText(`ical://occurrence/20261020T110000Z/${uuid}\\?method=show`)).toEqual({ kind: Origin.Dragged, eventId: uuid });
+		expect(eventFromText(`ical://occurrence/20261020T110000Z/${uuid}\\?method=show`)).toEqual({
+			kind: Origin.Dragged,
+			eventId: uuid,
+		});
 		expect(eventFromText(import.meta.path)).toEqual({ kind: Origin.Ics, path: import.meta.path });
-		expect(eventFromText("/nowhere/a\\ b.ics")).toEqual({ kind: Origin.Missing, path: "/nowhere/a b.ics" });
+		expect(eventFromText("/nowhere/a\\ b.ics")).toEqual({
+			kind: Origin.Missing,
+			path: "/nowhere/a b.ics",
+		});
 		expect(eventFromText("  ")).toEqual({ kind: Origin.None });
 	});
 
 	test("the saved event sits beside the recording, whatever dots the folders have", () => {
-		expect(eventFilePath("/Users/me/Recordings/20261102-sync/20261102-sync.m4a")).toBe("/Users/me/Recordings/20261102-sync/20261102-sync.event.json");
+		expect(eventFilePath("/Users/me/Recordings/20261102-sync/20261102-sync.m4a")).toBe(
+			"/Users/me/Recordings/20261102-sync/20261102-sync.event.json",
+		);
 		expect(eventFilePath("/Users/me/Rec.2026/call")).toBe("/Users/me/Rec.2026/call.event.json");
 	});
 
@@ -80,7 +104,10 @@ describe("expected use", () => {
 
 		expect(event?.title).toBe("Weekly sync");
 		expect(names).toEqual(["Jana Nováková", "Petr Dvořák"]);
-		expect(JSON.parse(await Bun.file(eventFilePath(recording)).text()).people).toEqual(["Jana Nováková", "Petr Dvořák"]);
+		expect(JSON.parse(await Bun.file(eventFilePath(recording)).text()).people).toEqual([
+			"Jana Nováková",
+			"Petr Dvořák",
+		]);
 	});
 });
 
@@ -121,7 +148,10 @@ describe("bad input", () => {
 		writeFileSync(eventFilePath(recording), JSON.stringify(withoutPeople));
 		expect((await callEvent(recording)).names).toEqual([]);
 
-		writeFileSync(eventFilePath(recording), JSON.stringify({ ...savedEventJson, people: ["Jana Nováková", null, 7] }));
+		writeFileSync(
+			eventFilePath(recording),
+			JSON.stringify({ ...savedEventJson, people: ["Jana Nováková", null, 7] }),
+		);
 		expect((await callEvent(recording)).names).toEqual(["Jana Nováková"]);
 	});
 

@@ -11,12 +11,19 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { match } from "ts-pattern";
 import { attendees } from "@bin/calls/calendar/ics";
-import { attendeesOfEvent, type CallEvent, eventIdInLink, recentEvents } from "@bin/calls/macos/calendar";
+import {
+	attendeesOfEvent,
+	type CallEvent,
+	eventIdInLink,
+	recentEvents,
+} from "@bin/calls/macos/calendar";
 import { realNames } from "@bin/calls/macos/contacts";
 import { ask, edit, hint, pick, warn } from "@lib/term";
 
 /** The event a recording was, if known, and the others on the call by name. */
-export async function callEvent(recording: string): Promise<{ event?: CallEvent; names: string[] }> {
+export async function callEvent(
+	recording: string,
+): Promise<{ event?: CallEvent; names: string[] }> {
 	const source = await findEvent(recording);
 	const found = peopleFrom(source);
 	const people = await confirmPeople(found.people);
@@ -73,7 +80,10 @@ async function findEvent(recording: string): Promise<Source> {
 	if (picked) {
 		return picked;
 	}
-	const typed = await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]");
+	const typed = await ask(
+		"Calendar event, drag it here from Calendar or as .ics",
+		"[Enter = none]",
+	);
 	return eventFromText(typed);
 }
 
@@ -86,10 +96,16 @@ function savedEvent(recording: string): CallEvent | undefined {
 	}
 	try {
 		const saved = JSON.parse(readFileSync(path, "utf8"));
-		if (typeof saved?.title !== "string" || typeof saved?.start !== "string" || typeof saved?.end !== "string") {
+		if (
+			typeof saved?.title !== "string" ||
+			typeof saved?.start !== "string" ||
+			typeof saved?.end !== "string"
+		) {
 			throw new Error("not an event");
 		}
-		const people = Array.isArray(saved.people) ? saved.people.filter((person: unknown) => typeof person === "string") : [];
+		const people = Array.isArray(saved.people)
+			? saved.people.filter((person: unknown) => typeof person === "string")
+			: [];
 		return { ...saved, people };
 	} catch {
 		warn(`cannot read the saved event, going on as if there were none: ${path}`);

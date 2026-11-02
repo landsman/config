@@ -13,7 +13,11 @@ export function relayFile(dir: string, id: string): string {
 }
 
 /** The state run `turn - 1` left, waiting up to `seconds` for it; undefined when it never came. */
-export async function awaitTurn<T>(file: string, turn: number, seconds: number): Promise<T | undefined> {
+export async function awaitTurn<T>(
+	file: string,
+	turn: number,
+	seconds: number,
+): Promise<T | undefined> {
 	const deadline = performance.now() + seconds * 1000;
 	while (performance.now() < deadline) {
 		try {

@@ -17,7 +17,11 @@ export async function waitFor(ok: () => Promise<boolean>, seconds: number): Prom
 
 /** Runs fn once a second until it succeeds, at most `seconds`, retrying only the
  *  errors `again` accepts (all by default); the last error is thrown. */
-export async function retry<T>(fn: () => Promise<T>, seconds: number, again = (_: Error) => true): Promise<T> {
+export async function retry<T>(
+	fn: () => Promise<T>,
+	seconds: number,
+	again = (_: Error) => true,
+): Promise<T> {
 	for (let i = 0; ; i++) {
 		try {
 			return await fn();
