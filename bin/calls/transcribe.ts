@@ -265,7 +265,7 @@ export async function transcribe(file: string): Promise<string> {
 	// The event's names, to fix, cross out or add to: someone invited along is on no event.
 	const before = people.join(", ");
 	if (process.env.PEOPLE) people = [...new Set([...people, ...typedNames(process.env.PEOPLE)])];
-	else if (process.stdin.isTTY) people = typedNames(await edit("Who was on the call, besides me?", "[edit, add after a comma; Enter = done]", people.length ? `${before}, ` : ""));
+	else if (process.stdin.isTTY) people = typedNames(await edit("Who was on the call, besides me?", "[edit, add after a comma or semicolon; Enter = done]", people.length ? `${before}, ` : ""));
 	if (event && people.join(", ") !== before) [event, save] = [{ ...event, people }, true];
 	// Saved as record.ts would have, with the names as edited, so the next run has them too.
 	if (event && save) await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
@@ -317,8 +317,8 @@ export async function transcribe(file: string): Promise<string> {
 	}
 }
 
-/** Names typed as "Jana Nováková, Petr Dvořák": trimmed, without blanks or repeats. */
-export const typedNames = (s: string) => [...new Set(s.split(",").map((n) => n.trim()).filter(Boolean))];
+/** Names typed as "Jana Nováková, Petr Dvořák" or with semicolons: spaces collapsed, without blanks or repeats. */
+export const typedNames = (s: string) => [...new Set(s.split(/[,;]/).map((n) => n.replace(/\s+/g, " ").trim()).filter(Boolean))];
 
 export const eventFile = (recording: string) => recording.replace(/\.[^.]*$/, ".event.json");
 

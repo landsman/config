@@ -87,7 +87,8 @@ test("Enter means quick, p precise, anything else is refused", () => {
 	expect(() => speed("x")).toThrow();
 });
 
-test("names typed by hand are split on commas, without blanks or repeats", () => {
-	expect(typedNames(" Jana Nováková, Petr Dvořák,, Jana Nováková ")).toEqual(["Jana Nováková", "Petr Dvořák"]);
+test("names typed by hand are split on commas or semicolons, spaces collapsed, without blanks or repeats", () => {
+	expect(typedNames(" Jana Nováková, Petr Dvořák,, Jana  Nováková ")).toEqual(["Jana Nováková", "Petr Dvořák"]);
+	expect(typedNames("Jana Nováková; Petr\tDvořák ;Tomáš Novák")).toEqual(["Jana Nováková", "Petr Dvořák", "Tomáš Novák"]);
 	expect(typedNames("")).toEqual([]);
 });
