@@ -55,6 +55,29 @@ export function eventsDuring(from: Date, to: Date, path = calendarDb): CallEvent
 	}
 }
 
+/** The last timed events that started before now, the newest first, for a recording that
+ *  saved none. Every calendar on the Mac, iCloud, Google or Exchange, is in the one database. */
+export function recentEvents(now = new Date(), count = 10, path = calendarDb): CallEvent[] {
+	try {
+		const db = new Database(path, { readonly: true });
+		try {
+			const b = now.getTime() / 1000 - epoch;
+			const seen = new Set<string>();
+			// ponytail: a month back; ten meetings older than that are not worth a list
+			return db.query<Occurrence, [number, number]>(occurrencesSql).all(b - 31 * 86_400, b)
+				.map((r) => ({ r, ...window(r) }))
+				.filter((x) => x.start <= b && !seen.has(`${x.r.id}@${x.start}`) && seen.add(`${x.r.id}@${x.start}`))
+				.sort((x, y) => y.start - x.start)
+				.slice(0, count)
+				.map(({ r, start, end }) => ({ uuid: r.uuid, title: r.title ?? "", start: iso(start), end: iso(end), ...people(db, r.id) }));
+		} finally {
+			db.close();
+		}
+	} catch {
+		return [];
+	}
+}
+
 // Calendar counts seconds from 2001-01-01, Core Data's epoch.
 const epoch = 978_307_200;
 const iso = (s: number) => new Date((s + epoch) * 1000).toISOString();

@@ -13,8 +13,9 @@ handed to Claude to file in the brain, and that step asks first. macOS only.
 
 `record` asks audio or video, Enter = audio. Ctrl+C stops it. If Calendar has an
 event at that time, Enter takes its title as the name; with two events at once
-it asks which. `record-transcribe` asks quick or precise, transcribes, then asks
-whether to file the call in the brain.
+it asks which. `record-transcribe` asks quick or precise and, for a recording
+with no event saved, which of Calendar's last ten meetings it was (Esc = none),
+transcribes, then asks whether to file the call in the brain.
 
 | Variable | For |
 |----------|-----|
