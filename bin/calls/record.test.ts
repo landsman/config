@@ -7,7 +7,7 @@ import { afterAll, beforeEach, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { homes, mode, save, tidy, which } from "@bin/calls/record";
+import { homes, mode, roomFor, save, tidy, which } from "@bin/calls/record";
 import { recordings } from "@bin/calls/transcribe";
 
 const t = mkdtempSync(join(tmpdir(), "record-"));
@@ -26,7 +26,12 @@ const lastCall = () => readFileSync(log, "utf8").trim().split("\n").at(-1)!.repl
 beforeEach(() => { writeFileSync(raw, ""); delete process.env.FFMPEG_FAIL; });
 afterAll(() => rmSync(t, { recursive: true }));
 
-test("Enter means audio", () => expect(mode("")).toBe("audio"));
+test("a disk with too little free space refuses to record, saying how much is free", () => {
+	expect(() => roomFor(t, 1e18)).toThrow(/GB free/);
+	expect(() => roomFor(t, 0)).not.toThrow();
+});
+
+test("Enter means audio",() => expect(mode("")).toBe("audio"));
 test("v means video", () => expect(mode("v")).toBe("video"));
 test("anything else is refused", () => expect(() => mode("x")).toThrow());
 

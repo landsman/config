@@ -21,7 +21,7 @@
 //                                      recording whose terminal was closed; then
 //                                      offers to transcribe it, see transcribe.ts
 import { $ } from "bun";
-import { existsSync, mkdirSync, readdirSync, renameSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, renameSync, statfsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { cli } from "@lib/cli";
@@ -127,6 +127,7 @@ export function homes(files: string[]): Map<string, string> {
 }
 
 async function start(answer?: string) {
+	roomFor(existsSync(out) ? out : homedir());
 	gap();
 	const m = answer === undefined ? await askUntil("Record audio or video?", "[Enter or a = audio, v = video]", mode) : mode(answer);
 	if (!existsSync(`${conf}/basic/profiles/MeetVideo/basic.ini`)) await setup();
@@ -177,6 +178,14 @@ async function start(answer?: string) {
 	await untilKey(["\x03", "q"], () =>
 		process.stdout.write(`\x1b[3A\r\x1b[K  ${o.red("●")} ${o.bold(`Recording ${m}`)}  ${o.dim(clock())}\x1b[3B\r`));
 	await stop();
+}
+
+/** Refuses to start when the disk is nearly full: OBS keeps recording into a full disk
+ *  and the call is lost, noticed only at the end. 10 GB is hours of video. */
+export function roomFor(dir: string, min = 10e9) {
+	const { bavail, bsize } = statfsSync(dir);
+	const free = bavail * bsize;
+	if (free < min) throw new Error(`only ${(free / 1e9).toFixed(1)} GB free on the disk, ${min / 1e9} GB needed to record: free some space first`);
 }
 
 async function stop(name?: string) {
