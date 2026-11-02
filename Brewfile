@@ -6,16 +6,18 @@
 # getting from apt/pacman.
 #
 # Refresh after installing something new — note it overwrites this file, so
-# re-add the guards afterwards:
+# re-add the guards and the `trusted:` options afterwards:
 #   brew bundle dump --force --no-vscode
 
+# hashicorp's is unguarded because terraform below is wanted on both; the other
+# three serve `if OS.mac?` entries only, and a tap cloned onto a box that will
+# never install from it is also a tap whose trust is never recorded — which
+# brew reports on every command until it is untapped.
 tap "hashicorp/tap"
-tap "lzt1008/powerflow"
-tap "microsoft/sysinternalstap"
-tap "stripe/stripe-cli"
+tap "lzt1008/powerflow" if OS.mac?
+tap "microsoft/sysinternalstap" if OS.mac?
+tap "stripe/stripe-cli" if OS.mac?
 
-# Microsoft Azure CLI 2.0
-brew "azure-cli"
 # Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
@@ -75,8 +77,9 @@ brew "libpq"
 brew "lnav"
 # Polyglot runtime manager (asdf rust clone)
 brew "mise"
-# Run multiple commands in parallel
-brew "mprocs"
+# Process manager for dev and prod — `mprocs` until upstream renamed it, and
+# the old name still resolves but warns on every `brew bundle`
+brew "dekit"
 # Open-source, cross-platform JavaScript runtime environment
 brew "node"
 # Create, run, and share large language models (LLMs)
@@ -105,8 +108,15 @@ brew "stow"
 brew "tea"
 # General purpose fuzzy finder TUI
 brew "television"
-# Infrastructure as code — vendor tap, homebrew-core dropped it over the BSL
-brew "hashicorp/tap/terraform"
+# Infrastructure as code — vendor tap, homebrew-core dropped it over the BSL.
+# `trusted: true` on every entry from a third-party tap, because Homebrew now
+# refuses to load one until it is trusted: without it `make apps` stops with
+# "Refusing to load formula ... from untrusted tap" and a `brew trust` command
+# to go and run by hand. The option makes bundle record that trust itself, so
+# the decision lives in this file — where the tap it applies to is written down
+# — rather than in a one-off command on each machine. homebrew-core is trusted
+# already, so nothing above needs it.
+brew "hashicorp/tap/terraform", trusted: true
 # Terminal multiplexer
 brew "tmux"
 # Tree-sitter CLI — parse a file and run a highlight or outline query against a
@@ -137,13 +147,19 @@ brew "mas" if OS.mac?
 # It also installs its own shell completions into share/{zsh,bash}, both already
 # on the path `brew shellenv` sets up, which is why neither rc file mentions it.
 # The `stripe completion` command prints a ~/.stripe recipe instead; ignore it.
-brew "stripe/stripe-cli/stripe" if OS.mac?
+brew "stripe/stripe-cli/stripe", trusted: true if OS.mac?
 # Real-time type-ahead completion for Zsh — the Linux boxes are bash, see .bashrc
 brew "zsh-autocomplete" if OS.mac?
 
 # Casks that ship a Linux build too, so they stay outside the guard below.
 # Command-line interface for 1Password
 cask "1password-cli"
+# Microsoft Azure CLI 2.0. A cask rather than a formula: homebrew-core migrated
+# it to homebrew-cask, which installs Microsoft's own build instead of building
+# the Python tree. Here rather than inside the guard because that build is per
+# platform — the url resolves to the linux-x86_64 tarball on the Linux boxes —
+# and the only artifact is `bin/az` plus its completions, nothing macOS-shaped.
+cask "azure-cli"
 # Open-source cross-platform alternative to AirDrop
 cask "localsend"
 # Open-source remote desktop
@@ -194,7 +210,7 @@ if OS.mac?
 	# Team collaboration and meetings
 	cask "microsoft-teams"
 	# Screen zoom and annotation for presentations — Sysinternals ZoomIt
-	cask "microsoft/sysinternalstap/zoomit"
+	cask "microsoft/sysinternalstap/zoomit", trusted: true
 	# Screen and audio recorder — records a call, see bin/calls/record.ts
 	cask "obs"
 	# Terminal built for coding agents (closed source)

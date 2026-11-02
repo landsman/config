@@ -16,6 +16,12 @@ Why some files are stowed, some included or sourced, and some patched — and wh
   `--apple-load-keychain`, because every login starts with an empty agent. Drop
   either and the first commit after a reboot asks for a passphrase — usually from
   the IDE, which has nowhere to ask.
+- **The signing key comes from 1Password** — `make git` reads the private half
+  through a secret reference (`SIGNING_KEY_REF` in the Makefile) when the file is
+  missing, with `?ssh-format=openssh` because an SSH-key item reads back as
+  PKCS#8 without it. A reference is a pointer, not a secret, so it can live in a
+  public repo; the key and any `op` token cannot. The public half is derived with
+  `ssh-keygen -y` rather than read a second time.
 - **`.bashrc` is not stowed** — it is a fragment, so symlinking it over
   `~/.bashrc` would drop everything the distro puts there. `make shell` appends a
   `. <repo>/.bashrc` line. (It used to `cat` the fragment in, which meant later

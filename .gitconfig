@@ -1,6 +1,12 @@
+# No `email` here on purpose. This file is *included* from
+# ~/.config/git/config, and git reads config in file order, so whatever this
+# file sets wins over everything written above the include line. A machine
+# whose [user] section predates the include — mine did — then committed as the
+# placeholder address no matter what `make git` wrote, and `make git` refused
+# its own freshly-set email as "a placeholder". The address is machine-local:
+# `make git` writes it to the global config, which is the only copy.
 [user]
 	name = Michal Landsman
-	email = landsman@***
 
 [init]
 	defaultBranch = main

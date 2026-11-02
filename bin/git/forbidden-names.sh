@@ -89,7 +89,19 @@ else
 	where="the commit message"
 fi
 
-hits=$(printf '%s\n' "$text" | grep -iE -f <(printf '%s\n' "$patterns") || true)
+# A pattern in lower case matches either case — a name is the name however it is
+# typed. One carrying an upper-case letter is matched case-sensitively, and that
+# is the only way a two-letter abbreviation can be listed at all: lower case, it
+# collides with half of the shell (`mv`, `cp`, `ln`, `rm`), and under `grep -i`
+# such a line refused every commit that moved a file. In upper case it is still
+# a name and no longer a command. Word boundaries stay the pattern's own
+# business — `\<AB\>` also keeps `ABC` out of it.
+ci=$(printf '%s\n' "$patterns" | grep -v '[[:upper:]]' || true)
+cs=$(printf '%s\n' "$patterns" | grep    '[[:upper:]]' || true)
+hits=$({
+	[ -z "$ci" ] || printf '%s\n' "$text" | grep -iE -f <(printf '%s\n' "$ci") || true
+	[ -z "$cs" ] || printf '%s\n' "$text" | grep -E  -f <(printf '%s\n' "$cs") || true
+} | awk '!seen[$0]++')
 [ -z "$hits" ] && exit 0
 echo "forbidden-names: a name that belongs to another owner, in $where:" >&2
 printf '  %s\n' "$hits" >&2

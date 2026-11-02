@@ -7,7 +7,7 @@ SHELL := /bin/bash
 #
 # Both are detected, so one `make stow` is correct on every install:
 #   device from DMI product_version ("ThinkPad T480" -> t480)
-#   os     from /etc/os-release ID  (ubuntu / arch)
+#   os     from /etc/os-release, ID first and then ID_LIKE
 # A name with no matching directory is skipped rather than failing, so a new
 # machine works before its package exists. Override with:
 #   make stow DEVICE=x1 OS=arch
@@ -21,7 +21,19 @@ DEVICE ?= $(shell sysctl -n hw.model | sed 's/^Mac17,8$$/macbook-pro-m5-16/')
 OS     ?= macos
 endif
 DEVICE ?= $(shell awk '{print tolower($$NF)}' /sys/class/dmi/id/product_version 2>/dev/null)
-OS     ?= $(shell . /etc/os-release 2>/dev/null && echo $$ID)
+# ID, then each word of ID_LIKE, and the first one with a directory in os/ wins:
+# a distro built on another reports its own ID and names its base there, so
+# Omarchy is ID=omarchy ID_LIKE=arch and belongs to os/arch. Without the second
+# half every target that reads $(OS) silently did half its job on this machine —
+# `make stow` printed "no package for os 'omarchy' - skipped" and `make apps`
+# "no distro apps", one line each, and the Hyprland config was never linked.
+# Falling back to nothing but the raw ID when no package matches, so that
+# message still names what the machine calls itself rather than its base.
+# An OS= on the command line skips this shell entirely (`?=` does not expand a
+# variable that is already set), which is what keeps an explicit name explicit:
+# a typo stays skipped instead of quietly resolving to the base distro.
+OS     ?= $(shell . /etc/os-release 2>/dev/null; \
+		for o in $$ID $$ID_LIKE; do [ -d "os/$$o" ] && { echo "$$o"; exit; }; done; echo "$$ID")
 
 DEVICE_PKG := $(shell test -d 'devices/$(DEVICE)' && echo '$(DEVICE)')
 OS_PKG     := $(shell test -d 'os/$(OS)' && echo '$(OS)')
@@ -269,9 +281,26 @@ apps: ## install Homebrew if missing, then the Brewfile, then the distro's own a
 	@# Brewfile, not to be update day. Without it every run re-downloads the
 	@# casks that update themselves — brew still has them at the old version —
 	@# and adding one line costs half an hour. Upgrading is `brew upgrade`.
+	@# `--verbose`, because without it this step is silent for as long as it
+	@# runs. `brew bundle` prints one "Installing <name>" line per entry, hands
+	@# the whole list to a single `brew install` — upstream's own doing, its
+	@# `--jobs` is deprecated with "installations use package managers' native
+	@# batching" — and then buffers that command's output to print only if it
+	@# fails. On a fresh Linux box that is twenty quiet minutes, because every
+	@# poured bottle is relocated with patchelf there, and silence that long is
+	@# indistinguishable from a hang. Verbose passes brew's own output straight
+	@# through, so every "==> Pouring" is a sign of life; the cost is a
+	@# "Skipping install" line per entry on a machine already in line.
+	@# The elapsed line is the other half: it says how long this took on this
+	@# machine instead of leaving the next run to guess. It prints whether the
+	@# install worked or not, which is what the saved status is for.
 	@b=$$(command -v brew \
 		|| ls /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew 2>/dev/null | head -1); \
-		"$$b" bundle --no-upgrade --file Brewfile
+		start=$$(date +%s); \
+		"$$b" bundle --no-upgrade --verbose --file Brewfile; status=$$?; \
+		elapsed=$$(( $$(date +%s) - start )); \
+		echo "make apps: the Brewfile took $$((elapsed / 60))m$$((elapsed % 60))s"; \
+		exit $$status
 	@# Yarn, which is here rather than in the Brewfile because corepack cannot
 	@# be. Node bundled corepack until 25 and dropped it, and every way of
 	@# installing it since ships pnpm and pnpx shims of its own: `brew install
@@ -503,7 +532,10 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 	@# and the old append-once grep would report success while doing nothing.
 	@grep -qF '$(CURDIR)/.bashrc' "$$HOME/.bashrc" \
 		|| printf '\n. "%s/.bashrc"\n' '$(CURDIR)' >> "$$HOME/.bashrc"
-	@grep -nF '$(CURDIR)/.bashrc' "$$HOME/.bashrc"
+	@# A sentence, not grep's raw hit: this one line is the whole output of the
+	@# target, and "41:. \"/mnt/...\"" reads like a pipeline that leaked.
+	@n=$$(grep -nF '$(CURDIR)/.bashrc' "$$HOME/.bashrc" | head -1 | cut -d: -f1); \
+		echo "~/.bashrc:$$n sources $(CURDIR)/.bashrc"
 	@grep -qF 'bash_aliases.d' "$$HOME/.bashrc" \
 		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
 		|| true
@@ -521,8 +553,9 @@ hostname: ## name this install from bin/hostname/names.conf (Linux; asks for roo
 
 .PHONY: plugins
 plugins: ## add, pin, patch and enable the shell plugins listed in os/arch/install-plugins.sh (after stow)
-	@# By path, not os/$(OS)/: Omarchy reports ID=omarchy, so $(OS) never names
-	@# the arch package there. The script skips itself where there is no omarchy.
+	@# By path, not os/$(OS)/: plugins are an Omarchy thing, not an Arch one, and
+	@# $(OS) is whichever userland is booted. The script skips itself where there
+	@# is no omarchy, so running this on the Kubuntu half is a no-op.
 	@bash os/arch/install-plugins.sh
 
 ##@ Claude Code
@@ -768,12 +801,24 @@ record-transcribe: ## transcribe a recording picked in television (type 202610 f
 	@$(BUN) bin/calls/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
+#
+# The private half of the commit signing key, as a 1Password secret reference.
+# A reference is a pointer, not a secret: it reads nothing without an unlocked
+# `op` signed in to my account, which is what lets it sit in a public repo —
+# and the vault is its id rather than its name, so it says even less. The key
+# itself, and an `op` service account token, never belong here.
+#
+SIGNING_KEY_REF = op://uda246doh2wzgveiq5xoqwppc4/landsman_git_signing/private key
 
 .PHONY: git git-config-test git-config-format
 git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
 	@git config --global --get-all include.path | grep -qxF '$(CURDIR)/.gitconfig' \
 		|| git config --global --add include.path '$(CURDIR)/.gitconfig'
-	@read -p "email [$$(git config --file '$(CURDIR)/.gitconfig' user.email)]: " e; \
+	@# The default is what the machine already has, not a value out of
+	@# .gitconfig: that file is included and carries no address any more (see
+	@# the comment at the top of it), and showing the live one makes a re-run
+	@# say what is set rather than offering something to overwrite it with.
+	@read -p "email [$$(git config --global user.email)]: " e; \
 		[ -z "$$e" ] || git config --global user.email "$$e"
 	@# Signing goes through the *agent*, not the key file: with a .pub as
 	@# user.signingkey, `ssh-keygen -Y sign` asks ssh-agent for the private
@@ -786,11 +831,39 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 	@# fails — a Ctrl-C at the passphrase prompt leaves the rest of the signing
 	@# setup worth writing — but it says so, because the symptom otherwise
 	@# arrives a reboot later and looks like the config never worked.
+	@# The *effective* address, not the global one, because an include that
+	@# sets user.email would shadow it and the commits would carry that instead.
+	@# The `*` arm catches a machine still carrying the old placeholder in its
+	@# own global config, where nothing here can reach it.
+	@# The `op read` above: `?ssh-format=openssh` because an SSH-key item reads
+	@# back as PKCS#8 without it, which ssh-keygen and ssh-add both refuse and
+	@# which looks like a corrupt key rather than a wrong format. Into a mktemp
+	@# with 600 from the start and only moved into place once ssh-keygen has
+	@# parsed it, so a half-read or a refused unlock cannot leave a truncated
+	@# key where the next run would trust it. The public half is derived rather
+	@# than read a second time. Only for the default path: a key named on the
+	@# prompt is not what that reference points at.
 	@email="$$(git config user.email)"; \
-		case "$$email" in ""|*"*"*) echo "set a real user.email first - the repo default is a placeholder"; exit 1;; esac; \
+		case "$$email" in \
+			"") echo "no user.email - run this target again and give one"; exit 1;; \
+			*"*"*) echo "user.email is still the placeholder '$$email' - fix it in $$(git config --show-origin --get user.email | cut -f1)"; exit 1;; \
+		esac; \
+		if [ "$$email" != "$$(git config --global user.email)" ]; then \
+			echo "warning: user.email is '$$email', not the global '$$(git config --global user.email)'"; \
+			echo "  something read after the global config is setting it: $$(git config --show-origin --get user.email | cut -f1)"; \
+		fi; \
 		default="$$HOME/.ssh/landsman_git_signing.pub"; \
 		read -p "signing key [$$default]: " k; k="$${k:-$$default}"; \
 		priv="$${k%.pub}"; \
+		if [ ! -f "$$priv" ] && [ "$$priv" = "$${default%.pub}" ] && command -v op >/dev/null; then \
+			echo "no key at $$priv - reading it from 1Password"; \
+			t=$$(mktemp); chmod 600 "$$t"; \
+			if op read "$(SIGNING_KEY_REF)?ssh-format=openssh" > "$$t" 2>/dev/null \
+				&& ssh-keygen -y -f "$$t" >/dev/null 2>&1; then \
+				mv "$$t" "$$priv"; chmod 600 "$$priv"; \
+				[ -f "$$k" ] || ssh-keygen -y -f "$$priv" > "$$k"; \
+			else rm -f "$$t"; echo "op could not read it - 'op signin' first, or restore the key by hand"; fi; \
+		fi; \
 		if [ ! -f "$$priv" ]; then \
 			echo "no key at $$priv"; \
 			echo "restore it from 1Password, chmod 600 it, then run make git again"; \
@@ -806,6 +879,23 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 		grep -qxF "$$line" "$$signers" || echo "$$line" >> "$$signers"; \
 		echo; echo "add as a *signing* key at https://github.com/settings/ssh/new :"; \
 		cat "$$k"
+	@# The include above also switches on the forbidden-names hook, which
+	@# refuses *every* commit in *every* repo while the list it reads is
+	@# missing. So the state of that file is reported here, where the machine is
+	@# being set up, rather than discovered an hour later as a refused commit in
+	@# some unrelated repo with a message about cloning a brain.
+	@# Deliberately not created empty: an empty list matches nothing and passes
+	@# everything, which is the one outcome the hook exists to prevent. It is
+	@# also untracked in the brain itself — it is the only copy of those names —
+	@# so there is nothing here to clone either; it comes from 1Password or
+	@# another machine. See shared/.agents/rules/where-repos-live.md.
+	@# A warning, not a failure: the email and signing set up above are worth
+	@# keeping even on a machine whose brain is not restored yet.
+	@f=$$(git config --get forbiddenNames.file || true); f="$${f/#\~/$$HOME}"; \
+		if [ -z "$$f" ]; then echo "forbidden names: not configured - .gitconfig should set forbiddenNames.file"; \
+		elif [ -f "$$f" ]; then echo "forbidden names: $$f ($$(grep -cvE '^[[:space:]]*(#|$$)' "$$f") entries)"; \
+		else echo "forbidden names: $$f is MISSING - every commit will be refused until it is there"; \
+			echo "  restore it from 1Password or another machine, beside the brain's wiki/names-that-stay-private.md"; fi
 	@git config --list --show-scope
 
 git-config-test: ## check .gitconfig parses and is tab-indented
