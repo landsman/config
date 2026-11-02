@@ -1,7 +1,7 @@
 // Self-check for ./forbidden-names.ts: the pure halves directly, and the script
 // itself in throwaway repos under a throwaway $HOME, run the way git runs it.
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EMAIL_RE, addedLines, messageLines, names, patternsFor, stdinLines, subjectOf, toRegExp } from "@bin/git/forbidden-names";
@@ -144,7 +144,11 @@ describe("what gets searched", () => {
 
 describe("the script, as git runs it", () => {
 	const hook = join(import.meta.dir, "forbidden-names.ts");
-	const tmp = mkdtempSync(join(tmpdir(), "forbidden-names-"));
+	// Resolved, because the script compares a realpath of the checkout against
+	// $HOME: on macOS a temp dir is /var/folders/… and its real path
+	// /private/var/folders/…, so an unresolved HOME would put every repo outside
+	// ~/projects and leave the owner exemption untested.
+	const tmp = realpathSync(mkdtempSync(join(tmpdir(), "forbidden-names-")));
 	afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 	const env = { ...process.env, HOME: tmp, GIT_CONFIG_GLOBAL: join(tmp, "gitconfig"), GIT_CONFIG_NOSYSTEM: "1" };
