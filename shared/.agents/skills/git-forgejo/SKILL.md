@@ -29,6 +29,12 @@ into every call.
 | `src/{branch,tag,commit}/<ref>/<path>` | `get_file_content` with `ref` and `filePath`; `start_line`/`end_line` for a slice, `#L10-L20` in the URL says which |
 | `actions/runs/<n>` | `get_workflow_run`, `list_action_run_jobs`, `get_action_job_logs` per `job_id`; if `<n>` is not the run id, `list_workflow_runs` finds it |
 
+**A run has two numbers.** `list_workflow_runs` prints `#6201 … URL: …/runs/6179`.
+`list_action_run_jobs` takes the `#number`, the URL carries the other one, so
+passing a URL's number to the jobs API returns a different run. Find the URL's line
+in `list_workflow_runs` first. In a reply, give the URL
+([linking to work](../../rules/linking-work.md)).
+
 **Comments on a PR come from three places**: inline review comments
 (`list_pull_review_comments`, one call per review), the review bodies
 themselves (`list_pull_reviews`), and the plain conversation

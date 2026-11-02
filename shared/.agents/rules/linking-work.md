@@ -17,6 +17,14 @@ address. A number is a lookup task handed back to the reader.
 Alongside the URL, keep whatever makes it readable: `#177` next to the link, or
 the title. The rule is that the link is present, not that nothing else is.
 
+**A Forgejo run has two numbers.** `list_workflow_runs` prints `#6201` and a URL
+ending in `/runs/6179`; the URL's is the one to give, and a `#number` beside a
+different id only confuses.
+
+In Claude Code a Stop hook (`bin/agents/bare-refs.ts`) holds the turn once when
+the reply names a `#123`, `PR 123` or `run 123` outside code with no URL ending in
+that number.
+
 ## A file I am meant to look at
 
 **A screenshot, a report, a rendered page or a spreadsheet reaches me as the file
