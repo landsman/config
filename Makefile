@@ -532,7 +532,10 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 	@# and the old append-once grep would report success while doing nothing.
 	@grep -qF '$(CURDIR)/.bashrc' "$$HOME/.bashrc" \
 		|| printf '\n. "%s/.bashrc"\n' '$(CURDIR)' >> "$$HOME/.bashrc"
-	@grep -nF '$(CURDIR)/.bashrc' "$$HOME/.bashrc"
+	@# A sentence, not grep's raw hit: this one line is the whole output of the
+	@# target, and "41:. \"/mnt/...\"" reads like a pipeline that leaked.
+	@n=$$(grep -nF '$(CURDIR)/.bashrc' "$$HOME/.bashrc" | head -1 | cut -d: -f1); \
+		echo "~/.bashrc:$$n sources $(CURDIR)/.bashrc"
 	@grep -qF 'bash_aliases.d' "$$HOME/.bashrc" \
 		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
 		|| true
@@ -798,7 +801,6 @@ record-transcribe: ## transcribe a recording picked in television (type 202610 f
 	@$(BUN) bin/calls/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
-
 .PHONY: git git-config-test git-config-format
 git: ## set up this machine: hook in .gitconfig, set email, set up commit signing
 	@git config --global --get-all include.path | grep -qxF '$(CURDIR)/.gitconfig' \
