@@ -27,7 +27,7 @@ import { basename, dirname, join } from "node:path";
 import { appleCalendarAttendees, appleEventId, type CallEvent, recentEvents } from "@bin/calls/apple-calendar";
 import { realNames } from "@bin/calls/contacts";
 import { cli } from "@lib/cli";
-import { ask, askUntil, done, gap, hint, link, live, o, say, warn } from "@lib/term";
+import { ask, askUntil, done, edit, gap, hint, link, live, o, say, warn } from "@lib/term";
 
 const out = process.env.RECORDINGS_DIR ?? `${homedir()}/Recordings`;
 const models = `${homedir()}/.cache/whisper`;
@@ -262,12 +262,12 @@ export async function transcribe(file: string): Promise<string> {
 	let people = event?.people ?? (apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : []);
 	if (apple && !people.length) warn("no such event in Calendar, going on without names");
 	else if (ics && !apple && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
-	// Someone the event does not name, invited along or never on it: PEOPLE=… or typed, added to its names.
-	const question = people.length ? `On the call with ${people.join(", ")}. Anyone else?` : "Who else was on the call?";
-	const typed = typedNames(process.env.PEOPLE ?? (process.stdin.isTTY ? await ask(question, `[more names, comma-separated; Enter = ${people.length ? "that is everyone" : "don't know"}]`) : ""));
-	people = [...new Set([...people, ...typed])];
-	if (event && typed.length) [event, save] = [{ ...event, people }, true];
-	// Saved as record.ts would have, with the added names, so the next run has them too.
+	// The event's names, to fix, cross out or add to: someone invited along is on no event.
+	const before = people.join(", ");
+	if (process.env.PEOPLE) people = [...new Set([...people, ...typedNames(process.env.PEOPLE)])];
+	else if (process.stdin.isTTY) people = typedNames(await edit("Who was on the call, besides me?", "[edit, add after a comma; Enter = done]", people.length ? `${before}, ` : ""));
+	if (event && people.join(", ") !== before) [event, save] = [{ ...event, people }, true];
+	// Saved as record.ts would have, with the names as edited, so the next run has them too.
 	if (event && save) await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
 	const names = await realNames(people);
 	if (event) hint(`Event: ${event.title}`);

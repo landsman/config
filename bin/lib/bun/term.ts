@@ -15,7 +15,7 @@ import { createInterface } from "node:readline";
 
 type Stream = { tty: boolean; write: (s: string) => void };
 
-export function createTerm(out: Stream, err: Stream, readLine = stdinLine) {
+export function createTerm(out: Stream, err: Stream, readLine: (prefill?: string) => Promise<string> = stdinLine) {
 	const style = (s: Stream) => {
 		const sgr = (code: string) => (t: string) => (s.tty ? `\x1b[${code}m${t}\x1b[0m` : t);
 		return { bold: sgr("1"), dim: sgr("2"), red: sgr("1;31"), green: sgr("1;32"), cyan: sgr("1;36") };
@@ -28,6 +28,12 @@ export function createTerm(out: Stream, err: Stream, readLine = stdinLine) {
 	async function ask(question: string, hint: string): Promise<string> {
 		err.write(`${err.tty ? "  " : ""}${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)} ${e.cyan("›")} `);
 		return (await readLine()).trim();
+	}
+	/** A question whose answer starts as `prefill`, edited in place on the line below it:
+	 *  the arrows and backspace change it, Enter takes it as it stands. */
+	async function edit(question: string, hint: string, prefill: string): Promise<string> {
+		line(err, `${e.cyan("?")} ${e.bold(question)} ${e.dim(hint)}`);
+		return (await readLine(prefill)).trim();
 	}
 	/** ask() until parse() takes the answer: a typo gets the question again, not a crash. */
 	async function askUntil<T>(question: string, hint: string, parse: (answer: string) => T): Promise<T> {
@@ -58,13 +64,20 @@ export function createTerm(out: Stream, err: Stream, readLine = stdinLine) {
 		link: (path: string) => (out.tty ? `\x1b]8;;file://${encodeURI(path)}\x1b\\${path}\x1b]8;;\x1b\\` : path),
 		ask,
 		askUntil,
+		edit,
 	};
 }
 
 /** One line of stdin, "" when it ends. readline on process.stdin, the stream untilKey
  *  reads too: two readers of one stdin (Bun's `console` and process.stdin) lose each other's input. */
-async function stdinLine(): Promise<string> {
-	const rl = createInterface({ input: process.stdin });
+async function stdinLine(prefill?: string): Promise<string> {
+	// Only a terminal can show text to edit; readline then draws the line itself, on stderr like the question.
+	const editing = prefill !== undefined && process.stdin.isTTY;
+	const rl = editing ? createInterface({ input: process.stdin, output: process.stderr, terminal: true, prompt: "  › " }) : createInterface({ input: process.stdin });
+	if (editing) {
+		rl.prompt();
+		rl.write(prefill ?? "");
+	}
 	const answer = await new Promise<string>((resolve) => {
 		rl.once("line", resolve);
 		rl.once("close", () => resolve(""));
@@ -96,7 +109,7 @@ export function untilKey(keys: string[], tick?: () => void): Promise<string> {
 }
 
 // process.stderr.write, not console.error: Bun colours that one red on its own.
-export const { o, say, gap, done, live, hint, warn, link, ask, askUntil } = createTerm(
+export const { o, say, gap, done, live, hint, warn, link, ask, askUntil, edit } = createTerm(
 	{ tty: !!process.stdout.isTTY, write: (s) => process.stdout.write(s) },
 	{ tty: !!process.stderr.isTTY, write: (s) => process.stderr.write(s) },
 );
