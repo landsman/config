@@ -25,6 +25,7 @@ transcribes, then asks whether to file the call in the brain.
 | `MODEL=quick\|precise` | skips the question; precise is better at Czech, about 3× slower |
 | `SPOKEN=cs` | the language, instead of guessing it per track |
 | `ICS=event.ics` | an event for a recording that has none saved (an `ical://` link works too) |
+| `PEOPLE="Jana Nováková, Petr Dvořák"` | people on the call the event does not name, added to its names; asked for otherwise, and saved with the event |
 | `SPEAKERS=3` | how many voices are on the other side, when the event's people would mislead |
 | `BRAIN=n` | skips the brain step |
 

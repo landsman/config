@@ -251,19 +251,24 @@ export async function transcribe(file: string): Promise<string> {
 	// The event saved when the call was stopped; asked for only when there is none.
 	let event = existsSync(eventFile(file)) ? (JSON.parse(readFileSync(eventFile(file), "utf8")) as CallEvent) : undefined;
 	let ics = event ? "" : dropped(process.env.ICS ?? "");
+	let save = false;
 	if (!event && !ics && process.stdin.isTTY) {
 		const picked = await pickRecent();
-		if (picked && picked !== "none") {
-			event = picked;
-			// Saved as record.ts would have, so the next run does not ask again.
-			await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
-		} else if (!picked) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
+		if (picked && picked !== "none") [event, save] = [picked, true];
+		else if (!picked) ics = dropped(await ask("Calendar event, drag it here from Calendar or as .ics", "[Enter = none]"));
 	}
 	// A mistyped path costs the names, not the transcript.
 	const apple = appleEventId(ics);
-	const people = event?.people ?? (apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : []);
+	let people = event?.people ?? (apple ? appleCalendarAttendees(apple) : ics && existsSync(ics) ? attendees(readFileSync(ics, "utf8")) : []);
 	if (apple && !people.length) warn("no such event in Calendar, going on without names");
 	else if (ics && !apple && !existsSync(ics)) warn(`no such file, going on without names: ${ics}`);
+	// Someone the event does not name, invited along or never on it: PEOPLE=… or typed, added to its names.
+	if (people.length) hint(`On the event: ${people.join(", ")}`);
+	const typed = typedNames(process.env.PEOPLE ?? (process.stdin.isTTY ? await ask(people.length ? "Anyone else on the call?" : "Who else was on the call?", "[names, comma-separated; Enter = no one]") : ""));
+	people = [...new Set([...people, ...typed])];
+	if (event && typed.length) [event, save] = [{ ...event, people }, true];
+	// Saved as record.ts would have, with the added names, so the next run has them too.
+	if (event && save) await Bun.write(eventFile(file), `${JSON.stringify(event, null, "\t")}\n`);
 	const names = await realNames(people);
 	if (event) hint(`Event: ${event.title}`);
 	if (names.length) hint(`Names: ${names.join(", ")}`);
@@ -311,6 +316,9 @@ export async function transcribe(file: string): Promise<string> {
 		rmSync(tmp, { recursive: true });
 	}
 }
+
+/** Names typed as "Jana Nováková, Petr Dvořák": trimmed, without blanks or repeats. */
+export const typedNames = (s: string) => [...new Set(s.split(",").map((n) => n.trim()).filter(Boolean))];
 
 export const eventFile = (recording: string) => recording.replace(/\.[^.]*$/, ".event.json");
 

@@ -6,7 +6,7 @@
 // a header that miscounts the voices or names one before the call was read.
 import { expect, test } from "bun:test";
 import { homedir } from "node:os";
-import { attendees, diarize, dropped, header, merge, speed } from "@bin/calls/transcribe";
+import { attendees, diarize, dropped, header, merge, speed, typedNames } from "@bin/calls/transcribe";
 
 test("tracks are merged by time, one line per turn", () =>
 	expect(merge([
@@ -85,4 +85,9 @@ test("Enter means quick, p precise, anything else is refused", () => {
 	expect(speed("")).toBe("quick");
 	expect(speed("p")).toBe("precise");
 	expect(() => speed("x")).toThrow();
+});
+
+test("names typed by hand are split on commas, without blanks or repeats", () => {
+	expect(typedNames(" Jana Nováková, Petr Dvořák,, Jana Nováková ")).toEqual(["Jana Nováková", "Petr Dvořák"]);
+	expect(typedNames("")).toEqual([]);
 });
