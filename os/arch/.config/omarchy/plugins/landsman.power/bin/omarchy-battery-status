@@ -22,6 +22,37 @@ case "${1:-}" in
     ;;
 esac
 
+# pack <name> <percent> <energy Wh> <full Wh> <watts> <status> <cycles>, tab
+# separated. Empty where the firmware does not report the value.
+print_pack() {
+  local supply=$1 power
+  power=$(cat "$supply/power_now" 2>/dev/null) || power=""
+  if [[ ! $power =~ ^-?[0-9]+$ ]]; then
+    power=$(awk \
+      -v a="$(cat "$supply/current_now" 2>/dev/null)" \
+      -v v="$(cat "$supply/voltage_now" 2>/dev/null)" \
+      'BEGIN { if (a ~ /^-?[0-9]+$/ && v ~ /^[0-9]+$/) printf "%d", a * v / 1000000 }')
+  fi
+
+  awk -v OFS='\t' \
+    -v name="${supply##*/}" \
+    -v percent="$(cat "$supply/capacity" 2>/dev/null)" \
+    -v energy="$(cat "$supply/energy_now" 2>/dev/null)" \
+    -v full="$(cat "$supply/energy_full" 2>/dev/null)" \
+    -v power="$power" \
+    -v status="$(cat "$supply/status" 2>/dev/null)" \
+    -v cycles="$(cat "$supply/cycle_count" 2>/dev/null)" \
+    'function scaled(raw) {
+      if (raw !~ /^-?[0-9]+$/) return ""
+      if (raw < 0) raw = -raw
+      return sprintf("%.1f", raw / 1000000)
+    }
+    BEGIN {
+      if (cycles !~ /^[0-9]+$/) cycles = ""
+      print "pack", name, percent, scaled(energy), scaled(full), scaled(power), status, cycles
+    }'
+}
+
 battery=$(upower -e 2>/dev/null | grep BAT | head -n 1)
 [[ -z $battery ]] && exit 0
 
@@ -230,6 +261,12 @@ if [[ $shell_output == "true" ]]; then
   done
 
   [[ -n $cycles ]] && printf 'cycles\t%s\n' "$cycles"
+
+  # One line per pack for the panel's breakdown. A dead pack is listed too: it
+  # is left out of the totals above, but hiding it would hide why they are low.
+  for supply in "${batteries[@]}" "${dead_packs[@]}"; do
+    print_pack "$supply"
+  done
 
   if [[ -n $threshold_end ]]; then
     if [[ -n $threshold_start && $threshold_start != $threshold_end ]]; then

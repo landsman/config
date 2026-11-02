@@ -20,6 +20,66 @@ function parseKeyValue(raw) {
   return next
 }
 
+/**
+ * One battery, as omarchy-battery-status --shell reports it. Figures stay strings,
+ * as printed, and are empty where the firmware does not report them.
+ *
+ * @typedef {Object} Pack
+ * @property {string} name Kernel name, such as BAT0.
+ * @property {number} percent Charge from 0 to 100, or -1 when not reported.
+ * @property {string} energy Stored energy in Wh.
+ * @property {string} full Capacity in Wh.
+ * @property {string} watts Current draw or charge rate in W.
+ * @property {string} status Kernel status, such as Discharging.
+ * @property {string} cycles Charge cycles.
+ */
+
+/**
+ * Reads the script's `pack` lines and ignores every other line.
+ *
+ * @param {string} raw Output of omarchy-battery-status --shell.
+ * @returns {Pack[]} One per battery, in the order the script listed them.
+ */
+function parsePacks(raw) {
+  var packs = []
+  var lines = String(raw || "").split("\n")
+  for (var i = 0; i < lines.length; i++) {
+    var f = lines[i].split("\t")
+    if (f[0] !== "pack" || !f[1]) continue
+    packs.push({
+      name: f[1],
+      percent: f[2] === "" || f[2] === undefined ? -1 : Number(f[2]),
+      energy: f[3] || "",
+      full: f[4] || "",
+      watts: f[5] || "",
+      status: f[6] || "",
+      cycles: f[7] || ""
+    })
+  }
+  return packs
+}
+
+/**
+ * @param {Pack} pack
+ * @returns {number} Charge from 0 to 1 for the progress bar; 0 when not reported.
+ */
+function packFraction(pack) {
+  return pack && pack.percent > 0 ? Math.min(1, pack.percent / 100) : 0
+}
+
+/**
+ * @param {Pack} pack
+ * @returns {string} The line under the battery's bar. Leaves out unreported values and a draw of zero.
+ */
+function packDetail(pack) {
+  var parts = []
+  if (pack.energy && pack.full) parts.push(pack.energy + " / " + pack.full + " Wh")
+  if (Number(pack.watts) > 0) parts.push(pack.watts + " W")
+  if (pack.status) parts.push(pack.status)
+  if (pack.cycles) parts.push(pack.cycles + " cycles")
+  return parts.join(" · ")
+}
+
 function parseProfiles(raw, previousIndex) {
   var lines = String(raw || "").split("\n")
   var list = []
@@ -94,6 +154,9 @@ if (typeof module !== "undefined") {
     clampIndex: clampIndex,
     selectProfileIndex: selectProfileIndex,
     parseKeyValue: parseKeyValue,
+    parsePacks: parsePacks,
+    packFraction: packFraction,
+    packDetail: packDetail,
     parseProfiles: parseProfiles,
     profileIcon: profileIcon,
     batteryFraction: batteryFraction,

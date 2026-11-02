@@ -14,6 +14,7 @@ Panel {
   // permits — needed for the togglePercentage method below.
   manageIpc: false
   property var batteryInfo: ({})
+  property var packs: []
   property var systemInfo: ({})
   property var profiles: []
   property string activeProfile: ""
@@ -145,8 +146,10 @@ Panel {
     // Keep last known good data if a refresh briefly returns nothing — happens
     // around AC plug/unplug events. Avoids the section collapsing mid-transition.
     if (Object.keys(next).length === 0) return
-    if (targetName === "battery") batteryInfo = next
-    else systemInfo = next
+    if (targetName === "battery") {
+      batteryInfo = next
+      packs = Model.parsePacks(raw)
+    } else systemInfo = next
   }
 
   function updateProfiles(raw) {
@@ -373,7 +376,8 @@ Panel {
           Text {
             id: heroPercent
             textFormat: Text.PlainText
-            text: root.batteryInfo.percentage || "—"
+            // The bar's own figure, not the script's truncated one, so the two agree.
+            text: Math.round(root.batteryFraction * 100) + "%"
             color: root.bar.foreground
             font.family: root.bar.fontFamily
             font.pixelSize: Style.font.displayLarge
@@ -448,6 +452,60 @@ Panel {
             InfoPair {
               label: root.chargeThresholdActive ? "Battery state" : (root.discharging ? "Discharging" : "Charging")
               value: root.chargeThresholdActive ? "Holding" : (root.batteryFull ? "-" : (root.batteryInfo.rate || ""))
+            }
+          }
+        }
+
+        // ---------- Each battery, when there is more than one ----------
+        PanelSeparator {
+          visible: root.packs.length > 1
+          foreground: root.bar.foreground
+        }
+
+        Column {
+          id: packList
+          visible: root.packs.length > 1
+          width: parent.width
+          spacing: Style.space(10)
+
+          PanelSectionHeader {
+            text: "BATTERIES"
+            foreground: root.bar.foreground
+            fontFamily: root.bar.fontFamily
+          }
+
+          Repeater {
+            model: root.packs
+
+            Column {
+              required property var modelData
+              width: packList.width
+              spacing: Style.space(4)
+
+              InfoPair {
+                label: modelData.name
+                value: modelData.percent >= 0 ? modelData.percent + "%" : "—"
+              }
+
+              Rectangle {
+                width: parent.width
+                height: Style.space(4)
+                radius: height / 2
+                color: Qt.rgba(root.bar.foreground.r, root.bar.foreground.g, root.bar.foreground.b, 0.12)
+
+                Rectangle {
+                  height: parent.height
+                  radius: parent.radius
+                  width: Math.max(height, parent.width * Model.packFraction(modelData))
+                  color: root.batteryFillColor
+                }
+              }
+
+              InfoLabel {
+                width: parent.width
+                elide: Text.ElideRight
+                text: Model.packDetail(modelData)
+              }
             }
           }
         }
