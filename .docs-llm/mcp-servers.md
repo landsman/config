@@ -12,6 +12,19 @@ The servers themselves are agent-agnostic. This arrangement is Claude Code's,
 because that is the client in use here; another client reads the same URLs from
 its own config.
 
+## The one exception: user scope, where `/mcp` shows it
+
+`/mcp` files every plugin server under *Built-in MCPs*, below some forty
+servers from the claude.ai plugins, so a server whose sign-in has to be found
+there is as good as hidden. The ones that need it live in
+[`user-servers.json`](../shared/.agents/skills/mcp-servers/user-servers.json),
+beside the plugin's `.mcp.json`, and `make claude` registers them at user scope
+(`bin/mcp/user-servers.ts install`),
+which `/mcp` lists at the top under *User MCPs*. That writes to `~/.claude.json`,
+so the tracked JSON is the record and the script is what brings it back: it
+keeps a server already registered as written, so a rerun does not drop its
+sign-in, and replaces one whose entry changed. Cloudflare is the one so far.
+
 ## opencode, and why the list is written twice
 
 opencode is the second client, so the same list is also in
@@ -52,7 +65,8 @@ its path.
   open](https://github.com/anthropics/claude-code/issues/32145).
 - **`~/.claude.json`** is where `claude mcp add --scope user` writes, and it is
   runtime state: sessions, OAuth tokens, per-project trust decisions. Nothing to
-  symlink, and a reinstall resets it.
+  symlink, and a reinstall resets it — which is why the user-scope servers above
+  are written by a script from a tracked list, never by hand.
 - **A `.mcp.json` at a repo root** does define servers, but scopes them to that
   one repo — right for a project's own tooling, wrong for a grocery shop.
 
@@ -123,8 +137,8 @@ Docs: <https://developers.cloudflare.com/agents/model-context-protocol/cloudflar
 The one server Cloudflare calls enough on its own: the whole API through
 `search()` and `execute()`, plus `docs()`. Its product servers (docs,
 containers, browser, DEX, CASB) are left out, since this one reaches the
-same API. OAuth in the browser through `/mcp`, where the permissions are
-picked, so nothing secret is tracked. An API token as `Authorization: Bearer`
+same API. Registered at user scope by `make claude` (see above), then OAuth in
+the browser through `/mcp`, where the permissions are picked, so nothing secret is tracked. An API token as `Authorization: Bearer`
 is the headless alternative, not used here.
 
 It reads **and writes** anything the granted permissions allow. Where a zone
