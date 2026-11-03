@@ -574,28 +574,12 @@ omarchy: ## add, pin, patch and enable the shell plugins in os/arch/install-plug
 #
 # The MCP servers are stowed like any other dotfile. Two of the values they
 # read cannot be: the Azure DevOps slug names an employer, the Forgejo token is
-# a secret, and this repo is public. See .docs-llm/mcp-servers.md.
+# a secret, the tailnet name is private, and this repo is public. See .docs-llm/mcp-servers.md.
 #
 
-.PHONY: forgejo-mcp
-forgejo-mcp: ## build the Forgejo MCP server from the local mirror into ~/go/bin
-	@# Built from tools-mirror rather than fetched from upstream, so a build
-	@# does not depend on someone else's forge being up. `go install .` inside
-	@# the checkout, not `go install <mirror>@latest`: go.mod still declares the
-	@# upstream module path and go rejects a path that is not the one it fetched.
-	@# Newest tag with no dash, because -v:refname sorts v3.0.0-alpha.1 above
-	@# v2.35.0 and a pre-release is not what `latest` means anywhere else.
-	@u=https://git.insuit.cz/tools-mirror/forgejo-mcp; \
-	tag=$$(git ls-remote --tags --refs --sort=-v:refname "$$u" | sed 's#.*/##; /-/d' | head -1); \
-	tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
-	echo "building $$tag"; \
-	git clone -q --depth 1 --branch "$$tag" -c advice.detachedHead=false "$$u" "$$tmp" \
-		&& (cd "$$tmp" && go install .) \
-		&& "$$HOME/go/bin/forgejo-mcp" --version
-
 .PHONY: claude
-claude: ## register the user-scope MCP servers, then set the machine-local values the others read (Azure DevOps org, Forgejo token)
-	@$(BUN) bin/mcp/user-servers.ts install
+claude: ## register the user-scope MCP servers, then set the machine-local values the others read (Azure DevOps org, Forgejo token for curl)
+	@DEVICE=$(DEVICE) $(BUN) bin/mcp/user-servers.ts install
 	@# A shell drop-in rather than ~/.claude/settings.local.json, because the
 	@# expansion in the `sh -c` entries reads the process environment and the settings
 	@# `env` block does not feed it. Both .bashrc and os/macos/.zshrc glob that
@@ -616,7 +600,7 @@ claude: ## register the user-scope MCP servers, then set the machine-local value
 	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \
 	grep -q '^export FORGEJO_ACCESS_TOKEN=' "$$f" 2>/dev/null && was=set || was=unset; \
 	read -s -p "Forgejo token for git.insuit.cz [$$was, empty keeps it]: " t; echo; \
-	if [ -z "$$t" ]; then echo "left $$was - the forgejo server exits before the binary runs"; exit 0; fi; \
+	if [ -z "$$t" ]; then echo "left $$was - only the curl fallbacks read it, the MCP server signs in at Authelia"; exit 0; fi; \
 	mkdir -p "$$(dirname "$$f")"; \
 	[ -s "$$f" ] || echo '# Machine-local and untracked on purpose - see .docs-llm/mcp-servers.md' > "$$f"; \
 	tmp=$$(mktemp); grep -v '^export FORGEJO_ACCESS_TOKEN=' "$$f" > "$$tmp"; \
