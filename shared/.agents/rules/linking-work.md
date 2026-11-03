@@ -39,6 +39,11 @@ stays a path.
 In Claude Code a Stop hook (`bin/agents/send-files.ts`) holds the turn once when
 the reply names an existing file of that kind that was never sent.
 
+**A file inside a worktree is copied to the main checkout before it is sent.**
+The card shows its path relative to the worktree, the terminal resolves it
+against the main checkout, and the link opens nothing.
+`bin/agents/send-from-worktree.ts` refuses the send and names the copy.
+
 ## Where this does **not** apply
 
 **Where the forge resolves it.** A commit message, a PR body and an issue comment
