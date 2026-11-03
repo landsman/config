@@ -573,12 +573,12 @@ omarchy: ## add, pin, patch and enable the shell plugins in os/arch/install-plug
 ##@ Claude Code
 #
 # The MCP servers are stowed like any other dotfile. Two of the values they
-# read cannot be: the Azure DevOps slug names an employer, the Forgejo token is
-# a secret, the tailnet name is private, and this repo is public. See .docs-llm/mcp-servers.md.
+# read cannot be: the Azure DevOps slug names an employer, the tailnet name is
+# private, and this repo is public. See .docs-llm/mcp-servers.md.
 #
 
 .PHONY: claude
-claude: ## register the user-scope MCP servers, then set the machine-local values the others read (Azure DevOps org, Forgejo token for curl)
+claude: ## register the user-scope MCP servers, then set the machine-local values the others read (Azure DevOps org)
 	@DEVICE=$(DEVICE) $(BUN) bin/mcp/user-servers.ts install
 	@# A shell drop-in rather than ~/.claude/settings.local.json, because the
 	@# expansion in the `sh -c` entries reads the process environment and the settings
@@ -594,18 +594,12 @@ claude: ## register the user-scope MCP servers, then set the machine-local value
 	tmp=$$(mktemp); grep -v '^export AZDO_ORG=' "$$f" > "$$tmp"; \
 	echo "export AZDO_ORG=$$o" >> "$$tmp"; mv "$$tmp" "$$f"; \
 	grep -H '^export AZDO_ORG=' "$$f"
-	@# Its own recipe line, so the `exit 0` above ends that prompt and not this
-	@# one. Read with -s and never printed back: a token that scrolls into a
-	@# terminal buffer is a token in every screen recording of it.
+	@# A Forgejo token from before the MCP moved to the Pi: nothing reads it now,
+	@# and a bearer token in a file every shell sources is what that move removed.
 	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \
-	grep -q '^export FORGEJO_ACCESS_TOKEN=' "$$f" 2>/dev/null && was=set || was=unset; \
-	read -s -p "Forgejo token for git.insuit.cz [$$was, empty keeps it]: " t; echo; \
-	if [ -z "$$t" ]; then echo "left $$was - only the curl fallbacks read it, the MCP server signs in at Authelia"; exit 0; fi; \
-	mkdir -p "$$(dirname "$$f")"; \
-	[ -s "$$f" ] || echo '# Machine-local and untracked on purpose - see .docs-llm/mcp-servers.md' > "$$f"; \
-	tmp=$$(mktemp); grep -v '^export FORGEJO_ACCESS_TOKEN=' "$$f" > "$$tmp"; \
-	echo "export FORGEJO_ACCESS_TOKEN=\"$$t\"" >> "$$tmp"; mv "$$tmp" "$$f"; chmod 600 "$$f"; \
-	echo "$$f: FORGEJO_ACCESS_TOKEN set"
+	if grep -q '^export FORGEJO_ACCESS_TOKEN=' "$$f" 2>/dev/null; then \
+		tmp=$$(mktemp); grep -v '^export FORGEJO_ACCESS_TOKEN=' "$$f" > "$$tmp"; mv "$$tmp" "$$f"; chmod 600 "$$f"; \
+		echo "$$f: FORGEJO_ACCESS_TOKEN removed; revoke it at https://git.insuit.cz/user/settings/applications"; fi
 	@echo "open a new shell, then: claude mcp list | grep -E 'azure-devops|forgejo'"
 
 .PHONY: claude-sandbox claude-sandbox-test

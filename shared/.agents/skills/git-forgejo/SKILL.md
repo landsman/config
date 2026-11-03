@@ -7,7 +7,7 @@ trigger-keywords: git.insuit.cz, forgejo*
 # Reading git.insuit.cz
 
 `git.insuit.cz` is my Forgejo, and most repos on it are private. **Go straight to
-the `forgejo` MCP server** — it is signed in with my token. `curl`, `WebFetch`
+the `forgejo` MCP server** — it acts as me, signed in through Authelia. `curl`, `WebFetch`
 and the anonymous `/api/v1` all get a login page or a 404, and WebFetch is
 denied outright.
 
