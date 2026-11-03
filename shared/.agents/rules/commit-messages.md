@@ -91,4 +91,6 @@ address, both as commit-msg hooks in `.gitconfig`. `bin/agents/pr-text-guard.ts`
 runs both over a PR's title and body before `gh`, `glab`, `az repos pr` or the
 Forgejo and Azure DevOps MCPs send them — and over Azure DevOps's merge commit
 message, which it squashes with instead of the title. Refused means reword, not
-`--no-verify`.
+`--no-verify`. A subject that opens with a tracker key (`ABC-123: `) is let
+through: a work repo with that convention enforces it in its own hook, and both
+hooks anchor at the start, so no subject could pass the two.
