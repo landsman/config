@@ -88,6 +88,7 @@ a gitignored `.env`.
 **Hooks enforce all of this.** `bin/git/commit-convention.ts` refuses a subject
 that breaks the shape above, and `bin/git/forbidden-names.sh` one with an email
 address, both as commit-msg hooks in `.gitconfig`. `bin/agents/pr-text-guard.ts`
-runs both over a PR's title and body before `gh pr create`, `gh pr edit`,
-`glab mr create` or the Forgejo MCP sends them. Refused means reword, not
+runs both over a PR's title and body before `gh`, `glab`, `az repos pr` or the
+Forgejo and Azure DevOps MCPs send them — and over Azure DevOps's merge commit
+message, which it squashes with instead of the title. Refused means reword, not
 `--no-verify`.

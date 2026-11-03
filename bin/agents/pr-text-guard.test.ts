@@ -55,7 +55,36 @@ describe("expected use", () => {
 		["gh pr edit 3 --title=setup:a", "setup:a"],
 		['gh pr create --title "setup: say \\"hi\\""', 'setup: say "hi"'],
 	])("reads the title out of %s", (command, title) => {
-		expect(pullRequestText("Bash", { command })?.title).toBe(title);
+		expect(pullRequestText("Bash", { command })?.subjects[0]).toBe(title);
+	});
+
+	test("Azure DevOps squashes with the merge commit message, so its subject is checked too", async () => {
+		const said = await refusal({
+			tool_name: "mcp__azure-devops__repo_pull_request_write",
+			tool_input: {
+				action: "update",
+				pullRequestId: 7,
+				mergeCommitMessage: "Merged PR 7: install glab\n\nwhy",
+			},
+		});
+		expect(said).toContain("got:      Merged PR 7: install glab");
+		expect(
+			pullRequestText("Bash", {
+				command: "az repos pr update --id 7 --title 'setup: a' --merge-commit-message 'Install it'",
+			})?.subjects,
+		).toEqual(["setup: a", "Install it"]);
+	});
+
+	test("an Azure DevOps title is checked on create, from the MCP and from az", async () => {
+		expect(
+			await refusal({
+				tool_name: "mcp__plugin_mcp-servers_azure-devops__repo_pull_request_write",
+				tool_input: { action: "create", title: "Install glab", description: "why" },
+			}),
+		).toContain("got:      Install glab");
+		expect(
+			await refusal(bash("az repos pr create --title 'setup: install glab' -d why")),
+		).toBeUndefined();
 	});
 
 	test("a body file is read as the body", () => {
@@ -74,10 +103,19 @@ describe("bad input", () => {
 	});
 
 	test("a title that is not a literal is left alone, not refused", () => {
+		expect(pullRequestText("Bash", { command: 'gh pr create --title "$TITLE"' })?.subjects).toEqual(
+			[],
+		);
+		expect(pullRequestText("Bash", { command: "gh pr create --fill" })?.subjects).toEqual([]);
+	});
+
+	test("an Azure DevOps vote or reviewer change is not a text to check", () => {
 		expect(
-			pullRequestText("Bash", { command: 'gh pr create --title "$TITLE"' })?.title,
+			pullRequestText("mcp__azure-devops__repo_pull_request_write", {
+				action: "vote",
+				title: "Whatever",
+			}),
 		).toBeUndefined();
-		expect(pullRequestText("Bash", { command: "gh pr create --fill" })?.title).toBeUndefined();
 	});
 
 	test("an update that sets no title checks only the body", async () => {

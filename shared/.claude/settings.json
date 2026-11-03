@@ -186,7 +186,7 @@
         ]
       },
       {
-        "matcher": "Bash|mcp__.*forgejo__(create|update)_pull_request",
+        "matcher": "Bash|mcp__.*forgejo__(create|update)_pull_request|mcp__.*azure-devops__repo_pull_request_write",
         "hooks": [
           {
             "type": "command",
