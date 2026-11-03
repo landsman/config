@@ -91,7 +91,9 @@ if (import.meta.main) {
 	const isTitle = args[0] === "--title";
 	// A repo outside ~/projects is a scratch one a test or a tool built, with
 	// subjects like `base` that are nobody's history.
-	if (!isTitle && !(await mainCheckout()).startsWith(`${homedir()}/projects/`)) {
+	const repo = isTitle ? "" : await mainCheckout();
+	if (!isTitle && !repo.startsWith(`${homedir()}/projects/`)) {
+		console.error(`commit-convention: ${repo} is outside ~/projects, not checked`);
 		process.exit(0);
 	}
 	const subject = isTitle ? (args[1] ?? "") : subjectOf(await Bun.file(args[0] ?? "").text());
