@@ -1,32 +1,24 @@
 # MCP Servers
 
 Every server this config owns lives in one tracked file,
-[`shared/.agents/skills/mcp-servers/.mcp.json`](../shared/.agents/skills/mcp-servers/.mcp.json).
-`make stow` links it to `~/.claude/skills/mcp-servers/`, and Claude Code loads
-any folder under a skills directory that holds a `.claude-plugin/plugin.json` as
-a plugin — here `mcp-servers@skills-dir`, personal scope, no marketplace and no
-install step. A plugin may carry a `.mcp.json`, and that is the whole mechanism:
-add a server to that file, `make restow` on a machine that has not got it yet.
+[`bin/mcp/user-servers.json`](../bin/mcp/user-servers.json), and `make claude`
+registers it at Claude Code's user scope (`bin/mcp/user-servers.ts install`).
+That writes to `~/.claude.json`, so the tracked JSON is the record and the
+script is what brings it back: it keeps a server already registered as written,
+so a rerun does not drop its sign-in, and replaces one whose entry changed. Add
+a server to that file, then `make claude`.
+
+User scope because `/mcp` lists it at the top under *User MCPs*. The list used
+to be a plugin (`mcp-servers@skills-dir`, a `.mcp.json` under the skills
+folder), and `/mcp` files every plugin server under *Built-in MCPs*, below some
+forty servers from the claude.ai plugins, so a sign-in there was as good as
+hidden. Plugin servers were also namespaced, `mcp__plugin_mcp-servers_<server>__`,
+so the `mcp__forgejo__*` and `mcp__azure-devops__*` lines in `settings.json`
+matched nothing; at user scope they apply again.
 
 The servers themselves are agent-agnostic. This arrangement is Claude Code's,
 because that is the client in use here; another client reads the same URLs from
 its own config.
-
-## The one exception: user scope, where `/mcp` shows it
-
-`/mcp` files every plugin server under *Built-in MCPs*, below some forty
-servers from the claude.ai plugins, so a server whose sign-in has to be found
-there is as good as hidden. The ones that need it live in
-[`user-servers.json`](../shared/.agents/skills/mcp-servers/user-servers.json),
-beside the plugin's `.mcp.json`, and `make claude` registers them at user scope
-(`bin/mcp/user-servers.ts install`),
-which `/mcp` lists at the top under *User MCPs*. That writes to `~/.claude.json`,
-so the tracked JSON is the record and the script is what brings it back: it
-keeps a server already registered as written, so a rerun does not drop its
-sign-in, and replaces one whose entry changed. Every remote server lives there
-(Cloudflare, Vaadin, Rohlík, Better Stack), and so do Adminer Desktop and
-chrome-devtools. The plugin keeps azure-devops and forgejo, which Windows
-registers at user scope its own way (`os/windows/forgejo-mcp.ps1`).
 
 ## opencode, and why the list is written twice
 
@@ -34,7 +26,7 @@ opencode is the second client, so the same list is also in
 [`shared/.config/opencode/opencode.json`](../shared/.config/opencode/opencode.json).
 Two files because the two schemas do not overlap:
 
-|                     | Claude `.mcp.json`         | opencode `opencode.json` |
+|                     | Claude `user-servers.json` | opencode `opencode.json` |
 |---------------------|----------------------------|--------------------------|
 | root key            | `mcpServers`               | `mcp`                    |
 | stdio               | `type: "stdio"`, `command` + `args` | `type: "local"`, `command` as one argv array |
@@ -68,18 +60,18 @@ its path.
   open](https://github.com/anthropics/claude-code/issues/32145).
 - **`~/.claude.json`** is where `claude mcp add --scope user` writes, and it is
   runtime state: sessions, OAuth tokens, per-project trust decisions. Nothing to
-  symlink, and a reinstall resets it — which is why the user-scope servers above
-  are written by a script from a tracked list, never by hand.
+  symlink, and a reinstall resets it — which is why the servers above are
+  written by a script from a tracked list, never by hand.
 - **A `.mcp.json` at a repo root** does define servers, but scopes them to that
   one repo — right for a project's own tooling, wrong for a grocery shop.
 
 ## Checking it
 
 ```bash
-claude plugin list | grep -A4 mcp-servers@skills-dir   # Status: ✔ loaded
-claude mcp list | grep plugin:mcp-servers              # one line per server
-make bin-test                                          # the two lists agree — CI runs this
-opencode mcp list                                      # what opencode actually has
+bin/mcp/user-servers.ts plan   # keep / add / replace per server, changes nothing
+claude mcp list                # one line per server, with its health
+make bin-test                  # the two lists agree — CI runs this
+opencode mcp list              # what opencode actually has
 ```
 
 A guarded server that finds no token or no binary exits 0 before it connects,
@@ -88,13 +80,9 @@ which Claude Code shows as an absent server. opencode shows the same state as
 token both guarded servers read as broken rather than as absent — check the env
 before believing either.
 
-Servers are namespaced by the plugin, so the name to allow-list, remove or debug
-is `plugin:mcp-servers:<server>`, not `<server>` — except the user-scope ones,
-which go by their plain name. A server still registered the
-old way shadows its tracked twin — `claude mcp remove <name> -s user` drops it.
-
-`.mcp.json` is read when the session starts, so `/reload-plugins` or a restart
-after editing it.
+A server is read when the session starts, so restart after `make claude`.
+Machines that had the plugin keep dangling links in `~/.agents/skills/mcp-servers/`,
+which load nothing; `rm -r` it.
 
 ## Rohlík
 
@@ -141,7 +129,7 @@ Docs: <https://developers.cloudflare.com/agents/model-context-protocol/cloudflar
 The one server Cloudflare calls enough on its own: the whole API through
 `search()` and `execute()`, plus `docs()`. Its product servers (docs,
 containers, browser, DEX, CASB) are left out, since this one reaches the
-same API. Registered at user scope by `make claude` (see above), then OAuth in
+same API. Registered by `make claude` (see above), then OAuth in
 the browser through `/mcp`, where the permissions are picked, so nothing secret is tracked. An API token as `Authorization: Bearer`
 is the headless alternative, not used here.
 
@@ -178,10 +166,7 @@ again nothing secret is tracked. Two things about the entry are deliberate:
 - **`-d core repositories pipelines search`** keeps the tool surface to the four
   domains actually used; without it every domain loads.
 
-`settings.json` still allows `mcp__azure-devops__*` from when this was
-registered by hand. Plugin servers are namespaced, so those lines no longer
-match — left alone here rather than guessed at, because the exact prefix is
-worth reading off a live session before it is written down.
+`settings.json` allows a set of `mcp__azure-devops__*` read tools by name.
 
 ## Forgejo
 
@@ -206,7 +191,7 @@ upstream module path and go refuses a module whose declared path is not the one
 it fetched. `go install .` inside the checkout does not care.
 
 The **token** is machine-local for the usual reason — this repo is public. The
-**instance URL is not**, and sits in `.mcp.json` in clear: `git.insuit.cz` is
+**instance URL is not**, and sits in `user-servers.json` in clear: `git.insuit.cz` is
 already all over the homelab repo, which is public too. It is the token that is
 secret, not the address.
 
@@ -261,9 +246,9 @@ Guarded like Forgejo, on the binary alone. `command -v` finds the `.deb`'s
 machine with neither gets no server — which is what lets it sit in the shared
 list rather than beside pencil.
 
-The app's settings tab offers `claude mcp add adminer-desktop …`. That writes a
-user-scope copy that shadows this one, so skip it, or undo it with
-`claude mcp remove adminer-desktop -s user`.
+The app's settings tab offers `claude mcp add adminer-desktop …`. Skip it: it
+writes an unguarded entry under the same name, which the next `make claude`
+replaces anyway.
 
 ## Common commands
 
@@ -271,5 +256,4 @@ user-scope copy that shadows this one, so skip it, or undo it with
 |----------------------------|--------------------------------------------|
 | `claude mcp list`          | List servers + health                      |
 | `claude mcp get <name>`    | One server: scope, transport, health       |
-| `claude plugin list`       | Check the plugin loaded at all             |
-| `claude mcp remove <name>` | Unregister a server added with `--scope user` |
+| `claude mcp remove <name> -s user` | Unregister a server                |

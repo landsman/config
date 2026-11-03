@@ -3,9 +3,10 @@
 # the two copies still agree.
 #
 # Two files rather than one, because the formats are not the same: Claude Code
-# reads a plugin's .mcp.json, where a stdio server is `command` plus `args`
-# under `mcpServers`, while opencode reads its own config, where it is a single
-# argv array under `mcp` and the schema allows nothing else (each entry is
+# reads user-servers.json (registered by user-servers.ts), where a stdio server
+# is `command` plus `args` under `mcpServers`, while opencode reads its own
+# config, where it is a single argv array under `mcp` and the schema allows
+# nothing else (each entry is
 # `additionalProperties: false`, and a `type` it does not know is an error). No
 # symlink serves both, so the list is written twice.
 #
@@ -17,10 +18,7 @@ set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
-claude="$root/shared/.agents/skills/mcp-servers/.mcp.json"
-# The servers registered at user scope instead, so /mcp lists them under User
-# MCPs (bin/mcp/user-servers.ts). Still Claude Code's, so they count with the plugin's.
-claude_user="$root/shared/.agents/skills/mcp-servers/user-servers.json"
+claude="$here/user-servers.json"
 opencode="$root/shared/.config/opencode/opencode.json"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -37,11 +35,11 @@ opencode_only="pencil"
 # what it does: Claude splits it across `command` and `args`, opencode keeps it
 # in one array. Reading it as a single argv line is what makes a guard that
 # drifted between the copies show up as a diff rather than as a subtlety.
-sigs() {  # sigs <file> <claude|claude-user|opencode> <out>
+sigs() {  # sigs <file> <claude|opencode> <out>
 	python3 -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
-servers = d["mcpServers"] if sys.argv[2].startswith("claude") else d["mcp"]
+servers = d["mcpServers"] if sys.argv[2] == "claude" else d["mcp"]
 for name, s in sorted(servers.items()):
     if s["type"] in ("http", "remote"):
         what = "url " + s["url"]
@@ -56,14 +54,12 @@ for name, s in sorted(servers.items()):
 ' "$1" "$2" > "$3"
 }
 
-for pair in "$claude:claude" "$claude_user:claude-user" "$opencode:opencode"; do
+for pair in "$claude:claude" "$opencode:opencode"; do
 	f=${pair%:*}
 	[ -f "$f" ] || { echo "FAIL $f is missing"; exit 1; }
 	sigs "$f" "${pair##*:}" "$tmp/${pair##*:}" \
 		|| { echo "FAIL $f is not readable as a server list"; exit 1; }
 done
-
-sort "$tmp/claude" "$tmp/claude-user" > "$tmp/claude-all"
 
 # Drop the declared exceptions by name rather than by line pattern, so a server
 # whose name is a prefix of another is not exempted along with it.
@@ -85,7 +81,7 @@ check() {  # check <name> <expected> <actual>
 check "the opencode list is not empty once the exceptions are removed" 1 \
 	"$([ -s "$tmp/opencode-minus-exceptions" ] && echo 1 || echo 0)"
 
-if diff -u "$tmp/claude-all" "$tmp/opencode-minus-exceptions" > "$tmp/diff"; then
+if diff -u "$tmp/claude" "$tmp/opencode-minus-exceptions" > "$tmp/diff"; then
 	echo "ok   both lists name the same servers and run the same command"
 else
 	echo "FAIL the two lists disagree"; sed 's/^/  /' "$tmp/diff"; fails=$((fails + 1))

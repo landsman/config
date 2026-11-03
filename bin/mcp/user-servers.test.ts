@@ -45,13 +45,9 @@ describe("expected use", () => {
 		]);
 	});
 	test("the tracked list is readable", () => {
-		expect(
-			Object.keys(
-				serversIn(
-					join(import.meta.dir, "../../shared/.agents/skills/mcp-servers/user-servers.json"),
-				),
-			),
-		).toContain("cloudflare");
+		expect(Object.keys(serversIn(join(import.meta.dir, "user-servers.json")))).toContain(
+			"cloudflare",
+		);
 	});
 });
 

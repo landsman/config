@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-// Registers the servers in user-servers.json, beside the plugin's .mcp.json in
-// shared/.agents/skills/mcp-servers/, at Claude Code's user scope, so /mcp lists
-// them under User MCPs rather than among the plugin servers.
+// Registers the servers in user-servers.json, beside this script, at Claude
+// Code's user scope, so /mcp lists them under User MCPs rather than among the
+// forty plugin servers.
 //
 // usage:
 //   user-servers.ts install   register what is missing or changed, keep the rest
@@ -17,10 +17,7 @@ import { isDeepStrictEqual } from "node:util";
 import { match } from "ts-pattern";
 import { cli } from "@lib/cli";
 
-const wantedFile = join(
-	import.meta.dir,
-	"../../shared/.agents/skills/mcp-servers/user-servers.json",
-);
+const wantedFile = join(import.meta.dir, "user-servers.json");
 
 async function install() {
 	for (const step of currentPlan()) {
