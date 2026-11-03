@@ -93,7 +93,7 @@ if ($token) {
 }
 
 Write-Host '== claude'
-# Registered here rather than through the shared .mcp.json, because every
+# Registered here rather than from bin/mcp/user-servers.json, because every
 # entry there runs through `sh -c` and sh is not on the Windows PATH.
 # Removed first so a second run replaces the entry instead of failing on it.
 & { $ErrorActionPreference = 'Continue'; claude mcp remove forgejo --scope user *> $null }

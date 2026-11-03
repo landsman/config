@@ -71,8 +71,3 @@ skills-index-test` fails when a skill has no row.
 |-------|-----|
 | [terse-prose](write-terse-prose/SKILL.md) | comments, PR bodies, error messages cut to their core |
 | [bro](write-bro/SKILL.md) | the last answer again, in plain language |
-
-## Not a skill
-
-`mcp-servers/` is a Claude Code plugin (`.claude-plugin/`, `.mcp.json`) that
-sits here; no loader reads it as a skill.

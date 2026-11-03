@@ -45,13 +45,9 @@ describe("expected use", () => {
 		]);
 	});
 	test("the tracked list is readable", () => {
-		expect(
-			Object.keys(
-				serversIn(
-					join(import.meta.dir, "../../shared/.agents/skills/mcp-servers/user-servers.json"),
-				),
-			),
-		).toContain("cloudflare");
+		expect(Object.keys(serversIn(join(import.meta.dir, "user-servers.json")))).toContain(
+			"cloudflare",
+		);
 	});
 });
 
@@ -92,7 +88,12 @@ async function install(claudeJson: object | undefined): Promise<string[]> {
 	});
 	expect(result.exitCode).toBe(0);
 	try {
-		return readFileSync(callsFile, "utf8").trim().split("\n");
+		// Only cloudflare's calls: the rest of the tracked list is added too, and the
+		// cases here are about one server.
+		return readFileSync(callsFile, "utf8")
+			.trim()
+			.split("\n")
+			.filter((call) => call.split(" ").includes("cloudflare"));
 	} catch {
 		return [];
 	}

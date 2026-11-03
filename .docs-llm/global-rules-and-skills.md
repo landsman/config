@@ -137,7 +137,7 @@ equivalent was not established. Both are gaps, not solved cases.
 
 The tracked servers from [`mcp-servers.md`](mcp-servers.md) are configured for
 opencode too, as `mcp:` entries in `opencode.json`, mirroring the
-[`.mcp.json`](../shared/.agents/skills/mcp-servers/.mcp.json) Claude Code reads.
+[`user-servers.json`](../bin/mcp/user-servers.json) `make claude` registers with Claude Code.
 The URLs are the same; the client configuration is the only difference. Rohlík
 and Vaadin are remote (`type: remote`), Azure DevOps is the same `sh -c` wrapper
-as the plugin, gated on `$AZDO_ORG` being set by `make claude`.
+as Claude Code's, gated on `$AZDO_ORG` being set by `make claude`.
