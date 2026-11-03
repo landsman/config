@@ -15,6 +15,14 @@
     "betterstack": {
       "type": "http",
       "url": "https://mcp.betterstack.com"
+    },
+    "adminer-desktop": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-c",
+        "b=$(command -v adminer-desktop || echo \"/Applications/Adminer Desktop.app/Contents/MacOS/adminer-desktop\"); [ -x \"$b\" ] || exit 0; exec \"$b\" -mcp"
+      ]
     }
   }
 }
