@@ -12,10 +12,6 @@
       "type": "http",
       "url": "https://mcp.betterstack.com"
     },
-    "cloudflare": {
-      "type": "http",
-      "url": "https://mcp.cloudflare.com/mcp"
-    },
     "azure-devops": {
       "type": "stdio",
       "command": "sh",

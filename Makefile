@@ -594,7 +594,8 @@ forgejo-mcp: ## build the Forgejo MCP server from the local mirror into ~/go/bin
 		&& "$$HOME/go/bin/forgejo-mcp" --version
 
 .PHONY: claude
-claude: ## set the machine-local values the MCP servers read (Azure DevOps org, Forgejo token)
+claude: ## register the user-scope MCP servers, then set the machine-local values the others read (Azure DevOps org, Forgejo token)
+	@bash bin/mcp/user-servers.sh install
 	@# A shell drop-in rather than ~/.claude/settings.local.json, because the
 	@# expansion in .mcp.json reads the process environment and the settings
 	@# `env` block does not feed it. Both .bashrc and os/macos/.zshrc glob that
