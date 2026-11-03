@@ -19,8 +19,8 @@ here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
 claude="$root/shared/.agents/skills/mcp-servers/.mcp.json"
 # The servers registered at user scope instead, so /mcp lists them under User
-# MCPs (bin/mcp/user-servers.sh). Still Claude Code's, so they count with the plugin's.
-claude_user="$root/bin/mcp/user-servers.json"
+# MCPs (bin/mcp/user-servers.ts). Still Claude Code's, so they count with the plugin's.
+claude_user="$root/shared/.agents/skills/mcp-servers/user-servers.json"
 opencode="$root/shared/.config/opencode/opencode.json"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT

@@ -17,8 +17,9 @@ its own config.
 `/mcp` files every plugin server under *Built-in MCPs*, below some forty
 servers from the claude.ai plugins, so a server whose sign-in has to be found
 there is as good as hidden. The ones that need it live in
-[`bin/mcp/user-servers.json`](../bin/mcp/user-servers.json) instead, and
-`make claude` registers them at user scope (`bin/mcp/user-servers.sh install`),
+[`user-servers.json`](../shared/.agents/skills/mcp-servers/user-servers.json),
+beside the plugin's `.mcp.json`, and `make claude` registers them at user scope
+(`bin/mcp/user-servers.ts install`),
 which `/mcp` lists at the top under *User MCPs*. That writes to `~/.claude.json`,
 so the tracked JSON is the record and the script is what brings it back: it
 keeps a server already registered as written, so a rerun does not drop its
