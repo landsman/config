@@ -186,6 +186,15 @@
         ]
       },
       {
+        "matcher": "Bash|mcp__.*forgejo__(create|update)_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/pr-text-guard.ts\""
+          }
+        ]
+      },
+      {
         "matcher": "SendUserFile",
         "hooks": [
           {

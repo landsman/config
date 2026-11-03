@@ -82,10 +82,9 @@ belongs to more than one folder — a client whose product sits under another
 owner's folder — lists every one of them, comma-separated (`acme,acme-holding`).
 A refused commit means reword with a placeholder, not `--no-verify`.
 
-**The PR title and body it cannot see**, and the body is the one nothing else
-checks. Run it over them before posting:
-
-    printf '%s\n' "$TITLE" "$BODY" | ~/projects/landsman/config/bin/git/forbidden-names.sh -
+**The PR title and body it cannot see**, so an agent hook,
+`bin/agents/pr-text-guard.ts`, runs it over them before the PR is opened or
+edited.
 
 If something did get out: fix the file, **fix the pull request body**, and check
 `git log --grep` before deciding whether history has to be rewritten.

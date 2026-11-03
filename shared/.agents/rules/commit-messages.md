@@ -69,8 +69,9 @@ extends SoftDeletableEntity`.
 
 **A squash-merge writes the PR title as the commit subject and the PR body as the
 commit body**, so both follow every rule here. That is the half that lands on the
-main branch and the half a local hook cannot see. The skill names the repo setting
-that makes this true, and what the wrong one leaks into history.
+main branch and the half the commit-msg hook cannot see, so an agent hook checks
+them before the PR is opened (below). The skill names the repo setting that makes
+this true, and what the wrong one leaks into history.
 
 Two things this does not change:
 
@@ -82,5 +83,11 @@ Two things this does not change:
 
 **No email address in a subject or a PR title**, mine included. Say whose it
 is ("the work address"), not what it is. The value belongs in the diff or in
-a gitignored `.env`. `bin/git/forbidden-names.sh` refuses the subject at
-commit time, and refuses the title when the PR is piped through it.
+a gitignored `.env`.
+
+**Hooks enforce all of this.** `bin/git/commit-convention.ts` refuses a subject
+that breaks the shape above, and `bin/git/forbidden-names.sh` one with an email
+address, both as commit-msg hooks in `.gitconfig`. `bin/agents/pr-text-guard.ts`
+runs both over a PR's title and body before `gh pr create`, `gh pr edit`,
+`glab mr create` or the Forgejo MCP sends them. Refused means reword, not
+`--no-verify`.
