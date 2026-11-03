@@ -116,6 +116,21 @@ mode exists; a connection can be narrowed with the `X-MCP-Tools-Only` or
 A project that lists the same server in its own `.mcp.json` loads it a second
 time under its plain name; harmless, same URL.
 
+## Cloudflare
+
+Docs: <https://developers.cloudflare.com/agents/model-context-protocol/cloudflare/servers-for-cloudflare/>
+
+The one server Cloudflare calls enough on its own: the whole API through
+`search()` and `execute()`, plus `docs()`. Its product servers (docs,
+containers, browser, DEX, CASB) are left out, since this one reaches the
+same API. OAuth in the browser through `/mcp`, where the permissions are
+picked, so nothing secret is tracked. An API token as `Authorization: Bearer`
+is the headless alternative, not used here.
+
+It reads **and writes** anything the granted permissions allow. Where a zone
+is managed in Terraform, a change through the server is drift the next apply
+knows nothing about, so grant read permissions and use it to look.
+
 ## Azure DevOps
 
 Microsoft's own server, [`@azure-devops/mcp`](https://github.com/microsoft/azure-devops-mcp).
