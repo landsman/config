@@ -30,6 +30,11 @@ fails=0
 # macOS-only, so it cannot sit in a file every machine reads.
 opencode_only="pencil"
 
+# And the other way. forgejo signs in at Authelia with a client per device, whose
+# one allowed redirect is Claude Code's fixed callback port; opencode picks its
+# own callback, so Authelia would refuse it.
+claude_only="forgejo"
+
 # One line per server — `name<TAB>what it runs` — from either format, so the
 # two are comparable. The formats differ in how a command is spelled, not in
 # what it does: Claude splits it across `command` and `args`, opencode keeps it
@@ -63,11 +68,16 @@ done
 
 # Drop the declared exceptions by name rather than by line pattern, so a server
 # whose name is a prefix of another is not exempted along with it.
-awk -F'\t' -v ex="$opencode_only" '
-	BEGIN { n = split(ex, a, " "); for (i = 1; i <= n; i++) e[a[i]] = 1 }
-	!($1 in e)
-' "$tmp/opencode" > "$tmp/opencode-minus-exceptions"
+without() {  # without <names> <list> <out>
+	awk -F'\t' -v ex="$1" '
+		BEGIN { n = split(ex, a, " "); for (i = 1; i <= n; i++) e[a[i]] = 1 }
+		!($1 in e)
+	' "$2" > "$3"
+}
+without "$opencode_only" "$tmp/opencode" "$tmp/opencode-minus-exceptions"
+without "$claude_only" "$tmp/claude" "$tmp/claude-minus-exceptions"
 cut -f1 "$tmp/opencode" > "$tmp/opencode-names"
+cut -f1 "$tmp/claude" > "$tmp/claude-names"
 
 # A diff that passes because the filter removed everything is a check that ran
 # and proved nothing, so the list it compared is asserted to be non-empty first.
@@ -81,7 +91,7 @@ check() {  # check <name> <expected> <actual>
 check "the opencode list is not empty once the exceptions are removed" 1 \
 	"$([ -s "$tmp/opencode-minus-exceptions" ] && echo 1 || echo 0)"
 
-if diff -u "$tmp/claude" "$tmp/opencode-minus-exceptions" > "$tmp/diff"; then
+if diff -u "$tmp/claude-minus-exceptions" "$tmp/opencode-minus-exceptions" > "$tmp/diff"; then
 	echo "ok   both lists name the same servers and run the same command"
 else
 	echo "FAIL the two lists disagree"; sed 's/^/  /' "$tmp/diff"; fails=$((fails + 1))
@@ -95,6 +105,15 @@ for n in $opencode_only; do
 		echo "ok   $n is still opencode-only, as declared"
 	else
 		echo "FAIL $n is declared opencode-only but is not in the opencode config"
+		fails=$((fails + 1))
+	fi
+done
+
+for n in $claude_only; do
+	if grep -qx "$n" "$tmp/claude-names"; then
+		echo "ok   $n is still Claude-only, as declared"
+	else
+		echo "FAIL $n is declared Claude-only but is not in user-servers.json"
 		fails=$((fails + 1))
 	fi
 done

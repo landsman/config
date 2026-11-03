@@ -5,7 +5,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Action, plan, serversIn } from "@bin/mcp/user-servers";
+import { Action, fill, plan, serversIn } from "@bin/mcp/user-servers";
 
 const cloudflare = { type: "http", url: "https://mcp.cloudflare.com/mcp" };
 const wanted = { cloudflare };
@@ -51,6 +51,31 @@ describe("expected use", () => {
 	});
 });
 
+describe("placeholders", () => {
+	const forgejo = {
+		type: "http",
+		url: "https://forgejo-mcp.{{TAILNET}}/mcp",
+		oauth: { clientId: "forgejo-mcp-{{DEVICE}}", callbackPort: 53682 },
+	};
+	test("are filled with this machine's values", () => {
+		const { filled } = fill({ forgejo }, { TAILNET: "example.ts.net", DEVICE: "t480" });
+		expect(filled.forgejo).toEqual({
+			type: "http",
+			url: "https://forgejo-mcp.example.ts.net/mcp",
+			oauth: { clientId: "forgejo-mcp-t480", callbackPort: 53682 },
+		});
+	});
+	test("a server with one unknown is skipped, the others are not", () => {
+		const { filled, skipped } = fill({ forgejo, cloudflare }, { DEVICE: "t480" });
+		expect(Object.keys(filled)).toEqual(["cloudflare"]);
+		expect(skipped).toEqual([["forgejo", "TAILNET"]]);
+	});
+	test("install never registers a placeholder", async () => {
+		const calls = await install(undefined, "forgejo", { TAILNET: "", DEVICE: "t480" });
+		expect(calls).toEqual([]);
+	});
+});
+
 describe("bad input", () => {
 	test("a broken ~/.claude.json throws instead of reading as nothing registered", () => {
 		const broken = join(sandbox, "broken.json");
@@ -75,7 +100,11 @@ describe("bad input", () => {
 
 /** Runs the script's install against a stub `claude` that records its arguments,
  *  and a fake ~/.claude.json (none when `claudeJson` is undefined). */
-async function install(claudeJson: object | undefined): Promise<string[]> {
+async function install(
+	claudeJson: object | undefined,
+	server = "cloudflare",
+	env: Record<string, string> = {},
+): Promise<string[]> {
 	const run = mkdtempSync(join(sandbox, "run-"));
 	const callsFile = join(run, "calls");
 	const stub = join(run, "claude");
@@ -84,16 +113,16 @@ async function install(claudeJson: object | undefined): Promise<string[]> {
 	const configFile = join(run, ".claude.json");
 	if (claudeJson !== undefined) writeFileSync(configFile, JSON.stringify(claudeJson));
 	const result = Bun.spawnSync(["bun", join(import.meta.dir, "user-servers.ts"), "install"], {
-		env: { ...process.env, PATH: `${run}:${process.env.PATH}`, CLAUDE_JSON: configFile },
+		env: { ...process.env, PATH: `${run}:${process.env.PATH}`, CLAUDE_JSON: configFile, ...env },
 	});
 	expect(result.exitCode).toBe(0);
 	try {
-		// Only cloudflare's calls: the rest of the tracked list is added too, and the
+		// Only that server's calls: the rest of the tracked list is added too, and the
 		// cases here are about one server.
 		return readFileSync(callsFile, "utf8")
 			.trim()
 			.split("\n")
-			.filter((call) => call.split(" ").includes("cloudflare"));
+			.filter((call) => call.split(" ").includes(server));
 	} catch {
 		return [];
 	}

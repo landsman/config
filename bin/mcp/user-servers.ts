@@ -9,6 +9,11 @@
 //
 // A server already registered as written is kept, so a rerun does not drop its
 // OAuth sign-in. CLAUDE_JSON overrides ~/.claude.json, for the test.
+//
+// `{{NAME}}` in an entry is a value this repo must not carry, filled in here:
+// DEVICE from the environment (`make claude` passes it) and TAILNET from
+// `tailscale status`, since the repo is public. A server with one left unfilled
+// is skipped, never registered with the placeholder in it.
 import { $ } from "bun";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -41,7 +46,44 @@ async function addServer(step: Step) {
 
 function currentPlan(): Step[] {
 	const claudeJson = process.env.CLAUDE_JSON ?? join(homedir(), ".claude.json");
-	return plan(serversIn(wantedFile), existsSync(claudeJson) ? serversIn(claudeJson) : {});
+	const { filled, skipped } = fill(serversIn(wantedFile), {
+		DEVICE: process.env.DEVICE,
+		TAILNET: process.env.TAILNET ?? tailnet(),
+	});
+	for (const [name, missing] of skipped) console.error(`skip ${name}: ${missing} is unknown`);
+	return plan(filled, existsSync(claudeJson) ? serversIn(claudeJson) : {});
+}
+
+/** Each server with its `{{NAME}}` placeholders replaced, or skipped with the
+ *  first name that has no value. */
+export function fill(
+	servers: Servers,
+	values: Record<string, string | undefined>,
+): { filled: Servers; skipped: [string, string][] } {
+	const filled: Servers = {};
+	const skipped: [string, string][] = [];
+	for (const [name, server] of Object.entries(servers)) {
+		let missing: string | undefined;
+		const text = JSON.stringify(server).replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
+			const value = values[key];
+			if (!value) missing ??= key;
+			return JSON.stringify(value ?? "").slice(1, -1); // escaped, it sits inside a JSON string
+		});
+		if (missing) skipped.push([name, missing]);
+		else filled[name] = JSON.parse(text);
+	}
+	return { filled, skipped };
+}
+
+/** This machine's tailnet, `<name>.ts.net`, or undefined when Tailscale is not
+ *  running here. */
+function tailnet(): string | undefined {
+	if (!Bun.which("tailscale")) return undefined;
+	const status = Bun.spawnSync(["tailscale", "status", "--json"], { stderr: "ignore" });
+	if (status.exitCode !== 0) return undefined;
+	const suffix = (JSON.parse(status.stdout.toString()) as { MagicDNSSuffix?: string })
+		.MagicDNSSuffix;
+	return suffix?.replace(/\.$/, "") || undefined;
 }
 
 export enum Action {

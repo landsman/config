@@ -34,7 +34,7 @@ swap `main` for the branch in the URL.
 | [`apply.ps1`](apply.ps1) | Power plan, timeouts and power mode, every `.reg` under `registry/`, the agent config links, then every app in `apps.txt` |
 | [`apps.txt`](apps.txt) | The apps, as winget ids |
 | [`CAVEATS.md`](CAVEATS.md) | What bites on Windows, and what it costs to fix: Smart App Control, `sh`, GRUB, first-run git and `gh` |
-| [`forgejo-mcp.ps1`](forgejo-mcp.ps1) | Builds the Forgejo MCP server, asks for its token and registers it with Claude Code. Run by hand, not elevated |
+| [`forgejo-mcp.ps1`](forgejo-mcp.ps1) | Registers the Forgejo MCP server on the Pi with Claude Code, with this device's sign-in client. Run by hand, not elevated |
 | [`registry/no-auto-reboot.reg`](registry/no-auto-reboot.reg) | Windows Update does not restart while I am signed in |
 | [`registry/no-fast-startup.reg`](registry/no-fast-startup.reg) | Shutting down really shuts down, so the Windows volume is closed cleanly for the Linux installs |
 | [`registry/no-smart-app-control.reg`](registry/no-smart-app-control.reg) | Smart App Control off, so a binary built here can run. See [CAVEATS.md](CAVEATS.md) |
@@ -87,33 +87,16 @@ without it keeps text files in their place until
 
 ## Forgejo MCP
 
-[`forgejo-mcp.ps1`](forgejo-mcp.ps1) is the Windows half of `make forgejo-mcp`
-and `make claude`. The Forgejo section of
-[`mcp-servers.md`](../../.docs-llm/mcp-servers.md) explains the mirror, the
-token scopes and the upload flag that stays off. Run it as yourself, not
-elevated:
+[`forgejo-mcp.ps1`](forgejo-mcp.ps1) is the Windows half of `make claude` for
+the forgejo server, which runs on the Pi. With Tailscale signed in:
 
 ```
 powershell -ExecutionPolicy Bypass -File os\windows\forgejo-mcp.ps1
 ```
 
-It installs Git, Go and the Claude CLI through winget if any is missing. It
-builds the newest stable tag from the mirror into `~\go\bin`. It asks for the
-token and keeps it as the user environment variable `FORGEJO_ACCESS_TOKEN`, the
-counterpart of the shell drop-in on the other OSes. Last, it registers the
-server with `claude mcp add --scope user`, pointing straight at the `.exe`, so
-no `sh` is involved. That user-scope `forgejo` shadows the skill's failing
-entry of the same name. Restart Claude afterwards, so it picks up the new
-environment variable.
-
-### Smart App Control blocks the build
-
-Smart App Control, on and enforcing on the T480, blocks the local build. It has
-no per-app exception, so the script checks that the binary runs before it
-registers anything. `apply.ps1` turns Smart App Control off, and after the
-restart that follows it the build runs. Read the
-[Smart App Control caveat](CAVEATS.md#smart-app-control-blocks-anything-built-on-the-machine)
-for what that costs: it is off for every app, often for good.
+It registers `forgejo` at user scope with the T480's Authelia client; restart
+Claude and sign in through `/mcp`. The Forgejo section of
+[`mcp-servers.md`](../../.docs-llm/mcp-servers.md) has the rest.
 
 ## Power
 
