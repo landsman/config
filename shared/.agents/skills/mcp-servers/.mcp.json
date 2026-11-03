@@ -1,17 +1,5 @@
 {
   "mcpServers": {
-    "rohlik": {
-      "type": "http",
-      "url": "https://mcp.rohlik.cz/mcp"
-    },
-    "vaadin": {
-      "type": "http",
-      "url": "https://mcp.vaadin.com/docs"
-    },
-    "betterstack": {
-      "type": "http",
-      "url": "https://mcp.betterstack.com"
-    },
     "azure-devops": {
       "type": "stdio",
       "command": "sh",

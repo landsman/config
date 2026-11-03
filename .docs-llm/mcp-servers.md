@@ -23,7 +23,10 @@ beside the plugin's `.mcp.json`, and `make claude` registers them at user scope
 which `/mcp` lists at the top under *User MCPs*. That writes to `~/.claude.json`,
 so the tracked JSON is the record and the script is what brings it back: it
 keeps a server already registered as written, so a rerun does not drop its
-sign-in, and replaces one whose entry changed. Cloudflare is the one so far.
+sign-in, and replaces one whose entry changed. Every remote server lives there
+(Cloudflare, Vaadin, Rohlík, Better Stack); the plugin keeps the `sh -c` ones,
+which need no sign-in and which Windows registers its own way
+(`os/windows/forgejo-mcp.ps1`).
 
 ## opencode, and why the list is written twice
 
@@ -86,7 +89,8 @@ token both guarded servers read as broken rather than as absent — check the en
 before believing either.
 
 Servers are namespaced by the plugin, so the name to allow-list, remove or debug
-is `plugin:mcp-servers:<server>`, not `<server>`. A server still registered the
+is `plugin:mcp-servers:<server>`, not `<server>` — except the user-scope ones,
+which go by their plain name. A server still registered the
 old way shadows its tracked twin — `claude mcp remove <name> -s user` drops it.
 
 `.mcp.json` is read when the session starts, so `/reload-plugins` or a restart
@@ -127,8 +131,8 @@ next apply knows nothing about, so it is for reading and triage. No read-only
 mode exists; a connection can be narrowed with the `X-MCP-Tools-Only` or
 `X-MCP-Tools-Except` header.
 
-A project that lists the same server in its own `.mcp.json` loads it a second
-time under its plain name; harmless, same URL.
+A project that lists the same server in its own `.mcp.json` takes precedence
+over the user-scope one of the same name; harmless, same URL.
 
 ## Cloudflare
 
