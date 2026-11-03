@@ -31,8 +31,14 @@ describe("expected use", () => {
 		expect(subjectProblem(subject)).toBeUndefined();
 	});
 
-	test("a PR title drops Forgejo's draft marker, a commit subject does not", () => {
-		expect(titleProblem("WIP: setup: install glab")).toBeUndefined();
+	test.each(["WIP: ", "[WIP] ", "Draft: ", "draft: ", "[Draft] ", "(Draft) "])(
+		"a PR title drops the draft marker %p",
+		(marker) => {
+			expect(titleProblem(`${marker}setup: install glab`)).toBeUndefined();
+		},
+	);
+
+	test("a commit subject keeps the draft marker, and is refused for it", () => {
 		expect(subjectProblem("WIP: setup: install glab")).toMatch(/prefix/);
 	});
 

@@ -60,7 +60,7 @@ export type ToolInput = {
 type PullRequestText = { subjects: string[]; body: string };
 
 const PULL_REQUEST_COMMAND =
-	/\b(gh\s+pr\s+(create|edit)|glab\s+mr\s+create|az\s+repos\s+pr\s+(create|update))\b/;
+	/\b(gh\s+pr\s+(create|edit)|glab\s+mr\s+(create|update)|az\s+repos\s+pr\s+(create|update))\b/;
 
 const BODY_FILE = /(?:--body-file|-F)[=\s]+["']?([^\s"']+)/;
 

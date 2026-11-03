@@ -57,13 +57,16 @@ const PREFIX = /^([a-z]+)(\([a-z0-9./-]+\))?!?: (.*)$/;
  *  a revert's quotes the original, a fixup is folded away before it lands. */
 const GENERATED = /^(Merge |Revert |fixup!|squash!)/;
 
-/** The same for a PR title. Forgejo's draft marker `WIP: ` is dropped first: the forge
- *  will not merge a draft, and taking the marker off re-checks the title it leaves. */
+/** The same for a PR title, with the forge's draft marker dropped first: Forgejo's
+ *  `WIP:` or `[WIP]`, GitLab's `Draft:`, `[Draft]` or `(Draft)`. The forge will not
+ *  merge a draft, and taking the marker off re-checks the title it leaves. */
 export function titleProblem(title: string): string | undefined {
-	const subject = title.replace(/^\s*WIP:\s*/, "").trim();
+	const subject = title.replace(DRAFT_MARKER, "").trim();
 	// Empty is an aborted commit, but never a PR worth opening.
 	return subject === "" ? "the title is empty" : subjectProblem(subject);
 }
+
+const DRAFT_MARKER = /^\s*(WIP:|\[WIP\]|Draft:|\[Draft\]|\(Draft\))\s*/i;
 
 /** The refusal, the same for a commit, a PR and an agent: what was given, what is
  *  wrong, and what is expected, so it can be fixed without opening the rule. */

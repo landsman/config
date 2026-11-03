@@ -87,6 +87,15 @@ describe("expected use", () => {
 		).toBeUndefined();
 	});
 
+	test("a GitLab draft passes, and a title changed by glab mr update is checked", async () => {
+		expect(
+			await refusal(bash("glab mr create --draft -t 'Draft: setup: a' -d why")),
+		).toBeUndefined();
+		expect(await refusal(bash("glab mr update 4 --title 'Install glab'"))).toContain(
+			"got:      Install glab",
+		);
+	});
+
 	test("a body file is read as the body", () => {
 		const file = join(home, "body.md");
 		writeFileSync(file, "the body\n");
