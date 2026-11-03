@@ -31,6 +31,11 @@ describe("expected use", () => {
 		expect(subjectProblem(subject)).toBeUndefined();
 	});
 
+	test("a work repo's ticket-key subject is its own hook's to judge", () => {
+		expect(subjectProblem("ABC-2407: Oprava podle konvence toho repa")).toBeUndefined();
+		expect(titleProblem("ABC-2407: Oprava podle konvence toho repa")).toBeUndefined();
+	});
+
 	test.each(["WIP: ", "[WIP] ", "Draft: ", "draft: ", "[Draft] ", "(Draft) "])(
 		"a PR title drops the draft marker %p",
 		(marker) => {

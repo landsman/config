@@ -12,7 +12,7 @@ import { subjectOf } from "@bin/git/forbidden-names";
 
 /** What is wrong with a commit subject, or undefined when it follows the rule. */
 export function subjectProblem(subject: string): string | undefined {
-	if (subject === "" || GENERATED.test(subject)) {
+	if (subject === "" || GENERATED.test(subject) || TICKET_KEY.test(subject)) {
 		return undefined;
 	}
 	const parts = PREFIX.exec(subject);
@@ -56,6 +56,11 @@ const PREFIX = /^([a-z]+)(\([a-z0-9./-]+\))?!?: (.*)$/;
 /** Git's own subjects and a fixup are not ours to reformat: a merge's is generated,
  *  a revert's quotes the original, a fixup is folded away before it lands. */
 const GENERATED = /^(Merge |Revert |fixup!|squash!)/;
+
+/** A subject opening with a tracker key (`ABC-123: `) follows a work repo's own
+ *  convention, which its own commit-msg hook enforces; demanding a type as well
+ *  leaves no subject both hooks accept. */
+const TICKET_KEY = /^[A-Z][A-Z0-9]*-[0-9]+: /;
 
 /** The same for a PR title, with the forge's draft marker dropped first: Forgejo's
  *  `WIP:` or `[WIP]`, GitLab's `Draft:`, `[Draft]` or `(Draft)`. The forge will not
