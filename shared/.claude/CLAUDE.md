@@ -20,6 +20,7 @@ the mistake, not after.
 | [Text to paste](rules/text-to-paste.md) | a draft goes in front of me to copy elsewhere — a comment, a reply, an email |
 | [Git history](rules/git-history.md) | amend, squash, rebase, force-push |
 | [Pushing to a pull request](rules/pushing-to-a-pr.md) | pushing to a branch whose PR is older than fifteen minutes, and answering its review comments |
+| [Reuse before adding](rules/reuse-before-adding.md) | a new hook, script, target, rule, skill, component or helper is about to be written — search for one that does a neighbouring job and extend it first |
 | [Worktrees](rules/worktrees.md) | an agent is about to change a repo |
 | [Subagents](rules/subagents.md) | work is about to be handed to a subagent or run in the background |
 | [Everything as code](rules/everything-as-code.md) | a machine, a service or a setting on one of my devices is about to be changed |
