@@ -8,7 +8,8 @@
 // Wired as a commit-msg hook in .gitconfig through the `.sh` beside this file,
 // called by openPullRequest and by the agents' PreToolUse hook
 // bin/agents/pr-text-guard.ts. The types are the rule's table; change both.
-import { subjectOf } from "@bin/git/forbidden-names";
+import { homedir } from "node:os";
+import { mainCheckout, subjectOf } from "@bin/git/forbidden-names";
 
 /** What is wrong with a commit subject, or undefined when it follows the rule. */
 export function subjectProblem(subject: string): string | undefined {
@@ -88,6 +89,11 @@ export function refusal(subject: string, problem: string): string {
 if (import.meta.main) {
 	const args = process.argv.slice(2);
 	const isTitle = args[0] === "--title";
+	// A repo outside ~/projects is a scratch one a test or a tool built, with
+	// subjects like `base` that are nobody's history.
+	if (!isTitle && !(await mainCheckout()).startsWith(`${homedir()}/projects/`)) {
+		process.exit(0);
+	}
 	const subject = isTitle ? (args[1] ?? "") : subjectOf(await Bun.file(args[0] ?? "").text());
 	const problem = isTitle ? titleProblem(subject) : subjectProblem(subject);
 	if (problem) {

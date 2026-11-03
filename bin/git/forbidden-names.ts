@@ -233,7 +233,7 @@ async function git(...args: string[]): Promise<string> {
 
 /** The main checkout, also from a linked worktree, which may sit outside
  *  ~/projects — hence the common dir rather than the cwd. */
-async function mainCheckout(): Promise<string> {
+export async function mainCheckout(): Promise<string> {
 	const dir = (await git("rev-parse", "--path-format=absolute", "--git-common-dir")).trim();
 	return realpathSync(dirname(dir));
 }

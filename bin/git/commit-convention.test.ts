@@ -53,6 +53,15 @@ describe("expected use", () => {
 		const run = Bun.spawnSync([process.execPath, script, message]);
 		expect(run.exitCode).toBe(0);
 	});
+
+	test("a scratch repo outside ~/projects is let through", () => {
+		const repo = join(directory, "scratch");
+		Bun.spawnSync(["git", "init", "-q", repo]);
+		const message = join(directory, "SCRATCH_MSG");
+		writeFileSync(message, "base\n");
+		const run = Bun.spawnSync([process.execPath, script, message], { cwd: repo });
+		expect(run.exitCode).toBe(0);
+	});
 });
 
 describe("bad input", () => {
