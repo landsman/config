@@ -24,8 +24,8 @@ which `/mcp` lists at the top under *User MCPs*. That writes to `~/.claude.json`
 so the tracked JSON is the record and the script is what brings it back: it
 keeps a server already registered as written, so a rerun does not drop its
 sign-in, and replaces one whose entry changed. Every remote server lives there
-(Cloudflare, Vaadin, Rohlík, Better Stack), and Adminer Desktop. The plugin keeps
-the other `sh -c` ones, which need no sign-in, and forgejo, which Windows
+(Cloudflare, Vaadin, Rohlík, Better Stack), and so do Adminer Desktop and
+chrome-devtools. The plugin keeps azure-devops and forgejo, which Windows
 registers at user scope its own way (`os/windows/forgejo-mcp.ps1`).
 
 ## opencode, and why the list is written twice
