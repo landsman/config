@@ -72,3 +72,24 @@ test("a path named in an earlier turn only passes", async () =>
 	).toBe(false));
 test("a path in backticks after a tool result still counts", async () =>
 	expect(await holds([prompt("ukaz to"), result, say(`Snímek: \`${shot}\``)])).toBe(true));
+
+/** The answer to sending [files] with SendUserFile. */
+const sending = (...files: string[]) =>
+	runHook(hook, { hook_event_name: "PreToolUse", tool_input: { files } });
+
+test("sending a file inside a worktree is refused, with the copy into the main checkout", async () => {
+	const answer = await sending("/repo/.claude/worktrees/fix/.claude/screenshots/shot.png");
+	expect(answer?.hookSpecificOutput?.permissionDecision).toBe("deny");
+	expect(answer?.hookSpecificOutput?.permissionDecisionReason).toContain(
+		"'/repo/.claude/worktrees/fix/.claude/screenshots/shot.png' '/repo/.claude/screenshots/shot.png'",
+	);
+});
+test("sending a file from the main checkout passes", async () =>
+	expect(await sending("/repo/.claude/screenshots/shot.png")).toBeUndefined());
+test("sending a file from the scratchpad passes", async () =>
+	expect(await sending("/private/tmp/claude-501/x/scratchpad/report.html")).toBeUndefined());
+test("one worktree file among others is enough to refuse", async () =>
+	expect(
+		(await sending("/repo/a.png", "/repo/.claude/worktrees/w/b.png"))?.hookSpecificOutput
+			?.permissionDecision,
+	).toBe("deny"));

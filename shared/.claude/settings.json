@@ -186,6 +186,15 @@
         ]
       },
       {
+        "matcher": "SendUserFile",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/send-files.ts\""
+          }
+        ]
+      },
+      {
         "_otty": true,
         "hooks": [
           {
