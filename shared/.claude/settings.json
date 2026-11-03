@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Edit(*)",
+      "Edit(~/projects/**)",
+      "Edit(~/.claude/**)",
+      "Edit(~/.agents/**)",
+      "Edit(//private/tmp/claude-*/**)",
+      "Edit(//tmp/claude-*/**)",
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
