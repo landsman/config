@@ -208,8 +208,8 @@ Windows has no `make`:
 [`os/windows/forgejo-mcp.ps1`](../os/windows/forgejo-mcp.ps1) registers the
 same entry for the T480.
 
-`FORGEJO_ACCESS_TOKEN`, which `make claude` still asks for, is now read only by
-the `curl` fallbacks in the rules and skills, not by the server.
+No Forgejo token is kept here any more. `make claude` removes an old
+`FORGEJO_ACCESS_TOKEN` from the drop-in and says where to revoke it.
 
 One thing to know before allow-listing the server: `FORGEJO_MCP_ALLOW_FILE_PATH_UPLOAD`
 lets attachment tools read the host filesystem and upload it. It is off by
