@@ -44,24 +44,30 @@ export type DocumentRequest = {
 	vault?: string;
 };
 
-/** Writes the Document `title` to `file`, readable by its owner only. The
- *  download lands beside the file and is moved over it, so a failed one leaves
- *  the file as it was; a missing folder is created, owner-only too. */
-export async function loadDocument(request: DocumentRequest) {
+/** Writes the Document `title` to `file`, readable by its owner only, or says
+ *  it is missing and touches nothing. The download lands beside the file and is
+ *  moved over it, so a failed one leaves the file as it was; a missing folder is
+ *  created, owner-only too. */
+export async function loadDocument(request: DocumentRequest): Promise<"loaded" | "missing"> {
 	const vault = request.vault ?? defaultVault;
 	await requireSignedIn();
+	const existing = await findDocument(request.title, vault);
+	if (!existing) {
+		return "missing";
+	}
 	const folder = dirname(request.file);
 	if (!existsSync(folder)) {
 		mkdirSync(folder, { recursive: true, mode: 0o700 });
 	}
 	const partial = `${request.file}.loading`;
 	try {
-		await op(["document", "get", request.title, "--vault", vault, "--out-file", partial]);
+		await op(["document", "get", existing, "--vault", vault, "--out-file", partial]);
 		chmodSync(partial, 0o600);
 		renameSync(partial, request.file);
 	} finally {
 		rmSync(partial, { force: true });
 	}
+	return "loaded";
 }
 
 /** Signed out, every lookup fails, and a save would read that as "no item yet"

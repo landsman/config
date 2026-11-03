@@ -81,13 +81,15 @@ describe("expected use", () => {
 	});
 	test("a load replaces the file, owner-only, with no partial left", async () => {
 		writeFileSync(`${home}/config`, "old\n", { mode: 0o644 });
-		await loadDocument({ title: "ssh-config-box", file: `${home}/config` });
+		listed({ id: "abc", title: "ssh-config-box" });
+		expect(await loadDocument({ title: "ssh-config-box", file: `${home}/config` })).toBe("loaded");
 		expect(readFileSync(`${home}/config`, "utf8")).toBe("restored\n");
 		expect(mode(`${home}/config`)).toBe("600");
-		expect(opCalls()).toContain("document get ssh-config-box --vault dev-homelab --out-file");
+		expect(opCalls()).toContain("document get abc --vault dev-homelab --out-file");
 		expect(existsSync(`${home}/config.loading`)).toBe(false);
 	});
 	test("a load on a fresh install creates the folder, owner-only", async () => {
+		listed({ id: "abc", title: "ssh-config-box" });
 		await loadDocument({ title: "ssh-config-box", file: `${home}/.ssh/config` });
 		expect(readFileSync(`${home}/.ssh/config`, "utf8")).toBe("restored\n");
 		expect(mode(`${home}/.ssh`)).toBe("700");
@@ -114,8 +116,16 @@ describe("bad input", () => {
 		await expect(saveDocument({ title: "t", file: `${home}/nothing` })).rejects.toThrow("no ");
 		expect(opCalls()).toBe("");
 	});
+	test("an item never saved is missing, and nothing is written", async () => {
+		expect(await loadDocument({ title: "t", file: `${home}/.claude/settings.local.json` })).toBe(
+			"missing",
+		);
+		expect(existsSync(`${home}/.claude`)).toBe(false);
+		expect(opCalls()).not.toContain("document get");
+	});
 	test("a failed download leaves the file as it was, with op's reason", async () => {
 		writeFileSync(`${home}/config`, "old\n");
+		listed({ id: "abc", title: "t" });
 		process.env.OP_GET_FAILS = "yes";
 		await expect(loadDocument({ title: "t", file: `${home}/config` })).rejects.toThrow(
 			"no such item",

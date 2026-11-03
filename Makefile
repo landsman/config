@@ -549,6 +549,20 @@ shell: ## source this repo's .bashrc fragment from ~/.bashrc (idempotent)
 		&& echo "NOTE: an older copy of the fragment is still pasted into ~/.bashrc - delete that block, it shadows the repo" \
 		|| true
 
+##@ Machine files in 1Password
+#
+# What differs per machine and names a client (~/.ssh/config, the untracked
+# ~/.claude/settings.local.json) cannot be stowed from this public repo, so it
+# is kept in 1Password's dev-homelab vault instead: bin/1password/machine-files.ts.
+#
+
+.PHONY: machine-files-backup machine-files-restore
+machine-files-backup: ## save this machine's ssh config and local Claude settings to 1Password (needs op signed in)
+	@$(BUN) bin/1password/machine-files.ts backup $(MACHINE)
+
+machine-files-restore: ## write them back from 1Password after a reinstall, MACHINE=<name> for another machine's
+	@$(BUN) bin/1password/machine-files.ts restore $(MACHINE)
+
 ##@ Hostname
 
 .PHONY: hostname
