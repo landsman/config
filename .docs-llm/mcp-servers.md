@@ -178,54 +178,38 @@ place to install from.
 Issues, pull requests, files, releases and Actions runs on `git.insuit.cz`,
 which is what makes the forge reachable from a session that has no browser.
 
+The server runs on the Pi, not here: the homelab's
+[`forgejo-mcp/`](https://github.com/landsman/homelab/tree/main/forgejo-mcp) has
+how, and why it holds no Forgejo token. This machine keeps no credential for
+it either. The client signs in at Authelia in a browser through `/mcp`, once per
+device, and gets a one-hour token it refreshes for 90 days; forgejo-mcp then
+acts as that person through their Forgejo Authorized Integration.
+
 ```bash
-make forgejo-mcp   # build the binary into ~/go/bin
-make claude        # paste the token
+make claude   # registers forgejo with this device's client, then /mcp to sign in
 ```
 
-The binary is built from `tools-mirror/forgejo-mcp` on our own forge rather than
-fetched from upstream, for the reason the mirror exists at all: a build should
-not stop because someone else's forge is down. That costs a checkout — `go
-install <mirror-path>@latest` cannot work, because `go.mod` still declares the
-upstream module path and go refuses a module whose declared path is not the one
-it fetched. `go install .` inside the checkout does not care.
+The entry in `user-servers.json` carries two placeholders that `user-servers.ts`
+fills in, because this repo is public:
 
-The **token** is machine-local for the usual reason — this repo is public. The
-**instance URL is not**, and sits in `user-servers.json` in clear: `git.insuit.cz` is
-already all over the homelab repo, which is public too. It is the token that is
-secret, not the address.
+- `{{TAILNET}}`, from `tailscale status`. Without Tailscale running the server
+  is skipped and `make claude` says so, rather than registering a URL that
+  cannot resolve.
+- `{{DEVICE}}`, from the `DEVICE` the Makefile already works out. The client
+  `forgejo-mcp-<device>` has to exist in the homelab's
+  `authelia/configuration.yml`; a new device needs one there first. Each device
+  has its own so that deleting one client cuts off that device and no other.
 
-Create it at <https://git.insuit.cz/user/settings/applications>. Three scopes
-cover every tool worth having:
+`callbackPort` is fixed at 53682 because each Authelia client allows exactly
+one redirect, `http://localhost:53682/callback`. opencode chooses its own
+callback, so it has no forgejo entry; `servers.test.sh` declares that.
 
-| Scope | Buys |
-|-------|------|
-| `read:user` | who am I, list my repositories |
-| `write:repository` | files, branches, pull requests, Actions runs |
-| `write:issue` | issues, comments, labels |
+Windows has no `make`:
+[`os/windows/forgejo-mcp.ps1`](../os/windows/forgejo-mcp.ps1) registers the
+same entry for the T480.
 
-Widen it when a tool actually fails, not in advance — the token is a bearer
-credential sitting in a file every shell sources.
-
-The entry is guarded like the Azure DevOps one, and on two conditions rather
-than one:
-
-```sh
-b=$(command -v forgejo-mcp || echo "$HOME/go/bin/forgejo-mcp")
-[ -n "$FORGEJO_ACCESS_TOKEN" ] && [ -x "$b" ] || exit 0
-exec "$b" --transport stdio --url https://git.insuit.cz
-```
-
-A machine with no token, or one where `make forgejo-mcp` has not run, gets no
-server instead of a failing one. `command -v` first so an Arch box that
-installed `forgejo-mcp` from the AUR uses that copy; `~/go/bin` is the fallback
-because it is not on `PATH` here.
-
-Windows has no `sh` on `PATH`, so this entry cannot start there.
-[`os/windows/forgejo-mcp.ps1`](../os/windows/forgejo-mcp.ps1) builds the same
-tag and registers a user-scope `forgejo` that runs the `.exe` directly. Smart
-App Control blocks a local build, and has no allowlist to add it to: the
-[Windows README](../os/windows/README.md#forgejo-mcp) has the options.
+`FORGEJO_ACCESS_TOKEN`, which `make claude` still asks for, is now read only by
+the `curl` fallbacks in the rules and skills, not by the server.
 
 One thing to know before allow-listing the server: `FORGEJO_MCP_ALLOW_FILE_PATH_UPLOAD`
 lets attachment tools read the host filesystem and upload it. It is off by

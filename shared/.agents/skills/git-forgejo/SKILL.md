@@ -49,7 +49,8 @@ a comment is `create_issue_comment`; posting a review is `create_pull_review`.
 
 ## When the server is missing
 
-No `mcp__forgejo__*` tools in the session means the server did not start:
-`FORGEJO_ACCESS_TOKEN` is unset or `forgejo-mcp` is not built. Say so and point
-at `make claude` and `make forgejo-mcp` (`.docs-llm/mcp-servers.md` in the config
-repo) — do not fall back to scraping the web UI.
+No `mcp__forgejo__*` tools in the session means the server is not registered,
+not signed in, or not reachable: it runs on the Pi, over the tailnet, and signs
+in at Authelia. Say so and point at `make claude` and `/mcp`
+(`.docs-llm/mcp-servers.md` in the config repo) — do not fall back to scraping
+the web UI.
