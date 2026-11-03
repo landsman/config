@@ -93,5 +93,8 @@ Forgejo and Azure DevOps MCPs send them — and over Azure DevOps's merge commit
 message, which it squashes with instead of the title. Refused means reword, not
 `--no-verify`. A subject that opens with a tracker key (`ABC-123: `) is let
 through: a work repo with that convention enforces it in its own hook, and both
-hooks anchor at the start, so no subject could pass the two. A repo outside `~/projects` is a
-scratch one a test or a tool built, and is not checked.
+hooks anchor at the start, so no subject could pass the two.
+
+Every real repo, mine and work ones alike, sits under `~/projects` and is
+checked. Only a repo created elsewhere is skipped: a throwaway one that a test
+builds in a temp dir and commits `base` into, which is nobody's history.

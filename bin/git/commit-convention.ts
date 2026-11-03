@@ -89,8 +89,8 @@ export function refusal(subject: string, problem: string): string {
 if (import.meta.main) {
 	const args = process.argv.slice(2);
 	const isTitle = args[0] === "--title";
-	// A repo outside ~/projects is a scratch one a test or a tool built, with
-	// subjects like `base` that are nobody's history.
+	// Every real repo, work ones included, sits under ~/projects. One elsewhere is
+	// a throwaway a test builds in a temp dir, committing `base`: nobody's history.
 	const repo = isTitle ? "" : await mainCheckout();
 	if (!isTitle && !repo.startsWith(`${homedir()}/projects/`)) {
 		console.error(`commit-convention: ${repo} is outside ~/projects, not checked`);
