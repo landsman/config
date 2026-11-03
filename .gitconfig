@@ -28,6 +28,12 @@
 	event = pre-commit
 	event = commit-msg
 
+# A subject that breaks the commit-messages rule stops the commit — see
+# bin/git/commit-convention.ts.
+[hook "commit-convention"]
+	command = "$HOME/projects/landsman/config/bin/git/commit-convention.sh"
+	event = commit-msg
+
 # A new worktree clears out the finished ones, whichever agent left them — see
 # bin/git/worktree-sweep.sh.
 [hook "worktree-sweep"]

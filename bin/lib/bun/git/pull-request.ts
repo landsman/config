@@ -2,6 +2,7 @@
 // for the scripts under bin/: the change in a throwaway worktree off the base
 // branch, one commit, a push and `gh pr create`.
 import { $ } from "bun";
+import { refusal, titleProblem } from "@bin/git/commit-convention";
 import { commit, type Commit } from "@lib/git/commit";
 import { push } from "@lib/git/remote";
 import { withWorktree, type WorktreeRequest } from "@lib/git/worktree";
@@ -12,6 +13,11 @@ export async function openPullRequest(request: PullRequestRequest): Promise<stri
 		const proposed = await request.change(worktree.path);
 		if (!proposed) {
 			return undefined;
+		}
+		// Before the commit: the title is its subject too, and a squash-merge's.
+		const problem = titleProblem(proposed.title);
+		if (problem) {
+			throw new Error(refusal(proposed.title, problem));
 		}
 		await commit(worktree.path, proposed);
 		await push(worktree.path, worktree.branch);
