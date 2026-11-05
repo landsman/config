@@ -42,7 +42,7 @@
 
 # A push in a repo whose Makefile has a `pre-push` target runs it first — see
 # bin/git/pre-push.sh.
-[hook "pre-push"]
+[hook "push-checks"]
 	command = "$HOME/projects/landsman/config/bin/git/pre-push.sh"
 	event = pre-push
 
