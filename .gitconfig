@@ -40,6 +40,12 @@
 	command = "$HOME/projects/landsman/config/bin/git/worktree-sweep.sh --hook"
 	event = post-checkout
 
+# A push in a repo whose Makefile has a `pre-push` target runs it first — see
+# bin/git/pre-push.sh.
+[hook "pre-push"]
+	command = "$HOME/projects/landsman/config/bin/git/pre-push.sh"
+	event = pre-push
+
 [forbiddenNames]
 	file = ~/projects/landsman/brain/private-names.txt
 
