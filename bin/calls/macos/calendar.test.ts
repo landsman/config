@@ -131,7 +131,9 @@ test("the event a call was is the one fitting its time best, at that day's time 
 
 // Only on a Mac with Calendar, and read-only: preparing the query checks every
 // table and column it names against the real schema without reading a row.
-test.skipIf(!existsSync(calendarDatabase))(
+// Skipped where macOS denies this terminal the file (no Full Disk Access): that
+// says nothing about the schema.
+test.skipIf(!readable(calendarDatabase))(
 	"the queries still fit the schema of Calendar on this Mac",
 	() => {
 		const database = new Database(calendarDatabase, { readonly: true });
@@ -144,3 +146,15 @@ test.skipIf(!existsSync(calendarDatabase))(
 		}
 	},
 );
+
+function readable(databasePath: string): boolean {
+	if (!existsSync(databasePath)) {
+		return false;
+	}
+	try {
+		new Database(databasePath, { readonly: true }).close();
+		return true;
+	} catch {
+		return false;
+	}
+}

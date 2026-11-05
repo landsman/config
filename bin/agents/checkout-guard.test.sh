@@ -5,6 +5,9 @@
 set -euo pipefail
 hook="$(cd "$(dirname "$0")" && pwd)/checkout-guard.sh"
 t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+# A mise shim on PATH (jq is one on my Macs) runs mise, which under the fake
+# HOME trusts no config and refuses. Take the shims out, before HOME moves.
+PATH=$(printf %s "$PATH" | tr : "\n" | grep -v /mise/shims | paste -sd: -)
 export TMPDIR="$t" HOME="$t"
 # Global signing or a global hooks path must not decide whether this passes.
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
