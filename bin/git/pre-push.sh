@@ -22,5 +22,10 @@ done
 root=$(git rev-parse --show-toplevel)
 grep -q '^pre-push:' "$root/Makefile" 2>/dev/null || exit 0
 
+# Git hands the hook GIT_DIR and friends. Left set, a test that runs `git init`
+# in a temp dir reinitialises this repo instead: one run set core.bare = true.
+# shellcheck disable=SC2046 # git's own list of variable names, split on purpose
+unset $(git rev-parse --local-env-vars)
+
 echo "pre-push: make pre-push (skip with git push --no-verify)" >&2
 make -C "$root" pre-push >&2

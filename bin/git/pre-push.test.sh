@@ -9,7 +9,7 @@ t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
 mkdir "$t/bin" "$t/repo"
 cat >"$t/bin/make" <<'EOF'
 #!/usr/bin/env bash
-echo "$*" >>"$MAKE_LOG"
+echo "$* GIT_DIR=${GIT_DIR-unset}" >>"$MAKE_LOG"
 exit "${MAKE_EXIT:-0}"
 EOF
 chmod +x "$t/bin/make"
@@ -33,6 +33,8 @@ check "a Makefile without a pre-push target is pushed unchecked" 0 0 "$push"
 printf 'pre-push: qa\nqa:\n' >"$t/repo/Makefile"
 check "a pre-push target runs on a push" 0 1 "$push"
 MAKE_EXIT=2 check "a failing pre-push target stops the push" 2 1 "$push"
+GIT_DIR=$t/repo/.git check "a push with git's hook variables set still runs" 0 1 "$push"
+if grep -q "GIT_DIR=unset" "$MAKE_LOG"; then echo "ok   git's hook variables do not reach make"; else echo "FAIL git's hook variables do not reach make"; fail=1; fi
 check "deleting a branch runs nothing" 0 0 "$delete"
 
 exit $fail
