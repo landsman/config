@@ -6,6 +6,9 @@
 set -euo pipefail
 hook="$(cd "$(dirname "$0")" && pwd)/office-guard.sh"
 t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+# A mise shim on PATH (jq is one on my Macs) runs mise, which under the fake
+# HOME trusts no config and refuses. Take the shims out, before HOME moves.
+PATH=$(printf %s "$PATH" | tr : "\n" | grep -v /mise/shims | paste -sd: -)
 export TMPDIR="$t" HOME="$t" XDG_STATE_HOME="$t/state"
 d="$t/docs" && mkdir "$d"
 echo v1 >"$d/Smlouva final.docx" && touch -t 202601010000 "$d/Smlouva final.docx" # old: the 30-day prune must spare a fresh copy
