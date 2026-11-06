@@ -30,6 +30,37 @@ workflow, or `--exclude-rule` where the scan is local. A third-party action, fro
 someone whose releases nobody is watching, is the case where this flips; ask then
 rather than assuming either way.
 
+## A new push cancels the pull request's old run
+
+Every workflow a `pull_request` triggers carries this, right after `on:`:
+
+```yaml
+# A new push to a pull request cancels that PR's run still going: only the newest commit's result counts.
+# A push to main or a scheduled scan is never cancelled, so every merged commit and every Monday get a result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+```
+
+Without it, three pushes in a row run three full builds side by side, and the two
+older ones only burn runner minutes and fill the checks with results for commits
+nobody will merge. Each piece is there for a reason:
+
+- **`github.workflow` in the group** — groups are repo-wide, so without it the
+  security scan and the build of one PR would cancel each other.
+- **The PR number, falling back to the ref** — every push to one PR lands in the
+  same group; a run on `main` or a schedule has no PR and gets the branch's.
+- **`cancel-in-progress` only on `pull_request`** — a run on `main`, a schedule or
+  a `workflow_dispatch` queues instead. A cancelled build on `main` is a merged
+  commit with no result, and a cancelled Monday scan is a week without one.
+- **A deploy never cancels.** `cancel-in-progress: false` on its own group, so the
+  second deploy waits for the first instead of killing it halfway.
+
+**A reusable workflow (`on: workflow_call` only) does not set it.** It runs in the
+caller's context, so `github.workflow` is the caller's name: the same group, and the
+called workflow cancels the caller that started it (GitHub's own note, in
+`reusing-workflow-configurations.md`). The caller's `concurrency` covers it.
+
 ## Dependabot gets a cooldown
 
 Every `updates:` entry carries one. **3 to 7 days, and 7 unless there is a reason:**
