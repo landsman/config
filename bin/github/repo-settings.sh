@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Turns on Dependabot alerts and Dependabot security updates for repositories
-# on GitHub — the two repository settings no file in a repo can express.
+# Applies the repository settings on GitHub that no file in a repo can express,
+# and that the Terraform provider cannot set yet either.
 #
-#   dependabot-security.sh [--dry-run] <owner/repo>...
-#   dependabot-security.sh [--dry-run] --all <owner>   every non-archived, non-fork repo
+#   repo-settings.sh [--dry-run] <owner/repo>...
+#   repo-settings.sh [--dry-run] --all <owner>   every non-archived, non-fork repo
 #
-# Alerts list a known vulnerability in a dependency, whether or not anything
+# Dependabot alerts list a known vulnerability in a dependency, whether or not anything
 # in CI reads the lockfile. Security updates open the pull request that fixes
 # it, and skip the cooldown dependabot.yml sets for version updates — a CVE is
 # the case the cooldown is not for. Both are free, private repos included.
+#
+# A pull request from someone's first contribution waits for an admin to
+# approve it before any workflow runs, so a stranger cannot spend the runner
+# minutes or try the workflows out. GitHub's default only holds accounts that
+# are new to GitHub. all_external_contributors would hold every outsider's PR.
 #
 # Safe to run again: each call sets the state, it does not toggle it. Needs a
 # gh login with admin on the repositories.
@@ -36,4 +41,10 @@ for repo in "${repos[@]}"; do
       echo "enabled $setting on $repo"
     fi
   done
+  if [ -n "$dry" ]; then
+    echo "would require approval for first-time contributors on $repo"
+  else
+    gh api --silent -X PUT "repos/$repo/actions/permissions/fork-pr-contributor-approval" -f approval_policy=first_time_contributors
+    echo "required approval for first-time contributors on $repo"
+  fi
 done

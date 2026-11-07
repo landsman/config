@@ -11,8 +11,8 @@ Two halves, because one finds and the other fixes.
 - **Dependabot alerts and security updates** list every known vulnerability,
   dev dependencies and unfixable ones included, and open the pull request that
   fixes one, past the cooldown version updates wait for. They are repository
-  settings, not files, so `bin/github/dependabot-security.sh <owner/repo>...`
-  sets them; `--all <owner>` does every non-archived source repo, `--dry-run`
+  settings, not files, so `bin/github/repo-settings.sh <owner/repo>...`
+  sets them, along with the other settings no file can hold; `--all <owner>` does every non-archived source repo, `--dry-run`
   first says what it would do.
 
 ## On this machine
