@@ -53,18 +53,25 @@ inside the content region, and of no other.
 
 ## 4. buttons
 
-Not the site's general button style: a dialog follows the platform's dialog
-convention. Every button quiet — a border and the background colour. The one
-action that keeps the change is filled, last, in the bottom-right corner (green
-when the project has a destructive pair, so the two cannot be confused).
-A destructive action is outlined red, `margin-right: auto` to the left, away
-from the button pressed without reading; it fills on hover.
+Not the site's general button style: a dialog follows one convention, in every
+project. Every button quiet: a border and the background colour.
 
-The footer holds actions, not a way out: no Close or Cancel there, the `×` is
-it (item 2). The one exception is a confirmation, where Cancel is an answer —
-the safe one, with the focus (item 10). Either is the same close request as
-Escape (item 7), so a form with changes asks first; `formmethod="dialog"` alone
-would close it without asking.
+- **Cancel at the far left**, always, `margin-right: auto` (or `margin-inline-end:
+  auto`) so everything after it sits at the right. The way out is never next to
+  the button that keeps the change. It is the same close request as the `×`
+  and Escape (item 7), so a form with changes asks first;
+  `formmethod="dialog"` alone would close it without asking.
+- **The one action that keeps the change is filled, last**, in the bottom-right
+  corner (green when the project has a destructive pair, so the two cannot be
+  confused). Back, a secondary step, sits just before it.
+- **A destructive action is outlined red, on the left right after Cancel**,
+  away from the button pressed without reading; it fills on hover.
+- In a confirmation, Cancel is the safe answer and holds the focus (item 10).
+
+When a framework renders the footer, one rule for every dialog beats a class on
+each: in Vaadin Flow the footer's buttons are wrapped in one `display: contents`
+div, so `vaadin-dialog > [slot="footer"] > :first-child:not(:only-child)` with
+`margin-inline-end: auto` puts the Cancel every dialog adds first at the left.
 
 ## 5. motion
 

@@ -35,6 +35,10 @@ the PR below had to answer, and it was the one it left out.)
   needed", "the beating heart of", "hums along". It makes the reader decode what
   the writer could have said, and drags in meanings nobody chose.
 
+- **The long dash (—).** It reads as generated. Split the sentence, or use a
+  comma, a colon or parentheses: "Banka tento token zatím nezná. Nový token
+  začne fungovat po pěti minutách.", not "…nezná — nový token…".
+
 ## Code comments
 
 Why, not what. One to three lines. The fact that is not visible in the code and

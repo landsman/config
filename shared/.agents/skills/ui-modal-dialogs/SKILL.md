@@ -16,7 +16,7 @@ first one onto it.
 1. **native** — `<dialog>` opened with `showModal()`, never a `<div>` overlay.
 2. **template** — one component or partial with `header`, `body`, `footer` slots, and a close `×` top right in every header.
 3. **bands** — header and footer set apart from the body; only the body scrolls.
-4. **buttons** — quiet by default, one filled primary last, a destructive one outlined left; no Close in the footer.
+4. **buttons**: quiet by default, Cancel at the far left, one filled primary last at the right, a destructive one outlined beside Cancel.
 5. **motion** — the dialog and its backdrop fade in and out together, 200ms.
 6. **page-lock** — the page behind does not scroll or jump sideways.
 7. **escape** — Escape always closes it; every way out goes through one close request.
