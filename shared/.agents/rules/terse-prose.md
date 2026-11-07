@@ -7,3 +7,8 @@ found, nothing the diff already shows, no headings for one line.
 
 **Load the `terse-prose` skill** before writing a comment, a PR body, an error
 message or release notes; it has the cuts and a before/after.
+
+**No long dash (—), anywhere I will read or ship it:** a UI text or a
+translation, an e-mail, a comment, a commit, a PR, a doc, a reply to me. It is
+the mark of generated text. A comma, a colon, a full stop or parentheses say
+the same; a range takes an en dash (5–10) or "to".
