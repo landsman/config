@@ -186,6 +186,15 @@
         ]
       },
       {
+        "matcher": "Bash|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/projects/landsman/config/bin/agents/search-guard.ts\""
+          }
+        ]
+      },
+      {
         "matcher": "Bash|mcp__.*forgejo__(create|update)_pull_request|mcp__.*azure-devops__repo_pull_request_write",
         "hooks": [
           {
