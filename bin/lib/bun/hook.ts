@@ -12,3 +12,13 @@ export async function event<T>(): Promise<T | undefined> {
 
 /** Answers Claude Code. A hook that prints nothing has no opinion. */
 export const answer = (body: object) => console.log(JSON.stringify(body));
+
+/** Refuses a PreToolUse call: the tool does not run, and the agent reads the reason instead of its output. */
+export const refuse = (reason: string) =>
+	answer({
+		hookSpecificOutput: {
+			hookEventName: "PreToolUse",
+			permissionDecision: "deny",
+			permissionDecisionReason: reason,
+		},
+	});

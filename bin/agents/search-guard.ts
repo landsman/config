@@ -5,7 +5,7 @@
 // ponytail: a regex over the raw command, not a shell parser. It catches a slip, not a
 // determined bypass (`bash -c`, a path in a variable, `cd /` first); add a root when one
 // slips through.
-import { answer, event } from "@lib/hook";
+import { event, refuse } from "@lib/hook";
 
 interface Input {
 	tool_name?: string;
@@ -22,15 +22,10 @@ const singleQuoted = /'[^']*'/g;
 
 const input = await event<Input>();
 if (input && sweepsTheDisk(input))
-	answer({
-		hookSpecificOutput: {
-			hookEventName: "PreToolUse",
-			permissionDecision: "deny",
-			permissionDecisionReason:
-				"This walks the whole disk or home folder. Search inside the project, or name the " +
-				"folder you mean (~/projects/<owner>/<repo>, not ~/projects).",
-		},
-	});
+	refuse(
+		"This walks the whole disk or home folder. Search inside the project, or name the " +
+			"folder you mean (~/projects/<owner>/<repo>, not ~/projects).",
+	);
 
 function sweepsTheDisk(input: Input): boolean {
 	const path = input.tool_input?.path;

@@ -14,7 +14,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { refusal, titleProblem } from "@bin/git/commit-convention";
-import { answer, event } from "@lib/hook";
+import { event, refuse } from "@lib/hook";
 
 /** The subjects the call sets and the rest of its text, or undefined when the call
  *  opens or edits no pull request. */
@@ -119,13 +119,9 @@ if (import.meta.main) {
 			await namesProblem(text, input?.cwd),
 		].filter(Boolean);
 		if (problems.length) {
-			answer({
-				hookSpecificOutput: {
-					hookEventName: "PreToolUse",
-					permissionDecision: "deny",
-					permissionDecisionReason: `The PR title or body would not pass the commit checks. Fix the text and call again:\n${problems.join("\n\n")}`,
-				},
-			});
+			refuse(
+				`The PR title or body would not pass the commit checks. Fix the text and call again:\n${problems.join("\n\n")}`,
+			);
 		}
 	}
 }
