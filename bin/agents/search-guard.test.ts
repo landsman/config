@@ -33,6 +33,10 @@ describe("expected use", () => {
 		'git commit -m "docs: say how to locate the brain"',
 		'echo "find / -name banks.csv swept the disk" > body.md',
 		"gh pr create --body \"$(cat <<'EOF'\nOnce `find / -name x` ran, mdfind too.\nEOF\n)\"",
+		'git commit -m "refuse a sweep (find / once swept the disk)"',
+		'git commit -m "this time find / is refused"',
+		'gh pr edit --body "a tree walk (find, fd, rg) that names `~/projects` / `~/Library`"',
+		'gh pr edit --body "| find | / |"',
 	])("lets %s through", async (command) => {
 		expect(await bash(command)).toBe(false);
 	});
@@ -65,6 +69,9 @@ describe("bad input", () => {
 		"grep --recursive foo ~",
 		"xargs find / -name x",
 		"cd src\nfind / -name x",
+		"du -sh ~/projects/*",
+		"find ~/projects/* -maxdepth 1 -name x",
+		'find "$HOME"/projects -name x',
 	])("refuses %s", async (command) => {
 		expect(await bash(command)).toBe(true);
 	});

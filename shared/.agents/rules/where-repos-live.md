@@ -101,5 +101,5 @@ It also prints every client folder in `~/projects` into the transcript, which is
 what the section above is about. Read the path, do not hunt for it.
 
 In Claude Code a hook (`bin/agents/search-guard.ts`) refuses a search that walks
-`/`, `~` or `~/projects`: `find`, `fd`, `rg`, `grep -r`, `du`, `ls -R`, `mdfind` and
-the Glob and Grep tools. A named folder below them passes.
+`/`, `~` or `~/projects`: `find`, `fd`, `rg`, `ag`, `grep -r`, `du`, `tree`, `ls -R`,
+`locate`, `mdfind` and the Glob and Grep tools. A named folder below them passes.

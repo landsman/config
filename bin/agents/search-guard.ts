@@ -22,11 +22,16 @@ const treeWalker = new RegExp(
 	"m",
 );
 const unboundedIndex = new RegExp(String.raw`${run}(?:locate\b|mdfind\b(?!.*-onlyin))`, "m");
-// `/`, `~`, `$HOME`, `/Users/<name>` or `/home/<name>`, alone or with /projects or /Library.
+// `/`, `~`, `$HOME`, `/Users/<name>` or `/home/<name>`, alone or with /projects or /Library,
+// and with `/*` after it, which walks the same tree.
 const wholeDiskRoot =
-	/(^|\s)"?(\/|~|\$\{?HOME\}?|\/(Users|home)(\/[^/\s"]+)?)(\/projects|\/Library)?\/?"?(?=$|[\s;|&)])/;
+	/(^|\s)"?(\/|~|\$\{?HOME\}?|\/(Users|home)(\/[^/\s"]+)?)"?(\/projects|\/Library)?\/?\*?"?(?=$|[\s;|&)])/;
 // A single-quoted word is a pattern, never an expanded path: `rg '/Users/x' src`.
 const singleQuoted = /'[^']*'/g;
+// A double-quoted string with a space in it is prose, a commit message or a PR body, where
+// `(find, fd)` or `this time find /` would otherwise read as a command. `"$HOME"` has none.
+// ponytail: `"$(find / -name x)"` gets through with it; a parser would tell the two apart.
+const doubleQuotedProse = /"[^"]*\s[^"]*"/g;
 
 const input = await event<Input>();
 if (input && sweepsTheDisk(input))
@@ -38,6 +43,8 @@ if (input && sweepsTheDisk(input))
 function sweepsTheDisk(input: Input): boolean {
 	const path = input.tool_input?.path;
 	if (input.tool_name !== "Bash") return path !== undefined && wholeDiskRoot.test(path);
-	const command = (input.tool_input?.command ?? "").replace(singleQuoted, "''");
+	const command = (input.tool_input?.command ?? "")
+		.replace(singleQuoted, "''")
+		.replace(doubleQuotedProse, '""');
 	return unboundedIndex.test(command) || (treeWalker.test(command) && wholeDiskRoot.test(command));
 }
