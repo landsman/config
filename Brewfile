@@ -242,6 +242,7 @@ if OS.mac?
 	mas "Infuse", id: 1136220934
 	mas "Keynote", id: 361285480
 	mas "Numbers", id: 361304891
+	mas "OpenDisk", id: 6793260558
 	mas "Pages", id: 361309726
 	mas "Tasks.txt", id: 6783916102
 	mas "The Unarchiver", id: 425424353
