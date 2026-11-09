@@ -205,6 +205,8 @@ if OS.mac?
 	cask "karabiner-elements"
 	# Office suite — opens the .doc, .docx and .xlsx associations
 	cask "libreoffice"
+	# Firewall that asks before an app makes an outgoing connection
+	cask "lulu"
 	# macOS App for monitoring power usage and charging status
 	cask "lzt1008/powerflow/powerflow", trusted: true
 	# Team collaboration and meetings
