@@ -31,7 +31,11 @@ const singleQuoted = /'[^']*'/g;
 // A double-quoted string with a space in it is prose, a commit message or a PR body, where
 // `(find, fd)` or `this time find /` would otherwise read as a command. `"$HOME"` has none.
 // ponytail: `"$(find / -name x)"` gets through with it; a parser would tell the two apart.
-const doubleQuotedProse = /"[^"]*\s[^"]*"/g;
+// The first `\s` is fixed by `[^"\s]*`, so an unclosed quote in a long body costs a scan,
+// not a backtrack over every space in it.
+const doubleQuotedProse = /"[^"\s]*\s[^"]*"/g;
+// A heredoc with a quoted delimiter expands nothing, so its body is text: `cat > body.md <<'EOF'`.
+const quotedHeredoc = /<<-?\s*(['"])(\w+)\1[\s\S]*?^\s*\2\s*$/gm;
 
 const input = await event<Input>();
 if (input && sweepsTheDisk(input))
@@ -44,6 +48,7 @@ function sweepsTheDisk(input: Input): boolean {
 	const path = input.tool_input?.path;
 	if (input.tool_name !== "Bash") return path !== undefined && wholeDiskRoot.test(path);
 	const command = (input.tool_input?.command ?? "")
+		.replace(quotedHeredoc, "")
 		.replace(singleQuoted, "''")
 		.replace(doubleQuotedProse, '""');
 	return unboundedIndex.test(command) || (treeWalker.test(command) && wholeDiskRoot.test(command));

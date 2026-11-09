@@ -37,6 +37,8 @@ describe("expected use", () => {
 		'git commit -m "this time find / is refused"',
 		'gh pr edit --body "a tree walk (find, fd, rg) that names `~/projects` / `~/Library`"',
 		'gh pr edit --body "| find | / |"',
+		"cat > body.md <<'EOF'\nA tree walk (find, fd) that names `~/projects` / `~/Library`.\nEOF",
+		"cat > notes.md <<'EOF'\nfind / once swept the disk\nEOF",
 	])("lets %s through", async (command) => {
 		expect(await bash(command)).toBe(false);
 	});
@@ -72,8 +74,16 @@ describe("bad input", () => {
 		"du -sh ~/projects/*",
 		"find ~/projects/* -maxdepth 1 -name x",
 		'find "$HOME"/projects -name x',
+		"cat > notes.md <<EOF\nx\nEOF\nfind / -name x",
+		"cat > notes.md <<'EOF'\nx\nEOF\nfind / -name x",
 	])("refuses %s", async (command) => {
 		expect(await bash(command)).toBe(true);
+	});
+
+	test("reads a long body with an unclosed quote in linear time", async () => {
+		const started = performance.now();
+		await bash(`gh pr edit --body "${"word ".repeat(50_000)}`);
+		expect(performance.now() - started).toBeLessThan(1_000);
 	});
 
 	test("refuses the Glob and Grep tools at the disk or home root", async () => {
