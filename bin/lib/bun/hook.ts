@@ -4,7 +4,7 @@
 /**
  * The event Claude Code sent, or undefined when stdin is not JSON: nothing to answer.
  *
- * Call it once, at the top of a hook script, and do nothing when it is undefined —
+ * Call it once, at the top of a hook script, and do nothing when it is undefined:
  * a hook that throws shows up as an error on every prompt.
  */
 export async function event<T>(): Promise<T | undefined> {

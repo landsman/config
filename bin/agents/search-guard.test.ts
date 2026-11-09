@@ -1,5 +1,5 @@
 // What search-guard.ts would get wrong silently: letting a sweep of the disk or of
-// ~/projects through, or refusing an ordinary search — a grep pattern that looks like a
+// ~/projects through, or refusing an ordinary search: a grep pattern that looks like a
 // path, a named folder outside the project, a plain read of one file.
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
@@ -30,6 +30,9 @@ describe("expected use", () => {
 		"ls /",
 		"git grep foo",
 		"mdfind -onlyin . banks.csv",
+		'git commit -m "docs: say how to locate the brain"',
+		'echo "find / -name banks.csv swept the disk" > body.md',
+		"gh pr create --body \"$(cat <<'EOF'\nOnce `find / -name x` ran, mdfind too.\nEOF\n)\"",
 	])("lets %s through", async (command) => {
 		expect(await bash(command)).toBe(false);
 	});
@@ -58,6 +61,10 @@ describe("bad input", () => {
 		"sudo find /Users/someone -name x",
 		"mdfind banks.csv",
 		"locate banks.csv",
+		"grep -n -r foo ~",
+		"grep --recursive foo ~",
+		"xargs find / -name x",
+		"cd src\nfind / -name x",
 	])("refuses %s", async (command) => {
 		expect(await bash(command)).toBe(true);
 	});

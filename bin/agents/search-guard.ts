@@ -12,8 +12,16 @@ interface Input {
 	tool_input?: { command?: string; path?: string };
 }
 
-const treeWalker = /\b(find|fd|rg|ag|du|tree)\b|\bgrep\s+-\w*[rR]|\bls\s+-\w*R/;
-const unboundedIndex = /\blocate\b|\bmdfind\b(?!.*-onlyin)/;
+// Where a program runs, so the word inside a commit message or a PR body does not count:
+// the start of a line, after `;`, `&`, `|`, `(` or `$(`, or after sudo, xargs, exec, time.
+const run = String.raw`(?:^|[;&|(]|\b(?:sudo|xargs|exec|time)\s)\s*`;
+const treeWalker = new RegExp(
+	String.raw`${run}(?:find|fd|rg|ag|du|tree)\b` +
+		String.raw`|${run}grep(?:\s+-\S+)*\s+(?:-\w*[rR]|--recursive\b)` +
+		String.raw`|${run}ls(?:\s+-\S+)*\s+-\w*R`,
+	"m",
+);
+const unboundedIndex = new RegExp(String.raw`${run}(?:locate\b|mdfind\b(?!.*-onlyin))`, "m");
 // `/`, `~`, `$HOME`, `/Users/<name>` or `/home/<name>`, alone or with /projects or /Library.
 const wholeDiskRoot =
 	/(^|\s)"?(\/|~|\$\{?HOME\}?|\/(Users|home)(\/[^/\s"]+)?)(\/projects|\/Library)?\/?"?(?=$|[\s;|&)])/;
