@@ -76,6 +76,9 @@ describe("bad input", () => {
 		'find "$HOME"/projects -name x',
 		"cat > notes.md <<EOF\nx\nEOF\nfind / -name x",
 		"cat > notes.md <<'EOF'\nx\nEOF\nfind / -name x",
+		'find "$HOME" -name "*.kt"',
+		'rg "foo" ~ -g "*.ts"',
+		'grep -rn "foo" ~/projects --include "*.md"',
 	])("refuses %s", async (command) => {
 		expect(await bash(command)).toBe(true);
 	});

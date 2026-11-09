@@ -32,8 +32,10 @@ const singleQuoted = /'[^']*'/g;
 // `(find, fd)` or `this time find /` would otherwise read as a command. `"$HOME"` has none.
 // ponytail: `"$(find / -name x)"` gets through with it; a parser would tell the two apart.
 // The first `\s` is fixed by `[^"\s]*`, so an unclosed quote in a long body costs a scan,
-// not a backtrack over every space in it.
-const doubleQuotedProse = /"[^"\s]*\s[^"]*"/g;
+// not a backtrack over every space in it. The quotes must open and close a word, or the
+// closing quote of `"$HOME"` and the opening one of `"*.kt"` read as one string, and the
+// root between them is lost.
+const doubleQuotedProse = /(?<=^|[\s=])"[^"\s]*\s[^"]*"(?=$|[\s;&|)])/gm;
 // A heredoc with a quoted delimiter expands nothing, so its body is text: `cat > body.md <<'EOF'`.
 const quotedHeredoc = /<<-?\s*(['"])(\w+)\1[\s\S]*?^\s*\2\s*$/gm;
 
