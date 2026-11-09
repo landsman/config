@@ -634,6 +634,15 @@ dev-server-kill: ## list the dev servers agents left in worktrees; kill with DIR
 	@# and some of what is listening belongs to a session still at work.
 	@./bin/agents/kill-dev-servers.sh $(if $(DIR),"$(DIR)",$(if $(ALL),--all,--list --all))
 
+.PHONY: worktree-sweep
+worktree-sweep: ## remove a repo's finished agent worktrees, asking which repo; DIR=<repo> skips the question, LIST=1 only lists
+	@# The same sweep the post-checkout hook runs, for a repo with no new worktree coming.
+	@# A hook or a script passes DIR=; only a person at a terminal is asked.
+	@dir="$(DIR)"; [ -n "$$dir" ] || { [ -t 0 ] || { echo "no terminal to ask on: pass DIR=<repo>"; exit 1; }; \
+		read -rep "repo: " dir; }; dir=$${dir/#\~/$$HOME}; \
+	[ -d "$$dir" ] || { echo "no such directory: $$dir"; exit 1; }; \
+	./bin/git/worktree-sweep.sh $(if $(LIST),--list) "$$dir"
+
 ##@ JetBrains IDEs
 #
 # See bin/jetbrains/README.md for why this is a script, not stow
