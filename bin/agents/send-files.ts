@@ -19,7 +19,7 @@
 // in the main checkout; the worktree is swept a day after its work is pushed anyway.
 import { realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { answer, event } from "@lib/hook";
+import { answer, event, refuse } from "@lib/hook";
 import { calls, content, lastTurn } from "@lib/transcript";
 
 // An absolute or ~/ path ending in a format worth looking at, standing on its own:
@@ -80,16 +80,11 @@ if (input?.hook_event_name === "PreToolUse") {
 	const files = input.tool_input?.files;
 	const copies = copiesOutOfWorktrees(Array.isArray(files) ? files : []);
 	if (copies.length)
-		answer({
-			hookSpecificOutput: {
-				hookEventName: "PreToolUse",
-				permissionDecision: "deny",
-				permissionDecisionReason:
-					"A file inside a git worktree shows up as a path relative to the worktree, and the user's terminal " +
-					"resolves it against the main checkout, where it does not exist. Copy it there and send that path:\n" +
-					copies.join("\n"),
-			},
-		});
+		refuse(
+			"A file inside a git worktree shows up as a path relative to the worktree, and the user's terminal " +
+				"resolves it against the main checkout, where it does not exist. Copy it there and send that path:\n" +
+				copies.join("\n"),
+		);
 } else if (input?.transcript_path && !input.stop_hook_active && isFile(input.transcript_path)) {
 	const missing = unsent(input.transcript_path);
 	if (missing.length)
