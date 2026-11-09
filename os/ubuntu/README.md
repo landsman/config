@@ -121,7 +121,7 @@ id to match on exactly.
 | ZoomIt | Sysinternals ships it for Windows and macOS only, no Linux build |
 | Azure VPN Client | `microsoft-azurevpnclient` is only in Microsoft's 22.04 (jammy) repo, not in the 24.04 (noble) one — pointing apt at another release's repo is a mismatch waiting for the next upgrade |
 | Toggl Track | Toggl deprecated its Linux app in April 2024; the web app is what is left |
-| Pages, Numbers, Keynote, iMovie, Infuse, Tasks.txt, ColorSlurp, The Unarchiver | App Store apps for Apple platforms only; Ark already opens every archive The Unarchiver would |
+| Pages, Numbers, Keynote, iMovie, Infuse, Tasks.txt, ColorSlurp, The Unarchiver, OpenDisk | App Store apps for Apple platforms only; Ark already opens every archive The Unarchiver would |
 | Webex, Zed, JetBrains Toolbox | Linux builds exist, but as a hand-download `.deb`, an install script and a tarball respectively — none is an apt repo, so none gets updates through apt. Worth adding only deliberately |
 
 Flathub being wired up now does not empty that table by itself. It was added for
