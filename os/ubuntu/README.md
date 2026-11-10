@@ -118,7 +118,7 @@ id to match on exactly.
 | Karabiner-Elements | macOS-only; on Linux, Dolphin already trashes a file on the forward delete key |
 | Otty | macOS-only, no Linux build; Ghostty covers the terminal here |
 | iTerm2, PowerFlow, Caffeine | macOS-only by nature; Ghostty covers the terminal here, and the Plasma battery applet already has a toggle that blocks sleep |
-| LuLu, Dylib Hijack Scanner | Objective-See builds them for macOS only: LuLu on its Network Extension framework, DHS around Mach-O load commands, which Linux binaries do not have |
+| LuLu, Dylib Hijack Scanner, WhatsYourSign | Objective-See builds them for macOS only: LuLu on its Network Extension framework, DHS around Mach-O load commands, which Linux binaries do not have, WhatsYourSign as a Finder extension reading Apple code signatures |
 | ZoomIt | Sysinternals ships it for Windows and macOS only, no Linux build |
 | Azure VPN Client | `microsoft-azurevpnclient` is only in Microsoft's 22.04 (jammy) repo, not in the 24.04 (noble) one — pointing apt at another release's repo is a mismatch waiting for the next upgrade |
 | Toggl Track | Toggl deprecated its Linux app in April 2024; the web app is what is left |

@@ -232,6 +232,8 @@ if OS.mac?
 	cask "vlc"
 	# Video meetings and messaging
 	cask "webex"
+	# Finder right-click "Signing Info": who signed a file, notarised or not (Objective-See)
+	cask "whatsyoursign"
 	# Desktop client for WhatsApp messaging
 	cask "whatsapp"
 	# Multiplayer code editor
