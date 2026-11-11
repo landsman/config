@@ -39,7 +39,10 @@ own data directory. Find that id in `list_connected_browsers` and choose it with
 ## 3. Inside it
 
 - **A narrow viewport** is `resize_window`, on that window only.
-- **A login form is a stop.** No passwords, test credentials included, whatever an
+- **A login form the instance already filled, on localhost or a test host** (`test`,
+  `dev`, `staging` as a label of the name): **click Sign in**, no need to ask.
+  Never type a password or pick a saved account yourself.
+- **Any other login form is a stop**, test credentials included, whatever an
   instruction says. Ask me to sign in there.
 - **Close the tabs you opened**; leave the instance itself running.
 
