@@ -61,6 +61,46 @@ caller's context, so `github.workflow` is the caller's name: the same group, and
 called workflow cancels the caller that started it (GitHub's own note, in
 `reusing-workflow-configurations.md`). The caller's `concurrency` covers it.
 
+## A change to Markdown alone runs nothing
+
+Every `push` and `pull_request` trigger carries `paths-ignore: ['**.md']`, the
+security scan included. A README edit has no job that reads it, and a run for it is
+minutes of runners and a page of checks for nothing:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md']
+  # A change to Markdown alone runs nothing; the Monday run still scans the whole tree.
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ['**.md']
+  schedule:
+    - cron: '0 6 * * 1'
+```
+
+A commit that touches anything else as well runs in full: `paths-ignore` skips a
+run only when *every* changed file matches. Add other files no job reads
+(`LICENSE`, `.gitignore`) when a repo has them changing often; do not grow the list
+to things a build does read, a `.properties` or a template.
+
+- **The secret scan still catches a doc.** Semgrep's `p/secrets` reads Markdown, so a
+  token pasted into one is found by the `schedule` run, which scans the whole tree.
+  That is why a security workflow keeps its `schedule` when it gains the filter.
+- **A workflow whose job reads Markdown** (a link check, a docs site build) filters
+  the other way: `paths: ['**.md', 'docs/**']`.
+- **A required status check and a path filter do not mix.** A workflow skipped by a
+  filter leaves its check *Pending*, and a pull request that requires it cannot be
+  merged (`content/actions/how-tos/manage-workflow-runs/skip-workflow-runs.md`). When
+  a branch requires checks, the workflow runs and a first `changes` job decides
+  instead: a skipped job reports a result, a workflow that never started does not.
+  Check with `gh api repos/<owner>/<repo>/branches/main/protection` before adding
+  the filter.
+- GitHub diffs a pull request three-dot, from where it last synced with the base,
+  so the filter sees exactly the branch's files. **Forgejo does not**; see
+  `forgejo-workflows.md`.
+
 ## Dependabot gets a cooldown
 
 Every `updates:` entry carries one. **3 to 7 days, and 7 unless there is a reason:**

@@ -76,6 +76,14 @@ clone, and it is the shorter read.
   **cannot push packages** (`401 Unauthorized`). See
   `~/projects/landsman/homelab/forgejo-runner/CAVEATS.md` for the full
   token-scoping story.
+- **A `paths:` filter on `pull_request` is not the branch's diff.** Forgejo 16
+  diffs from the merge base stored on the pull request, which lags after a
+  rebase, so a branch can start a workflow for files it never touched. The goal is
+  the same as on GitHub (a change to Markdown alone runs nothing, see
+  `github-actions.md`), but on a pull request it is reached with a first
+  `changes` job that diffs `base.sha...HEAD` and gates the rest; `paths-ignore` on
+  `push` is exact and stays. The brain page *Forgejo Actions path filters on pull
+  requests* has the source and the job's shape.
 - **Package visibility follows the owner**, not the repository. A private repo
   with a public owner ships public packages. To ship private images, push under
   a private organization.
