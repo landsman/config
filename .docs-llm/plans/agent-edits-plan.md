@@ -61,7 +61,7 @@ forty `Read` plus `Edit` pairs cost far more.
 
 ### 1. Say how to edit, in a rule that is always loaded
 
-Add a section to [worktrees](../shared/.agents/rules/worktrees.md). It loads every
+Add a section to [worktrees](../../shared/.agents/rules/worktrees.md). It loads every
 session and is about changing a repo, so no new rule file is needed:
 
 - a change to a file is `Edit`; several places or files are several `Edit` calls
@@ -77,7 +77,7 @@ session and is about changing a repo, so no new rule file is needed:
 **Measure the two closed weeks after it lands. Keep it if the median session
 share is below 60 % in both**, the lowest weekly median of the baseline. The
 baseline rises week on week, so beating its lowest point is a conservative bar.
-Otherwise revert it, as [reporting data](../shared/.agents/rules/reporting-data.md)
+Otherwise revert it, as [reporting data](../../shared/.agents/rules/reporting-data.md)
 says for a neutral change, and go to step 2.
 
 Watch alongside: a move from scripts to `perl -pi` on single files would read as
@@ -99,7 +99,7 @@ read 30 of its matches. More than one false positive means the signature is
 narrowed first, because every false positive costs a round trip.
 
 Where it goes is decided then, by [reuse before
-adding](../shared/.agents/rules/reuse-before-adding.md). The hooks that parse a
+adding](../../shared/.agents/rules/reuse-before-adding.md). The hooks that parse a
 Bash command each do another job (`search-guard.ts` searches, `office-guard.sh`
 office files, `checkout-guard.sh` the main checkout only), so a new
 `bin/agents/edit-guard.ts` with its test is the likely answer, stated in the PR.
