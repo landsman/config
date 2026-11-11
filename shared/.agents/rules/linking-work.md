@@ -33,6 +33,11 @@ turn it is made. A path in the reply is not a link: the terminal does not open
 it, and a phone following the session has no file behind it at all. The path can
 stay beside it as detail.
 
+**Several files for one place** (screenshots for a ticket, a PR, a client) go into
+one folder of their own, and the reply ends with that folder: opened in Finder
+(`open <folder>`) and its full path in a code block, so I can drag them all at
+once. Sending them one by one is not enough on its own.
+
 A path to source code is a reference into a repo I have open, `file:line`, and
 stays a path.
 
