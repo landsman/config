@@ -89,6 +89,7 @@
       "mcp__forgejo__dispatch_workflow",
       "mcp__atlassian__getJiraIssue",
       "mcp__atlassian__searchJiraIssuesUsingJql",
+      "mcp__atlassian__createIssueLink",
       "mcp__azure-devops__pipelines_get_build_changes",
       "mcp__azure-devops__pipelines_get_build_log",
       "mcp__azure-devops__pipelines_get_build_log_by_id",
