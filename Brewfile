@@ -170,6 +170,8 @@ cask "rustdesk"
 if OS.mac?
 	# Password manager
 	cask "1password"
+	# Video crafting engine
+	cask "artcraft"
 	# Keeps the Mac awake from the menu bar
 	cask "caffeine"
 	# Desktop client for ChatGPT
@@ -197,6 +199,8 @@ if OS.mac?
 	# id keeps LaunchServices from routing my links into it; the reasoning is in
 	# shared/.agents/rules/browser-automation.md
 	cask "google-chrome@canary"
+	# Spreadsheet editor
+	cask "gridcraft"
 	# Terminal emulator as alternative to Apple's Terminal app
 	cask "iterm2"
 	# Installs and updates the JetBrains IDEs. It owns their vmoptions files, so
@@ -205,7 +209,7 @@ if OS.mac?
 	# Remaps keys per app — makes ⌘ + forward delete trash a file in Finder, see
 	# os/macos/.config/karabiner. Needs its driver and Input Monitoring approved once.
 	cask "karabiner-elements"
-	# Office suite — opens the .doc, .docx and .xlsx associations
+	# Office suite — opens the .doc and .xlsx associations
 	cask "libreoffice"
 	# Firewall that asks before an app makes an outgoing connection
 	cask "lulu"
@@ -236,6 +240,8 @@ if OS.mac?
 	cask "whatsyoursign"
 	# Desktop client for WhatsApp messaging
 	cask "whatsapp"
+	# Word processor — opens the .docx association
+	cask "wordcraft"
 	# Multiplayer code editor
 	cask "zed"
 
