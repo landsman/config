@@ -79,10 +79,14 @@ skill (`kotlin`), and so do Spring, JPA and SQL (`spring-boot`, `orm`,
 
 ## Values
 
-- **Money is `BigDecimal` with a `Currency`**, never `double`. Jackson reads
-  floats as `BigDecimal` (`USE_BIG_DECIMAL_FOR_FLOATS`), and amounts are
-  compared with `compareTo`, since `1` and `1.00` are not `equals`. Stored, it is
-  `long` minor units.
+- **Money is `long` minor units with a currency**, as in `kotlin` and the
+  source-of-truth rule. An API that sends decimals is read into a field typed
+  `BigDecimal`, which Jackson reads exactly (`USE_BIG_DECIMAL_FOR_FLOATS` matters
+  only for `Object`, `Map` or `JsonNode` targets), never `double`. It becomes
+  minor units at that boundary, exactly:
+  `amount.movePointRight(currency.getDefaultFractionDigits()).longValueExact()`,
+  which throws on a third decimal instead of rounding it away. Two `BigDecimal`
+  amounts compare with `compareTo`: `1` and `1.00` are not `equals`.
 - **A record's generated `toString` prints every component.** A token, a raw
   payload, a person's name or account gets left out of an overridden one, so
   logging the object leaks nothing.
