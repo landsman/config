@@ -13,16 +13,22 @@ skill (`kotlin`), and so do Spring, JPA and SQL (`spring-boot`, `orm`,
 ## Text a person typed
 
 - **`\s` is ASCII only.** A value copied from a PDF, a web page or a banking UI
-  carries a no-break space (U+00A0) or a narrow one (U+202F), and `\s` keeps
-  them: the lookup finds nothing. Drop every code point that is
-  `Character.isWhitespace(c) || Character.isSpaceChar(c)`, or use `(?U)\s`.
-  The test feeds it `" "`, `" "` and a tab, not just a space.
+  carries a no-break space (U+00A0), a narrow one (U+202F), and from a web page
+  a zero-width space (U+200B) or a byte-order mark (U+FEFF). `\s` keeps all of
+  them, and `Character.isWhitespace` or `isSpaceChar` still keep the last two:
+  the lookup finds nothing.
+- **An identifier made of letters and digits keeps only those.** An IBAN, a
+  postcode, a code: `c < 128 && Character.isLetterOrDigit(c)` drops every
+  separator at once, zero-width ones, dashes and dots included. Free text
+  strips the spaces only and says in its javadoc which ones.
+- **Such a character in source or a test is an escape, `"\u00A0"`, never the
+  character itself.** A raw one reads as a plain space in review, grep cannot
+  find it, and an editor that normalises whitespace replaces it silently. The
+  localisation rule against escapes is about translation files; here the code
+  point is the point. The test feeds `"\u00A0"`, `"\u202F"`, `"\u200B"`,
+  `"\uFEFF"` and a tab, not just a space.
 - **`toUpperCase` and `toLowerCase` take `Locale.ROOT`.** Without it a Turkish
   default locale turns `i` into `İ`, and an identifier stops matching itself.
-- **Strip only what the format never contains.** Spaces in an IBAN are
-  presentation; a dash is not part of one, so stripping it would hide a wrong
-  value rather than match a right one. The javadoc says exactly what is
-  ignored, and a test pins each kind.
 - **No regex where a loop over code points does it.** `String.replaceAll`,
   `split` and `matches` compile their pattern on every call; when a regex is
   needed, it is a `private static final Pattern`.
