@@ -49,6 +49,7 @@ async function downloadWhisperModel(model: WhisperModel) {
 	if (existsSync(destination)) {
 		return;
 	}
+	await checkHuggingFaceAllows(url, whisperModelsFolder);
 	live(`Downloading ${file}`);
 	const partial = `${destination}.part`;
 	await $`mkdir -p ${whisperModelsFolder} && curl -fL --progress-bar -o ${partial} ${url}`;
@@ -57,6 +58,29 @@ async function downloadWhisperModel(model: WhisperModel) {
 		throw new Error(`${file} does not match its checksum, deleted`);
 	}
 	renameSync(partial, destination);
+}
+
+/**
+ * A network that filters the web (a work laptop) often blocks Hugging Face,
+ * and curl then says only "error: 403". One HEAD request, redirects followed
+ * to the file storage, says it before a 4.7 GB download and says what to do.
+ */
+export async function checkHuggingFaceAllows(url: string, modelsFolder: string) {
+	const answer = await fetch(url, { method: "HEAD" }).then(
+		(response) => (response.ok ? undefined : `answered ${response.status}`),
+		(error: Error) => `could not be reached (${error.message})`,
+	);
+	if (answer === undefined) {
+		return;
+	}
+	throw new Error(
+		[
+			`Hugging Face ${answer}, so this network probably blocks it.`,
+			"Download the models on another network (make record-init there),",
+			`then copy them into ${modelsFolder} here and run it again.`,
+			"Or ask IT to allow huggingface.co and *.hf.co.",
+		].join("\n"),
+	);
 }
 
 async function fileChecksum(path: string): Promise<string> {
@@ -109,6 +133,7 @@ async function folderChecksum(folder: string): Promise<string> {
 async function downloadDiarizerModels() {
 	live("Downloading the diarization models (22 MB)");
 	const listing = `https://huggingface.co/api/models/${diarizer.repository}/revision/${diarizer.revision}`;
+	await checkHuggingFaceAllows(listing, diarizer.modelsFolder);
 	const { siblings: repositoryFiles } = (await (await fetch(listing)).json()) as {
 		siblings: { rfilename: string }[];
 	};
