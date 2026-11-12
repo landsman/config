@@ -165,3 +165,12 @@ test("a reachable Hugging Face lets setup download", async () => {
 		huggingFace.stop();
 	}
 });
+
+test("an unreachable Hugging Face stops setup with the same advice", async () => {
+	const closedPort = Bun.serve({ port: 0, fetch: () => new Response(null) });
+	const url = closedPort.url.href;
+	closedPort.stop(true);
+	await expect(checkHuggingFaceAllows(url, "/models")).rejects.toThrow(
+		/could not be reached[\s\S]*copy them into \/models/,
+	);
+});

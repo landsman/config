@@ -66,16 +66,21 @@ async function downloadWhisperModel(model: WhisperModel) {
  * to the file storage, says it before a 4.7 GB download and says what to do.
  */
 export async function checkHuggingFaceAllows(url: string, modelsFolder: string) {
-	const answer = await fetch(url, { method: "HEAD" }).then(
-		(response) => (response.ok ? undefined : `answered ${response.status}`),
-		(error: Error) => `could not be reached (${error.message})`,
+	// A filter that drops packets instead of refusing would hang fetch with no output.
+	const cause = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(15_000) }).then(
+		(response) =>
+			response.ok
+				? undefined
+				: `Hugging Face answered ${response.status}, so this network probably blocks it.`,
+		(error: Error) =>
+			`Hugging Face could not be reached (${error.message}): this Mac is offline, or this network blocks it.`,
 	);
-	if (answer === undefined) {
+	if (cause === undefined) {
 		return;
 	}
 	throw new Error(
 		[
-			`Hugging Face ${answer}, so this network probably blocks it.`,
+			cause,
 			"Download the models on another network (make record-init there),",
 			`then copy them into ${modelsFolder} here and run it again.`,
 			"Or ask IT to allow huggingface.co and *.hf.co.",
