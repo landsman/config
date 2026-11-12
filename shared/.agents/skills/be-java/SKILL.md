@@ -44,6 +44,12 @@ skill (`kotlin`), and so do Spring, JPA and SQL (`spring-boot`, `orm`,
   one account per currency; returning the first reads the wrong currency
   without an error. More than one match is an `IllegalStateException` that names
   the candidates and says how to pick one.
+- **A key with a check digit is validated before the lookup.** An IBAN's
+  mod 97, a card's Luhn: a typo then is an `IllegalArgumentException`, not a
+  null that reads as "not found". Blank is the same case, not the only one.
+- **The name says which string it takes** when overloads sit side by side:
+  `accountByIban(token, iban)` next to `transactions(token, accountId)`, never
+  `account(token, iban)`, where an id passed by mistake returns null.
 - **A wrapper delegates; the logic lives in the class it wraps.** A convenience
   type (a holder with a token bound, a facade) only forwards, with the javadoc
   `As {@link Client#method(...)}`. Logic written only on the wrapper is out of
