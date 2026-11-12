@@ -59,10 +59,12 @@ skill (`kotlin`), and so do Spring, JPA and SQL (`spring-boot`, `orm`,
   own "unexpected response" exception; without that catch the check leaks
   Jackson's type. `@JsonProperty(required = true)` misses an explicit `null`, so
   the constructor check is the default.
-- **A field documented as "date or date-time" is parsed as either.**
-  `OffsetDateTime.parse` for a value with an offset, `LocalDate.parse(...)
-  .atStartOfDay(zone)` for a bare date, with the zone named
-  (`ZoneId.of("Europe/Prague")`), never the JVM default. A
+- **A field documented as "date or date-time" is parsed as either.** Branch on
+  whether the value holds a `T`: `OffsetDateTime.parse(value)` with one,
+  `LocalDate.parse(value).atStartOfDay(zone).toOffsetDateTime()` without, the
+  zone named (`ZoneId.of("Europe/Prague")`), never the JVM default.
+  `atStartOfDay` gives a `ZonedDateTime`, hence the conversion. Parse, catch and
+  parse again hides the one real failure, a value that is neither: that
   `DateTimeParseException` becomes the library's exception with the value in its
   message. Seeing only one form live does not make the other impossible.
 - **An enum read from outside has a fallback constant** (`OTHER`) for values the
