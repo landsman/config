@@ -69,7 +69,11 @@ skill (`kotlin`), and so do Spring, JPA and SQL (`spring-boot`, `orm`,
   message. Seeing only one form live does not make the other impossible.
 - **An enum read from outside has a fallback constant** (`OTHER`) for values the
   code does not know yet, and its javadoc tells callers to keep a `default`
-  branch. An enum the code owns is the opposite: a `switch` expression over it
+  branch. Jackson still throws on an unknown value unless the constant carries
+  `@JsonEnumDefaultValue` and `READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE` is
+  on (`EnumFeature` in Jackson 3), or the enum is mapped from the string by hand.
+  Either way the raw string is kept beside it: `OTHER` alone loses what the API
+  sent, the first thing someone debugging asks for. An enum the code owns is the opposite: a `switch` expression over it
   lists every constant and has no `default`, so a new constant fails to compile
   at every place that must decide what it means.
 
