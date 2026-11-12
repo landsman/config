@@ -160,7 +160,7 @@ test("a network that blocks Hugging Face stops setup with what to do, not a bare
 test("a reachable Hugging Face lets setup download", async () => {
 	const huggingFace = Bun.serve({ port: 0, fetch: () => new Response(null) });
 	try {
-		await checkHuggingFaceAllows(huggingFace.url.href, "/models");
+		await expect(checkHuggingFaceAllows(huggingFace.url.href, "/models")).resolves.toBeUndefined();
 	} finally {
 		huggingFace.stop();
 	}

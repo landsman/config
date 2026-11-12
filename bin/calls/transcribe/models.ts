@@ -63,7 +63,7 @@ async function downloadWhisperModel(model: WhisperModel) {
 /**
  * A network that filters the web (a work laptop) often blocks Hugging Face,
  * and curl then says only "error: 403". One HEAD request, redirects followed
- * to the file storage, says it before a 4.7 GB download and says what to do.
+ * to the file storage, says it before gigabytes of download and says what to do.
  */
 export async function checkHuggingFaceAllows(url: string, modelsFolder: string) {
 	// A filter that drops packets instead of refusing would hang fetch with no output.
