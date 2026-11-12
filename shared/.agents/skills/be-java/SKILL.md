@@ -29,9 +29,10 @@ skill (`kotlin`), and so do Spring, JPA and SQL (`spring-boot`, `orm`,
   `"\uFEFF"` and a tab, not just a space.
 - **`toUpperCase` and `toLowerCase` take `Locale.ROOT`.** Without it a Turkish
   default locale turns `i` into `İ`, and an identifier stops matching itself.
-- **No regex where a loop over code points does it.** `String.replaceAll`,
-  `split` and `matches` compile their pattern on every call; when a regex is
-  needed, it is a `private static final Pattern`.
+- **No regex where a loop over code points does it.** `replaceAll`, `matches`
+  and a `split` with a real regex compile their pattern on every call; when one
+  is needed, it is a `private static final Pattern`. A `split` on one plain
+  character (`split(",")`) compiles nothing and stays as it is.
 
 ## A lookup
 
