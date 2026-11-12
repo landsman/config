@@ -53,8 +53,12 @@ skill (`kotlin`), and so do Spring, JPA and SQL (`spring-boot`, `orm`,
 
 - **A JSON record checks what it requires in its compact constructor**
   (`requireNonNull(expiration, "expiration")`), so a missing field fails while
-  parsing, as the library's own "unexpected response" exception, and not as a
-  `NullPointerException` three calls later.
+  parsing, not as a `NullPointerException` three calls later. Jackson wraps what
+  the constructor throws in a `ValueInstantiationException`, so the one place
+  that calls the mapper catches `JacksonException` and rethrows the library's
+  own "unexpected response" exception; without that catch the check leaks
+  Jackson's type. `@JsonProperty(required = true)` misses an explicit `null`, so
+  the constructor check is the default.
 - **A field documented as "date or date-time" is parsed as either.**
   `OffsetDateTime.parse` for a value with an offset, `LocalDate.parse(...)
   .atStartOfDay(zone)` for a bare date, with the zone named
