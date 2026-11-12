@@ -137,8 +137,14 @@ async function folderChecksum(folder: string): Promise<string> {
 
 async function downloadDiarizerModels() {
 	live("Downloading the diarization models (22 MB)");
+	const fileUrl = (path: string) =>
+		`https://huggingface.co/${diarizer.repository}/resolve/${diarizer.revision}/${path}`;
+	// A weight redirects to the file storage like every model file; the listing below does not.
+	await checkHuggingFaceAllows(
+		fileUrl("Segmentation.mlmodelc/weights/weight.bin"),
+		diarizer.modelsFolder,
+	);
 	const listing = `https://huggingface.co/api/models/${diarizer.repository}/revision/${diarizer.revision}`;
-	await checkHuggingFaceAllows(listing, diarizer.modelsFolder);
 	const { siblings: repositoryFiles } = (await (await fetch(listing)).json()) as {
 		siblings: { rfilename: string }[];
 	};
@@ -149,9 +155,8 @@ async function downloadDiarizerModels() {
 	const partial = `${diarizer.modelsFolder}.part`;
 	rmSync(partial, { recursive: true, force: true });
 	for (const path of modelFiles) {
-		const url = `https://huggingface.co/${diarizer.repository}/resolve/${diarizer.revision}/${path}`;
 		const destination = `${partial}/${path}`;
-		await $`mkdir -p ${dirname(destination)} && curl -fsSL -o ${destination} ${url}`;
+		await $`mkdir -p ${dirname(destination)} && curl -fsSL -o ${destination} ${fileUrl(path)}`;
 	}
 	if ((await folderChecksum(partial)) !== diarizer.modelsChecksum) {
 		rmSync(partial, { recursive: true });
