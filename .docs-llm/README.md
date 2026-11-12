@@ -14,3 +14,8 @@ tool writes there.
 - [Local models with ollama](ollama.md) — `make ollama`, and pointing Claude Code or opencode at them
 - [Global rules and skills across harnesses](global-rules-and-skills.md) — one source, read by Claude Code and opencode
 - [Claude Code sandbox](../bin/claude-sandbox/README.md) — see what a hook, rule or setting really sends the model, in a container, before it ships
+
+Plans, one file each, in [`plans/`](plans/): work decided but not done yet, with
+how it will be measured. A plan that is done or dropped is deleted; git keeps it.
+
+- [Agents edit code through Edit](plans/agent-edits-plan.md): why agents rewrite files with Python scripts, and the measured steps against it
