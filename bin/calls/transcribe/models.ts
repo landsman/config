@@ -49,6 +49,7 @@ async function downloadWhisperModel(model: WhisperModel) {
 	if (existsSync(destination)) {
 		return;
 	}
+	await checkHuggingFaceAllows(url, whisperModelsFolder);
 	live(`Downloading ${file}`);
 	const partial = `${destination}.part`;
 	await $`mkdir -p ${whisperModelsFolder} && curl -fL --progress-bar -o ${partial} ${url}`;
@@ -57,6 +58,34 @@ async function downloadWhisperModel(model: WhisperModel) {
 		throw new Error(`${file} does not match its checksum, deleted`);
 	}
 	renameSync(partial, destination);
+}
+
+/**
+ * A network that filters the web (a work laptop) often blocks Hugging Face,
+ * and curl then says only "error: 403". One HEAD request, redirects followed
+ * to the file storage, says it before gigabytes of download and says what to do.
+ */
+export async function checkHuggingFaceAllows(url: string, modelsFolder: string) {
+	// A filter that drops packets instead of refusing would hang fetch with no output.
+	const cause = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(15_000) }).then(
+		(response) =>
+			response.ok
+				? undefined
+				: `Hugging Face answered ${response.status}, so this network probably blocks it.`,
+		(error: Error) =>
+			`Hugging Face could not be reached (${error.message}): this Mac is offline, or this network blocks it.`,
+	);
+	if (cause === undefined) {
+		return;
+	}
+	throw new Error(
+		[
+			cause,
+			"Download the models on another network (make record-init there),",
+			`then copy them into ${modelsFolder} here and run it again.`,
+			"Or ask IT to allow huggingface.co and *.hf.co.",
+		].join("\n"),
+	);
 }
 
 async function fileChecksum(path: string): Promise<string> {
@@ -108,6 +137,13 @@ async function folderChecksum(folder: string): Promise<string> {
 
 async function downloadDiarizerModels() {
 	live("Downloading the diarization models (22 MB)");
+	const fileUrl = (path: string) =>
+		`https://huggingface.co/${diarizer.repository}/resolve/${diarizer.revision}/${path}`;
+	// A weight redirects to the file storage like every model file; the listing below does not.
+	await checkHuggingFaceAllows(
+		fileUrl("Segmentation.mlmodelc/weights/weight.bin"),
+		diarizer.modelsFolder,
+	);
 	const listing = `https://huggingface.co/api/models/${diarizer.repository}/revision/${diarizer.revision}`;
 	const { siblings: repositoryFiles } = (await (await fetch(listing)).json()) as {
 		siblings: { rfilename: string }[];
@@ -119,9 +155,8 @@ async function downloadDiarizerModels() {
 	const partial = `${diarizer.modelsFolder}.part`;
 	rmSync(partial, { recursive: true, force: true });
 	for (const path of modelFiles) {
-		const url = `https://huggingface.co/${diarizer.repository}/resolve/${diarizer.revision}/${path}`;
 		const destination = `${partial}/${path}`;
-		await $`mkdir -p ${dirname(destination)} && curl -fsSL -o ${destination} ${url}`;
+		await $`mkdir -p ${dirname(destination)} && curl -fsSL -o ${destination} ${fileUrl(path)}`;
 	}
 	if ((await folderChecksum(partial)) !== diarizer.modelsChecksum) {
 		rmSync(partial, { recursive: true });

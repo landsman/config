@@ -2,8 +2,9 @@
 // order, a turn split on every segment or never, whisper's own notes read as speech,
 // and Enter not meaning the quick model; a voice from the diarizer put on the wrong lines; and
 // a header that miscounts the voices or names one before the call was read.
+// And a network that blocks Hugging Face, which curl reports only as a 403.
 import { expect, test } from "bun:test";
-import { WhisperModel } from "@bin/calls/transcribe/models";
+import { checkHuggingFaceAllows, WhisperModel } from "@bin/calls/transcribe/models";
 import {
 	chosenModel,
 	splitByVoice,
@@ -143,4 +144,33 @@ test("Enter means quick, p precise, anything else is refused", () => {
 	expect(chosenModel("")).toBe(WhisperModel.Quick);
 	expect(chosenModel("p")).toBe(WhisperModel.Precise);
 	expect(() => chosenModel("x")).toThrow();
+});
+
+test("a network that blocks Hugging Face stops setup with what to do, not a bare 403", async () => {
+	const webFilter = Bun.serve({ port: 0, fetch: () => new Response(null, { status: 403 }) });
+	try {
+		await expect(checkHuggingFaceAllows(webFilter.url.href, "/models")).rejects.toThrow(
+			/answered 403[\s\S]*copy them into \/models/,
+		);
+	} finally {
+		webFilter.stop();
+	}
+});
+
+test("a reachable Hugging Face lets setup download", async () => {
+	const huggingFace = Bun.serve({ port: 0, fetch: () => new Response(null) });
+	try {
+		await expect(checkHuggingFaceAllows(huggingFace.url.href, "/models")).resolves.toBeUndefined();
+	} finally {
+		huggingFace.stop();
+	}
+});
+
+test("an unreachable Hugging Face stops setup with the same advice", async () => {
+	const closedPort = Bun.serve({ port: 0, fetch: () => new Response(null) });
+	const url = closedPort.url.href;
+	closedPort.stop(true);
+	await expect(checkHuggingFaceAllows(url, "/models")).rejects.toThrow(
+		/could not be reached[\s\S]*copy them into \/models/,
+	);
 });
