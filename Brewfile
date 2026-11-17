@@ -22,6 +22,8 @@ tap "stripe/stripe-cli" if OS.mac?
 brew "btop"
 # Incredibly fast JavaScript runtime, bundler, test runner, and package manager
 brew "bun"
+# Cloudflare-based speed test with optional TUI
+brew "cloudflare-speed-cli"
 # Command-line tool to manage Cloudflare Tunnel connections
 brew "cloudflared"
 # Securely send things from one computer to another
