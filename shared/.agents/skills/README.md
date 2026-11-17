@@ -29,6 +29,7 @@ skills-index-test` fails when a skill has no row.
 | [liquibase](be-liquibase/SKILL.md) | changelogs and what makes a changeset immutable |
 | [caching](be-caching/SKILL.md) | when a cache is justified, keys, invalidation |
 | [kotlin](be-kotlin/SKILL.md) | own file or nested, enums, a member shadowing an import, money, what gets a unit test |
+| [java](be-java/SKILL.md) | text a person pasted (Unicode spaces, `Locale.ROOT`), what a null lookup means, ambiguous matches, parsing outside data, money, tests |
 
 ## Testing
 
