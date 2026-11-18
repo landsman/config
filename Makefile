@@ -580,7 +580,7 @@ omarchy: ## add, pin, patch and enable the shell plugins in os/arch/install-plug
 #
 
 .PHONY: claude
-claude: ## register the user-scope MCP servers, then set the machine-local values the others read (Azure DevOps org)
+claude: ## register the user-scope MCP servers, then set the machine-local values they read (Azure DevOps org, Forgejo URL)
 	@DEVICE=$(DEVICE) $(BUN) bin/mcp/user-servers.ts install
 	@# A shell drop-in rather than ~/.claude/settings.local.json, because the
 	@# expansion in the `sh -c` entries reads the process environment and the settings
@@ -596,6 +596,19 @@ claude: ## register the user-scope MCP servers, then set the machine-local value
 	tmp=$$(mktemp); grep -v '^export AZDO_ORG=' "$$f" > "$$tmp"; \
 	echo "export AZDO_ORG=$$o" >> "$$tmp"; mv "$$tmp" "$$f"; \
 	grep -H '^export AZDO_ORG=' "$$f"
+	@# forgejo-mcp is remote now, but opencode reads its URL and client ID from
+	@# the environment, the same way the stdio guards read AZDO_ORG. Written here
+	@# so `make claude` is the one place a new machine gets its MCP values.
+	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \
+	t=$$(tailscale status --json 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("MagicDNSSuffix","").rstrip("."))' 2>/dev/null); \
+	if [ -z "$$t" ]; then echo "forgejo: Tailscale is not running - FORGEJO_MCP_URL left unset"; exit 0; fi; \
+	mkdir -p "$$(dirname "$$f")"; \
+	[ -s "$$f" ] || echo '# Machine-local and untracked on purpose - see .docs-llm/mcp-servers.md' > "$$f"; \
+	tmp=$$(mktemp); grep -vE '^export FORGEJO_MCP_(URL|CLIENT_ID)=' "$$f" > "$$tmp"; \
+	echo "export FORGEJO_MCP_URL=https://forgejo-mcp.$$t/mcp" >> "$$tmp"; \
+	echo "export FORGEJO_MCP_CLIENT_ID=forgejo-mcp-$(DEVICE)" >> "$$tmp"; \
+	mv "$$tmp" "$$f"; chmod 600 "$$f"; \
+	grep -H '^export FORGEJO_MCP_' "$$f"
 	@# A Forgejo token from before the MCP moved to the Pi: nothing reads it now,
 	@# and a bearer token in a file every shell sources is what that move removed.
 	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \

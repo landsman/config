@@ -30,10 +30,11 @@ fails=0
 # macOS-only, so it cannot sit in a file every machine reads.
 opencode_only="pencil"
 
-# And the other way. forgejo signs in at Authelia with a client per device, whose
-# one allowed redirect is Claude Code's fixed callback port; opencode picks its
-# own callback, so Authelia would refuse it.
-claude_only="forgejo"
+# Both lists name forgejo, but its URL is machine-local and each client spells
+# it in its own syntax: {{TAILNET}} for Claude Code, {env:FORGEJO_MCP_URL} for
+# opencode. Compare every other server's signature; forgejo's presence in both
+# is checked on its own below.
+machine_local_url="forgejo"
 
 # One line per server — `name<TAB>what it runs` — from either format, so the
 # two are comparable. The formats differ in how a command is spelled, not in
@@ -44,7 +45,7 @@ sigs() {  # sigs <file> <claude|opencode> <out>
 	python3 -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
-servers = d["mcpServers"] if sys.argv[2] == "claude" else d["mcp"]
+servers = d["mcpServers"] if sys.argv[2] == "claude" else d["mcp"]["servers"]
 for name, s in sorted(servers.items()):
     if s["type"] in ("http", "remote"):
         what = "url " + s["url"]
@@ -75,7 +76,8 @@ without() {  # without <names> <list> <out>
 	' "$2" > "$3"
 }
 without "$opencode_only" "$tmp/opencode" "$tmp/opencode-minus-exceptions"
-without "$claude_only" "$tmp/claude" "$tmp/claude-minus-exceptions"
+without "$machine_local_url" "$tmp/opencode-minus-exceptions" "$tmp/opencode-compared"
+without "$machine_local_url" "$tmp/claude" "$tmp/claude-compared"
 cut -f1 "$tmp/opencode" > "$tmp/opencode-names"
 cut -f1 "$tmp/claude" > "$tmp/claude-names"
 
@@ -89,9 +91,9 @@ check() {  # check <name> <expected> <actual>
 	fi
 }
 check "the opencode list is not empty once the exceptions are removed" 1 \
-	"$([ -s "$tmp/opencode-minus-exceptions" ] && echo 1 || echo 0)"
+	"$([ -s "$tmp/opencode-compared" ] && echo 1 || echo 0)"
 
-if diff -u "$tmp/claude-minus-exceptions" "$tmp/opencode-minus-exceptions" > "$tmp/diff"; then
+if diff -u "$tmp/claude-compared" "$tmp/opencode-compared" > "$tmp/diff"; then
 	echo "ok   both lists name the same servers and run the same command"
 else
 	echo "FAIL the two lists disagree"; sed 's/^/  /' "$tmp/diff"; fails=$((fails + 1))
@@ -109,11 +111,11 @@ for n in $opencode_only; do
 	fi
 done
 
-for n in $claude_only; do
-	if grep -qx "$n" "$tmp/claude-names"; then
-		echo "ok   $n is still Claude-only, as declared"
+for n in $machine_local_url; do
+	if grep -qx "$n" "$tmp/opencode-names" && grep -qx "$n" "$tmp/claude-names"; then
+		echo "ok   $n is in both lists, each with its own machine-local URL"
 	else
-		echo "FAIL $n is declared Claude-only but is not in user-servers.json"
+		echo "FAIL $n is declared machine-local but missing from one list"
 		fails=$((fails + 1))
 	fi
 done
