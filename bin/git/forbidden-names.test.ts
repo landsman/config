@@ -161,8 +161,8 @@ describe("the script, as git runs it", () => {
 	const tmp = realpathSync(mkdtempSync(join(tmpdir(), "forbidden-names-")));
 	afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
-	// The caller's BRAIN_DIR would point every test at the real list.
-	const { BRAIN_DIR: _callersBrain, ...callersEnv } = process.env;
+	// The caller's BRAIN_DIR, or the LOCAL_ENV make exports, would point every test at the real list.
+	const { BRAIN_DIR: _brain, LOCAL_ENV: _localEnv, ...callersEnv } = process.env;
 	const env: Record<string, string | undefined> = {
 		...callersEnv,
 		HOME: tmp,

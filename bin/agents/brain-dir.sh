@@ -8,10 +8,14 @@
 #   brain-dir.sh set DIR  save it as the drop-in's first export
 #
 # `get` reads the drop-in too, because a hook started by an IDE or a desktop app
-# never sourced a shell profile. LOCAL_ENV overrides the drop-in's path, for tests.
+# never sourced a shell profile. Where the drop-in is (LOCAL_ENV) and where the
+# brain is cloned from (BRAIN_REMOTE) are set at the top of the Makefile; run
+# outside make, this asks make for them.
 set -euo pipefail
-file=${LOCAL_ENV:-$HOME/.config/bash_aliases.d/99-local.sh}
-remote=ssh://git@git-ssh.insuit.cz/landsman/brain.git
+repo=$(cd "$(dirname "$0")/../.." && pwd)
+setting() { make -s --no-print-directory -C "$repo" print-"$1" 2>/dev/null || true; }
+file=${LOCAL_ENV:-$(setting LOCAL_ENV)}
+[ -n "$file" ] || { echo "brain-dir: LOCAL_ENV is not set, see the top of $repo/Makefile" >&2; exit 1; }
 
 get() {
 	if [ -n "${BRAIN_DIR:-}" ]; then echo "$BRAIN_DIR"; return; fi
@@ -41,8 +45,10 @@ ask() {
 	dir=${dir:-$suggested}
 	dir=${dir/#\~/$HOME}
 	if [ ! -d "$dir" ]; then
-		read -r -p "$dir does not exist. Clone $remote there? [Y/n] " yes
-		case $yes in n | N | no) echo "not cloned; clone it there before the next commit" ;; *) git clone "$remote" "$dir" ;; esac
+		remote=${BRAIN_REMOTE:-}
+		read -r -p "$dir does not exist. Clone it from [${remote:-empty skips}]: " url
+		remote=${url:-$remote}
+		if [ -n "$remote" ]; then git clone "$remote" "$dir"; else echo "not cloned; clone it there before the next commit"; fi
 	fi
 	set_dir "$dir"
 	echo "open a new shell so it is in the environment"

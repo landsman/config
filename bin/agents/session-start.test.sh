@@ -14,12 +14,13 @@ fails=0
 # does not exist under a faked HOME, so the hook failed every commit below and
 # the test failed on my own laptop while staying green on CI, where no such
 # config exists. Same isolation as bin/git/forbidden-names.test.sh.
-unset BRAIN_DIR
+unset BRAIN_DIR LOCAL_ENV BRAIN_REMOTE # make exports the last two
 export HOME="$tmp" TMPDIR="$tmp" GIT_CONFIG_GLOBAL="$tmp/gitconfig" GIT_CONFIG_NOSYSTEM=1
 repo="$tmp/repo"
 hook="$repo/bin/agents/session-start.sh"
 mkdir -p "$repo/bin/agents" "$repo/shared"
 cp "$dir/session-start.sh" "$dir/brain-dir.sh" "$repo/bin/agents/"
+cp "$dir/../../Makefile" "$repo/" # brain-dir.sh asks it where the drop-in is
 cp -R "$dir/../../shared/.agents" "$repo/shared/"
 # Two names the real tree may grow: one git quotes, one stow never links.
 echo x > "$repo/shared/.agents/rules/příklad.md"
