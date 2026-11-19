@@ -202,6 +202,7 @@ describe("the script, as git runs it", () => {
 		const { code, err } = run(public_);
 		expect(code).toBe(1);
 		expect(err).toContain("make brain");
+		git(public_, "config", "--global", "--unset", "forbiddenNames.required");
 	});
 
 	test("a staged name is refused, and the hit says where to edit", () => {
