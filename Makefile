@@ -11,7 +11,7 @@ export LOCAL_ENV BRAIN_REMOTE
 
 # Prints one of them, for a script run outside make: make -s print-LOCAL_ENV
 print-%:
-	@echo '$($*)'
+	@printf '%s\n' '$(subst ','\'',$($*))'
 
 # Dotfiles are stowed from three places, each mirroring $HOME:
 #   .           shared/   portable, any machine + any OS
