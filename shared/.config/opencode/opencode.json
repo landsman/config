@@ -5,63 +5,66 @@
     "~/projects/landsman/brain/wiki/index.md"
   ],
   "mcp": {
-    "pencil": {
-      "command": [
-        "/Applications/Pen.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64",
-        "--app",
-        "desktop",
-        "--agent",
-        "openCodeCLI"
-      ],
-      "enabled": true,
-      "type": "local"
-    },
-    "rohlik": {
-      "url": "https://mcp.rohlik.cz/mcp",
-      "enabled": true,
-      "type": "remote"
-    },
-    "vaadin": {
-      "url": "https://mcp.vaadin.com/docs",
-      "enabled": true,
-      "type": "remote"
-    },
-    "betterstack": {
-      "url": "https://mcp.betterstack.com",
-      "enabled": true,
-      "type": "remote"
-    },
-    "cloudflare": {
-      "url": "https://mcp.cloudflare.com/mcp",
-      "enabled": true,
-      "type": "remote"
-    },
-    "azure-devops": {
-      "command": [
-        "sh",
-        "-c",
-        "[ -n \"$AZDO_ORG\" ] || exit 0; exec npx -y @azure-devops/mcp \"$AZDO_ORG\" -d core repositories pipelines search"
-      ],
-      "enabled": true,
-      "type": "local"
-    },
-    "adminer-desktop": {
-      "command": [
-        "sh",
-        "-c",
-        "b=$(command -v adminer-desktop || echo \"/Applications/Adminer Desktop.app/Contents/MacOS/adminer-desktop\"); [ -x \"$b\" ] || exit 0; exec \"$b\" -mcp"
-      ],
-      "enabled": true,
-      "type": "local"
-    },
-    "chrome-devtools": {
-      "command": [
-        "sh",
-        "-c",
-        "exec npx -y chrome-devtools-mcp@1.11.0 --browser-url http://127.0.0.1:9222 --no-usage-statistics --no-performance-crux"
-      ],
-      "enabled": true,
-      "type": "local"
+    "servers": {
+      "pencil": {
+        "type": "local",
+        "command": [
+          "/Applications/Pen.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64",
+          "--app",
+          "desktop",
+          "--agent",
+          "openCodeCLI"
+        ]
+      },
+      "rohlik": {
+        "type": "remote",
+        "url": "https://mcp.rohlik.cz/mcp"
+      },
+      "vaadin": {
+        "type": "remote",
+        "url": "https://mcp.vaadin.com/docs"
+      },
+      "betterstack": {
+        "type": "remote",
+        "url": "https://mcp.betterstack.com"
+      },
+      "cloudflare": {
+        "type": "remote",
+        "url": "https://mcp.cloudflare.com/mcp"
+      },
+      "azure-devops": {
+        "type": "local",
+        "command": [
+          "sh",
+          "-c",
+          "[ -n \"$AZDO_ORG\" ] || exit 0; exec npx -y @azure-devops/mcp \"$AZDO_ORG\" -d core repositories pipelines search"
+        ]
+      },
+      "adminer-desktop": {
+        "type": "local",
+        "command": [
+          "sh",
+          "-c",
+          "b=$(command -v adminer-desktop || echo \"/Applications/Adminer Desktop.app/Contents/MacOS/adminer-desktop\"); [ -x \"$b\" ] || exit 0; exec \"$b\" -mcp"
+        ]
+      },
+      "chrome-devtools": {
+        "type": "local",
+        "command": [
+          "sh",
+          "-c",
+          "exec npx -y chrome-devtools-mcp@1.11.0 --browser-url http://127.0.0.1:9222 --no-usage-statistics --no-performance-crux"
+        ]
+      },
+      "forgejo": {
+        "type": "remote",
+        "url": "{env:FORGEJO_MCP_URL}",
+        "oauth": {
+          "client_id": "{env:FORGEJO_MCP_CLIENT_ID}",
+          "callback_port": 53682,
+          "redirect_uri": "http://localhost:53682/callback"
+        }
+      }
     }
   },
   "permission": {

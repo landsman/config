@@ -201,8 +201,13 @@ fills in, because this repo is public:
   has its own so that deleting one client cuts off that device and no other.
 
 `callbackPort` is fixed at 53682 because each Authelia client allows exactly
-one redirect, `http://localhost:53682/callback`. opencode chooses its own
-callback, so it has no forgejo entry; `servers.test.sh` declares that.
+one redirect, `http://localhost:53682/callback`. OpenCode V2 pins the same port
+(`oauth.callback_port`), so it uses the same per-device client as Claude Code.
+Its URL and client ID are `{env:FORGEJO_MCP_URL}` and
+`{env:FORGEJO_MCP_CLIENT_ID}`; `make claude` writes both to the machine-local
+drop-in, and `servers.test.sh` checks forgejo is in both lists while leaving
+those machine-local URLs out of the signature diff. Sign in the same way:
+`/mcps`, select forgejo.
 
 Windows has no `make`:
 [`os/windows/forgejo-mcp.ps1`](../os/windows/forgejo-mcp.ps1) registers the
