@@ -15,20 +15,31 @@ set -euo pipefail
 repo=$(cd "$(dirname "$0")/../.." && pwd)
 setting() { make -s --no-print-directory -C "$repo" print-"$1" 2>/dev/null || true; }
 file=${LOCAL_ENV:-$(setting LOCAL_ENV)}
-[ -n "$file" ] || { echo "brain-dir: LOCAL_ENV is not set, see the top of $repo/Makefile" >&2; exit 1; }
 
+# Prints nothing rather than failing when the drop-in cannot be found (no make
+# on an IDE's PATH): the caller then says BRAIN_DIR is unset, with its fix.
 get() {
 	if [ -n "${BRAIN_DIR:-}" ]; then echo "$BRAIN_DIR"; return; fi
-	[ -r "$file" ] || return 0
-	sed -n 's/^export BRAIN_DIR=//p' "$file" | head -n 1
+	[ -n "$file" ] && [ -r "$file" ] || return 0
+	line=$(grep -m 1 '^export BRAIN_DIR=' "$file" || true)
+	[ -n "$line" ] || return 0
+	# The line is written with %q below, so the shell that sources it reads it back.
+	eval "$line"
+	echo "$BRAIN_DIR"
 }
 
 # First export, so whatever the drop-in sets after it can build on it.
 set_dir() {
+	[ -n "$file" ] || { echo "brain-dir: LOCAL_ENV is not set, see the top of $repo/Makefile" >&2; exit 1; }
+	# Absolute, or each hook would resolve it against its own working directory.
+	case $1 in /*) dir=$1 ;; *) dir=$PWD/$1 ;; esac
+	[ ! -d "$dir" ] || dir=$(cd "$dir" && pwd)
 	mkdir -p "$(dirname "$file")"
 	[ -s "$file" ] || echo '# Machine-local and untracked on purpose - see .docs-llm/mcp-servers.md' >"$file"
 	tmp=$(mktemp)
-	awk -v line="export BRAIN_DIR=$1" '
+	# Through ENVIRON: awk -v would expand the backslashes %q writes.
+	line="export BRAIN_DIR=$(printf %q "$dir")" awk '
+		BEGIN { line = ENVIRON["line"] }
 		/^export BRAIN_DIR=/ { next }
 		!done && !/^#/ { print line; done = 1 }
 		{ print }
@@ -40,9 +51,9 @@ set_dir() {
 
 ask() {
 	was=$(get)
-	suggested=${was:-$HOME/projects/landsman/brain}
-	read -r -p "Brain checkout [$suggested]: " dir
-	dir=${dir:-$suggested}
+	read -r -p "Brain checkout [${was:-a path, e.g. ~/projects/brain}]: " dir
+	dir=${dir:-$was}
+	[ -n "$dir" ] || { echo "no path given, nothing saved" >&2; exit 1; }
 	dir=${dir/#\~/$HOME}
 	if [ ! -d "$dir" ]; then
 		remote=${BRAIN_REMOTE:-}

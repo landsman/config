@@ -27,6 +27,19 @@ rm "$LOCAL_ENV"
 bash "$script" set /b/new >/dev/null
 expect "a missing drop-in is created" "export BRAIN_DIR=/b/new" "$(grep '^export' "$LOCAL_ENV")"
 
+bash "$script" set "/Volumes/My Disk/it's brain" >/dev/null
+expect "a path with a space and a quote reads back whole" "/Volumes/My Disk/it's brain" "$(bash "$script" get)"
+expect "and the shell sourcing the drop-in gets the same" "/Volumes/My Disk/it's brain" "$(bash -c ". \"$LOCAL_ENV\"; echo \"\$BRAIN_DIR\"")"
+
+mkdir -p "$tmp/work/brain"
+(cd "$tmp/work" && bash "$script" set brain >/dev/null)
+expect "a relative path is saved absolute" "$(cd "$tmp/work/brain" && pwd)" "$(bash "$script" get)"
+
+# A copy with no Makefile above it: nothing names the drop-in.
+mkdir -p "$tmp/bare/bin/agents" && cp "$script" "$tmp/bare/bin/agents/"
+out=$(env -u LOCAL_ENV bash "$tmp/bare/bin/agents/brain-dir.sh" get 2>&1); rc=$?
+expect "a drop-in nobody can name: get prints nothing and succeeds" "0:" "$rc:$out"
+
 bash "$script" bogus 2>/dev/null
 expect "an unknown command is refused" "2" "$?"
 
