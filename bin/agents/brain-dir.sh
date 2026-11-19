@@ -62,7 +62,12 @@ ask() {
 	read -r -p "Brain checkout [${was:-a path, e.g. ~/projects/brain}]: " dir
 	dir=${dir:-$was}
 	[ -n "$dir" ] || { echo "no path given, nothing saved" >&2; exit 1; }
-	case $dir in "~" | "~/"*) dir=$HOME${dir#\~} ;; "~"*) echo "only ~ and ~/ are expanded, write the full path" >&2; exit 1 ;; esac
+	# Nothing relative: make -C has moved into the config repo, so it would land there.
+	case $dir in
+	"~" | "~/"*) dir=$HOME${dir#\~} ;;
+	/*) ;;
+	*) echo "write the full path, or one starting with ~/" >&2; exit 1 ;;
+	esac
 	if [ ! -d "$dir" ]; then
 		remote=${BRAIN_REMOTE:-}
 		read -r -p "$dir does not exist. Clone it from [${remote:-empty skips}]: " url

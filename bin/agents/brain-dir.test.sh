@@ -35,6 +35,13 @@ mkdir -p "$tmp/work/brain"
 (cd "$tmp/work" && bash "$script" set brain >/dev/null)
 expect "a relative path is saved absolute" "$(cd "$tmp/work/brain" && pwd)" "$(bash "$script" get)"
 
+# make brain answers: make -C runs this from the config repo, not where the user typed.
+(cd "$tmp/work" && printf 'brain\n' | bash "$script" >/dev/null 2>&1); rc=$?
+expect "asked, a relative answer is refused and nothing saved" "1:$(cd "$tmp/work/brain" && pwd)" "$rc:$(bash "$script" get)"
+mkdir -p "$tmp/home/brain"
+printf '~/brain\n' | HOME="$tmp/home" bash "$script" >/dev/null
+expect "asked, ~/ is the home folder" "$(cd "$tmp/home/brain" && pwd)" "$(bash "$script" get)"
+
 # A copy with no Makefile above it: nothing names the drop-in.
 mkdir -p "$tmp/bare/bin/agents" && cp "$script" "$tmp/bare/bin/agents/"
 out=$(env -u LOCAL_ENV bash "$tmp/bare/bin/agents/brain-dir.sh" get 2>&1); rc=$?
