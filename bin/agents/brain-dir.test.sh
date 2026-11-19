@@ -40,6 +40,10 @@ mkdir -p "$tmp/bare/bin/agents" && cp "$script" "$tmp/bare/bin/agents/"
 out=$(env -u LOCAL_ENV bash "$tmp/bare/bin/agents/brain-dir.sh" get 2>&1); rc=$?
 expect "a drop-in nobody can name: get prints nothing and succeeds" "0:" "$rc:$out"
 
+printf 'export BRAIN_DIR=$BRAINS/brain\n' >"$LOCAL_ENV"
+out=$(env -u BRAINS bash "$script" get 2>&1); rc=$?
+expect "a hand-edited line naming an unset variable: get stays quiet" "0:/brain" "$rc:$out"
+
 # Every commit runs get: with BRAIN_DIR set it must not parse the Makefile.
 mkdir -p "$tmp/stub" && printf '#!/bin/sh\ntouch "%s/make-ran"\nexit 1\n' "$tmp" >"$tmp/stub/make" && chmod +x "$tmp/stub/make"
 env -u LOCAL_ENV PATH="$tmp/stub:$PATH" BRAIN_DIR=/b/env bash "$script" get >/dev/null

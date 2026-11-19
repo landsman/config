@@ -25,9 +25,14 @@ get() {
 	[ -n "$file" ] && [ -r "$file" ] || return 0
 	line=$(grep -m 1 '^export BRAIN_DIR=' "$file" || true)
 	[ -n "$line" ] || return 0
-	# The line is written with %q below, so the shell that sources it reads it back.
-	eval "$line"
-	echo "$BRAIN_DIR"
+	# The line is written with %q below, so the shell that sources it reads it
+	# back. A hand-edited one may name an unset variable: read nothing then, and
+	# the caller refuses with its fix instead of bash's "unbound variable".
+	(
+		set +u
+		eval "$line"
+		echo "${BRAIN_DIR:-}"
+	) 2>/dev/null || true
 }
 
 # First export, so whatever the drop-in sets after it can build on it.
