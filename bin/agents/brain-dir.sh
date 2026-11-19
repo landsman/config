@@ -13,13 +13,15 @@
 # outside make, this asks make for them.
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/../.." && pwd)
-setting() { make -s --no-print-directory -C "$repo" print-"$1" 2>/dev/null || true; }
-file=${LOCAL_ENV:-$(setting LOCAL_ENV)}
+# Asked for only when needed: parsing the Makefile on every commit costs its
+# $(shell) calls, and BRAIN_DIR is usually in the environment already.
+drop_in() { echo "${LOCAL_ENV:-$(make -s --no-print-directory -C "$repo" print-LOCAL_ENV 2>/dev/null || true)}"; }
 
 # Prints nothing rather than failing when the drop-in cannot be found (no make
 # on an IDE's PATH): the caller then says BRAIN_DIR is unset, with its fix.
 get() {
 	if [ -n "${BRAIN_DIR:-}" ]; then echo "$BRAIN_DIR"; return; fi
+	file=$(drop_in)
 	[ -n "$file" ] && [ -r "$file" ] || return 0
 	line=$(grep -m 1 '^export BRAIN_DIR=' "$file" || true)
 	[ -n "$line" ] || return 0
@@ -30,6 +32,7 @@ get() {
 
 # First export, so whatever the drop-in sets after it can build on it.
 set_dir() {
+	file=$(drop_in)
 	[ -n "$file" ] || { echo "brain-dir: LOCAL_ENV is not set, see the top of $repo/Makefile" >&2; exit 1; }
 	# Absolute, or each hook would resolve it against its own working directory.
 	case $1 in /*) dir=$1 ;; *) dir=$PWD/$1 ;; esac
@@ -54,7 +57,7 @@ ask() {
 	read -r -p "Brain checkout [${was:-a path, e.g. ~/projects/brain}]: " dir
 	dir=${dir:-$was}
 	[ -n "$dir" ] || { echo "no path given, nothing saved" >&2; exit 1; }
-	dir=${dir/#\~/$HOME}
+	case $dir in "~" | "~/"*) dir=$HOME${dir#\~} ;; "~"*) echo "only ~ and ~/ are expanded, write the full path" >&2; exit 1 ;; esac
 	if [ ! -d "$dir" ]; then
 		remote=${BRAIN_REMOTE:-}
 		read -r -p "$dir does not exist. Clone it from [${remote:-empty skips}]: " url

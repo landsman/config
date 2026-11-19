@@ -40,6 +40,11 @@ mkdir -p "$tmp/bare/bin/agents" && cp "$script" "$tmp/bare/bin/agents/"
 out=$(env -u LOCAL_ENV bash "$tmp/bare/bin/agents/brain-dir.sh" get 2>&1); rc=$?
 expect "a drop-in nobody can name: get prints nothing and succeeds" "0:" "$rc:$out"
 
+# Every commit runs get: with BRAIN_DIR set it must not parse the Makefile.
+mkdir -p "$tmp/stub" && printf '#!/bin/sh\ntouch "%s/make-ran"\nexit 1\n' "$tmp" >"$tmp/stub/make" && chmod +x "$tmp/stub/make"
+env -u LOCAL_ENV PATH="$tmp/stub:$PATH" BRAIN_DIR=/b/env bash "$script" get >/dev/null
+expect "BRAIN_DIR set: make is never run" "no" "$([ -e "$tmp/make-ran" ] && echo yes || echo no)"
+
 bash "$script" bogus 2>/dev/null
 expect "an unknown command is refused" "2" "$?"
 
