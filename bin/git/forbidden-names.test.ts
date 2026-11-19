@@ -1,7 +1,7 @@
 // Self-check for ./forbidden-names.ts: the pure halves directly, and the script
 // itself in throwaway repos under a throwaway $HOME, run the way git runs it.
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -202,6 +202,8 @@ describe("the script, as git runs it", () => {
 		const { code, err } = run(public_);
 		expect(code).toBe(1);
 		expect(err).toContain("make brain");
+		git(public_, "config", "--global", "forbiddenNames.required", "yes");
+		expect(run(public_).code).toBe(1);
 		git(public_, "config", "--global", "--unset", "forbiddenNames.required");
 	});
 
@@ -278,5 +280,12 @@ describe("the script, as git runs it", () => {
 	test("the repo holding the list is exempt", () => {
 		stage(brain, "acme is a client");
 		expect(run(brain, brain).code).toBe(0);
+	});
+
+	test("and stays exempt when BRAIN_DIR reaches it through a symlink", () => {
+		const link = join(tmp, "brain-link");
+		symlinkSync(brain, link);
+		stage(brain, "acme is a client");
+		expect(run(brain, link).code).toBe(0);
 	});
 });

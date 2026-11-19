@@ -330,7 +330,9 @@ if (import.meta.main) {
 	const brain = process.env.BRAIN_DIR ?? "";
 	if (!brain) {
 		// .gitconfig sets it; unset means a machine this repo never set up (a CI runner).
-		const required = (await git("config", "--get", "forbiddenNames.required")).trim();
+		const required = (
+			await git("config", "--type=bool", "--get", "forbiddenNames.required")
+		).trim();
 		if (required !== "true") process.exit(0);
 		die(
 			"BRAIN_DIR is not set, refusing to commit unchecked.",
@@ -352,7 +354,9 @@ if (import.meta.main) {
 
 	const repo = await mainCheckout();
 	// The repo that holds the list is private by definition.
-	if (listPath.startsWith(`${repo}/`)) process.exit(0);
+	// Resolved like mainCheckout(): a BRAIN_DIR through a symlink (or /tmp on
+	// macOS) would otherwise miss its own checkout and refuse the brain's commits.
+	if (realpathSync(listPath).startsWith(`${repo}/`)) process.exit(0);
 	const home = homedir();
 	const owner = repo.startsWith(`${home}/projects/`)
 		? (repo.slice(`${home}/projects/`.length).split("/")[0] ?? "")
