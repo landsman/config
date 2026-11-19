@@ -104,7 +104,7 @@ links() {
 msg=$(links)
 [ -z "$msg" ] || echo "$msg"
 
-f="$HOME/projects/landsman/brain/wiki/index.md"
+f="${BRAIN_DIR:-$HOME/projects/landsman/brain}/wiki/index.md"
 [ -f "$f" ] || exit 0
 # One line per page, without the description that made the file too long. The
 # budget leaves room for what links printed above, under the same cap.

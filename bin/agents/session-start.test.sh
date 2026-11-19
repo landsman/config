@@ -14,6 +14,7 @@ fails=0
 # does not exist under a faked HOME, so the hook failed every commit below and
 # the test failed on my own laptop while staying green on CI, where no such
 # config exists. Same isolation as bin/git/forbidden-names.test.sh.
+unset BRAIN_DIR
 export HOME="$tmp" TMPDIR="$tmp" GIT_CONFIG_GLOBAL="$tmp/gitconfig" GIT_CONFIG_NOSYSTEM=1
 repo="$tmp/repo"
 hook="$repo/bin/agents/session-start.sh"
@@ -179,5 +180,9 @@ check "a page with no link keeps its title" "- Not written yet" yes
 for i in $(seq 300); do echo "- [A page title number $i](a-page-title-number-$i.md) — d"; done >> "$idx"
 check "a long index falls back to titles" "- A page title number 300" yes
 check "without the links" "(a-page-title-number-300.md)" no
+
+mkdir -p "$tmp/elsewhere/wiki"
+echo "- [Moved](moved.md) — d" > "$tmp/elsewhere/wiki/index.md"
+BRAIN_DIR="$tmp/elsewhere" check "BRAIN_DIR points at a brain cloned elsewhere" "- [Moved](moved.md)" yes
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }

@@ -161,8 +161,10 @@ describe("the script, as git runs it", () => {
 	const tmp = realpathSync(mkdtempSync(join(tmpdir(), "forbidden-names-")));
 	afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
+	// The caller's BRAIN_DIR would win over every list the tests configure.
+	const { BRAIN_DIR: _callersBrain, ...callersEnv } = process.env;
 	const env = {
-		...process.env,
+		...callersEnv,
 		HOME: tmp,
 		GIT_CONFIG_GLOBAL: join(tmp, "gitconfig"),
 		GIT_CONFIG_NOSYSTEM: "1",
@@ -217,6 +219,19 @@ describe("the script, as git runs it", () => {
 		const { code, err } = run(public_);
 		expect(code).toBe(1);
 		expect(err).toContain("refusing to commit unchecked");
+	});
+
+	test("BRAIN_DIR names the list instead of the config", () => {
+		const brain = join(tmp, "elsewhere", "brain");
+		mkdirSync(brain, { recursive: true });
+		writeFileSync(join(brain, "private-names.txt"), "acme acme\n");
+		stage(public_, "org=acme");
+		const p = Bun.spawnSync([process.execPath, hook], {
+			cwd: public_,
+			env: { ...env, BRAIN_DIR: brain },
+		});
+		expect(p.exitCode).toBe(1);
+		expect(p.stderr.toString()).toContain("belongs to another owner");
 	});
 
 	test("an empty file named after it: no added line carries the path", () => {

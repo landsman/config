@@ -403,7 +403,7 @@ export async function fileInBrain(transcript: string) {
 	}
 	// Interactive, not claude -p: its writes to the brain need approving, and its questions an answer.
 	const claude = Bun.spawn(["claude", brainPrompt(transcript)], {
-		cwd: `${homedir()}/projects/landsman/brain`,
+		cwd: process.env.BRAIN_DIR ?? `${homedir()}/projects/landsman/brain`,
 		stdio: ["inherit", "inherit", "inherit"],
 	});
 	await claude.exited;

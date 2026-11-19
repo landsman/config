@@ -1,6 +1,7 @@
 # Brain
 
-My long-term memory lives in `~/projects/landsman/brain`, a private repo:
+My long-term memory lives in `~/projects/landsman/brain` (`$BRAIN_DIR` when
+cloned elsewhere), a private repo:
 `raw/` for sources as they arrived, `wiki/` for pages compiled from them.
 The how is in the `brain` skill; load it before touching the repo.
 

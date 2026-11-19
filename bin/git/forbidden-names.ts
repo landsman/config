@@ -325,7 +325,10 @@ if (import.meta.main) {
 		}
 	}
 
-	const configured = (await git("config", "--get", "forbiddenNames.file")).trim();
+	// git config expands no variables, so a brain cloned elsewhere is named by BRAIN_DIR.
+	const configured = process.env.BRAIN_DIR
+		? join(process.env.BRAIN_DIR, "private-names.txt")
+		: (await git("config", "--get", "forbiddenNames.file")).trim();
 	// Unset means a machine this repo never set up (a CI runner): nothing to check.
 	if (!configured) process.exit(0);
 	const listPath = configured.startsWith("~") ? join(homedir(), configured.slice(1)) : configured;

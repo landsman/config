@@ -30,6 +30,7 @@ the call in the brain.
 | `PEOPLE="Jana Nováková, Petr Dvořák"` | people on the call the event does not name, added to its names; asked for otherwise, and saved with the event |
 | `SPEAKERS=3` | how many voices are on the other side, when the event's people would mislead |
 | `BRAIN=n` | skips the brain step |
+| `BRAIN_DIR=…` | the brain checkout, when it is not in `~/projects/landsman/brain` |
 
 ## What it writes
 
