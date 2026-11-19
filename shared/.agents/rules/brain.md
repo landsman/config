@@ -4,7 +4,7 @@ My long-term memory lives in `$BRAIN_DIR`, a private repo (`make brain` in
 the config repo sets it):
 `raw/` for sources as they arrived, `wiki/` for pages compiled from them.
 The how is in the `brain` skill; load it before touching the repo.
-**Empty `$BRAIN_DIR` in your shell** (a harness started outside a login shell)
+**Empty `$BRAIN_DIR` in your shell** (a harness whose shell never read `.zshrc` or `.bashrc`)
 turns every path below into `/wiki`, which finds nothing without an error. Read
 it with `~/projects/landsman/config/bin/agents/brain-dir.sh get` first.
 
