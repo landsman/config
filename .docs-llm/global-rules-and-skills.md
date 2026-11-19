@@ -26,7 +26,10 @@ per harness after that. Never a copy.
   `instructions: ["~/.agents/rules/*.md"]` in
   [`opencode.json`](../shared/.config/opencode/opencode.json) — `~` is expanded
   and the glob is scanned before any session starts, so adding a rule file picks
-  it up with `make stow` and no config change.
+  it up with `make stow` and no config change. The brain index beside it is
+  `{env:BRAIN_DIR}/wiki/index.md`, read from the environment only: opencode
+  started outside a shell that sourced the drop-in, such as from a desktop app,
+  gets `/wiki/index.md` and silently no index.
 - **Codex** reads the same index and gets nothing else: one file, no glob, no
   rules directory, no config key for extra instruction files. So the index opens
   by telling the reader to go and read `~/.agents/rules/*.md` if the bodies are
