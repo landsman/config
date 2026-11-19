@@ -356,7 +356,8 @@ if (import.meta.main) {
 	// The repo that holds the list is private by definition.
 	// Resolved like mainCheckout(): a BRAIN_DIR through a symlink (or /tmp on
 	// macOS) would otherwise miss its own checkout and refuse the brain's commits.
-	if (realpathSync(listPath).startsWith(`${repo}/`)) process.exit(0);
+	// The folder, not the file: a list symlinked in from elsewhere is still its own.
+	if (`${realpathSync(brain)}/`.startsWith(`${repo}/`)) process.exit(0);
 	const home = homedir();
 	const owner = repo.startsWith(`${home}/projects/`)
 		? (repo.slice(`${home}/projects/`.length).split("/")[0] ?? "")

@@ -288,4 +288,13 @@ describe("the script, as git runs it", () => {
 		stage(brain, "acme is a client");
 		expect(run(brain, link).code).toBe(0);
 	});
+
+	test("and when its list is a symlink to a file kept elsewhere", () => {
+		const elsewhere = join(tmp, "names-kept-elsewhere.txt");
+		writeFileSync(elsewhere, "acme acme\n");
+		const linked = repo(join(tmp, "projects", "landsman", "linked-brain"));
+		symlinkSync(elsewhere, join(linked, "private-names.txt"));
+		stage(linked, "acme is a client");
+		expect(run(linked, linked).code).toBe(0);
+	});
 });
