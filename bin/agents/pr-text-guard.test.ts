@@ -12,7 +12,14 @@ import { runHook } from "@lib/testing";
 const hook = join(import.meta.dir, "pr-text-guard.ts");
 const home = mkdtempSync(join(tmpdir(), "pr-text-guard-"));
 afterAll(() => rmSync(home, { recursive: true }));
-const isolated = { HOME: home, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1" };
+// No brain either: the caller's BRAIN_DIR, or the drop-in make points LOCAL_ENV at, would check the real list.
+const isolated = {
+	HOME: home,
+	GIT_CONFIG_GLOBAL: "/dev/null",
+	GIT_CONFIG_NOSYSTEM: "1",
+	BRAIN_DIR: "",
+	LOCAL_ENV: join(home, "no-drop-in.sh"),
+};
 
 /** The hook's refusal for this call, or undefined when it lets it through. */
 async function refusal(event: object): Promise<string | undefined> {

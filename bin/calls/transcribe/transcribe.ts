@@ -396,6 +396,10 @@ export async function fileInBrain(transcript: string) {
 	if (!Bun.which("claude")) {
 		return warn("claude is missing, the transcript stays out of the brain");
 	}
+	const brain = process.env.BRAIN_DIR;
+	if (!brain) {
+		return warn("BRAIN_DIR is not set (make brain), the transcript stays out of the brain");
+	}
 	const answer =
 		process.env.BRAIN ?? (await ask("File it in the brain with Claude?", "[Enter = yes, n = no]"));
 	if (["n", "no"].includes(answer.toLowerCase())) {
@@ -403,7 +407,7 @@ export async function fileInBrain(transcript: string) {
 	}
 	// Interactive, not claude -p: its writes to the brain need approving, and its questions an answer.
 	const claude = Bun.spawn(["claude", brainPrompt(transcript)], {
-		cwd: `${homedir()}/projects/landsman/brain`,
+		cwd: brain,
 		stdio: ["inherit", "inherit", "inherit"],
 	});
 	await claude.exited;

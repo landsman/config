@@ -30,6 +30,7 @@ the call in the brain.
 | `PEOPLE="Jana Nováková, Petr Dvořák"` | people on the call the event does not name, added to its names; asked for otherwise, and saved with the event |
 | `SPEAKERS=3` | how many voices are on the other side, when the event's people would mislead |
 | `BRAIN=n` | skips the brain step |
+| `BRAIN_DIR` | the brain checkout, set by `make brain`; unset skips the brain step |
 
 ## What it writes
 
@@ -81,7 +82,7 @@ with Xcode for CoreML, in `transcribe/models.ts`.
 | its diarizer models | 22 MB, 21 files | `~/Library/Application Support/FluidAudio/Models/speaker-diarization` |
 | Calendar | the event during the call, and who was on it ([`macos/calendar.ts`](macos/calendar.ts), picked in [`calendar/`](calendar)) | read-only from its database |
 | Contacts | a name for an attendee known only by address ([`macos/contacts.ts`](macos/contacts.ts)) | read-only; a new name is saved through the Contacts app, when confirmed |
-| [Claude Code](https://claude.com/claude-code) | files the call in the brain, interactively, in `~/projects/landsman/brain` | asked after each transcript |
+| [Claude Code](https://claude.com/claude-code) | files the call in the brain, interactively, in `$BRAIN_DIR` | asked after each transcript |
 
 Every model is pinned by sha256 and checked before it is used ([`transcribe/models.ts`](transcribe/models.ts)). The diarizer has
 no release binary, so it is built with Xcode from the commit behind its tag, and

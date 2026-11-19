@@ -1,7 +1,7 @@
 // Self-check for ./forbidden-names.ts: the pure halves directly, and the script
 // itself in throwaway repos under a throwaway $HOME, run the way git runs it.
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -161,15 +161,20 @@ describe("the script, as git runs it", () => {
 	const tmp = realpathSync(mkdtempSync(join(tmpdir(), "forbidden-names-")));
 	afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
-	const env = {
-		...process.env,
+	// The caller's BRAIN_DIR, or the LOCAL_ENV make exports, would point every test at the real list.
+	const { BRAIN_DIR: _brain, LOCAL_ENV: _localEnv, ...callersEnv } = process.env;
+	const env: Record<string, string | undefined> = {
+		...callersEnv,
 		HOME: tmp,
 		GIT_CONFIG_GLOBAL: join(tmp, "gitconfig"),
 		GIT_CONFIG_NOSYSTEM: "1",
 	};
 	const git = (cwd: string, ...args: string[]) => Bun.spawnSync(["git", ...args], { cwd, env });
-	const run = (cwd: string, ...args: string[]) => {
-		const p = Bun.spawnSync([process.execPath, hook, ...args], { cwd, env });
+	const run = (cwd: string, brainDir?: string) => {
+		const p = Bun.spawnSync([process.execPath, hook], {
+			cwd,
+			env: { ...env, BRAIN_DIR: brainDir },
+		});
 		return { code: p.exitCode, err: p.stderr.toString() };
 	};
 	const repo = (path: string) => {
@@ -182,19 +187,29 @@ describe("the script, as git runs it", () => {
 		git(path, "add", "f.txt");
 	};
 
-	const names = join(tmp, "names");
-	writeFileSync(names, "# owner regex\nacme acme|acme-bot\n");
+	const brain = repo(join(tmp, "projects", "landsman", "brain"));
+	writeFileSync(join(brain, "private-names.txt"), "# owner regex\nacme acme|acme-bot\n");
 	const public_ = repo(join(tmp, "projects", "landsman", "public"));
 
-	test("no list configured: a runner has nothing to check", () => {
+	test("no BRAIN_DIR on a machine this repo never set up: nothing to check", () => {
 		stage(public_, "org=acme");
 		expect(run(public_).code).toBe(0);
 	});
 
-	test("a staged name is refused, and the hit says where to edit", () => {
-		git(public_, "config", "--global", "forbiddenNames.file", names);
-		stage(public_, "org=ACME");
+	test("no BRAIN_DIR where .gitconfig requires the check: refused", () => {
+		git(public_, "config", "--global", "forbiddenNames.required", "true");
+		stage(public_, "clean");
 		const { code, err } = run(public_);
+		expect(code).toBe(1);
+		expect(err).toContain("make brain");
+		git(public_, "config", "--global", "forbiddenNames.required", "yes");
+		expect(run(public_).code).toBe(1);
+		git(public_, "config", "--global", "--unset", "forbiddenNames.required");
+	});
+
+	test("a staged name is refused, and the hit says where to edit", () => {
+		stage(public_, "org=ACME");
+		const { code, err } = run(public_, brain);
 		expect(code).toBe(1);
 		expect(err).toContain("belongs to another owner");
 		expect(err).toContain("f.txt:1: org=ACME");
@@ -202,29 +217,27 @@ describe("the script, as git runs it", () => {
 
 	test("a clean diff passes", () => {
 		stage(public_, "org=${ORG:?set ORG}");
-		expect(run(public_).code).toBe(0);
+		expect(run(public_, brain).code).toBe(0);
 	});
 
 	test("the owner's own repo may name it", () => {
 		const own = repo(join(tmp, "projects", "acme", "backend"));
 		stage(own, "org=acme");
-		expect(run(own).code).toBe(0);
+		expect(run(own, brain).code).toBe(0);
 	});
 
-	test("a missing list refuses rather than passing unchecked", () => {
-		git(public_, "config", "--global", "forbiddenNames.file", join(tmp, "gone"));
+	test("a BRAIN_DIR with no list refuses rather than passing unchecked", () => {
 		stage(public_, "clean");
-		const { code, err } = run(public_);
+		const { code, err } = run(public_, join(tmp, "gone"));
 		expect(code).toBe(1);
 		expect(err).toContain("refusing to commit unchecked");
 	});
 
 	test("an empty file named after it: no added line carries the path", () => {
-		git(public_, "config", "--global", "forbiddenNames.file", names);
 		git(public_, "rm", "-q", "--cached", "f.txt");
 		writeFileSync(join(public_, "acme-deploy.sh"), "");
 		git(public_, "add", "acme-deploy.sh");
-		const { code, err } = run(public_);
+		const { code, err } = run(public_, brain);
 		expect(code).toBe(1);
 		expect(err).toContain("(file name)");
 		git(public_, "rm", "-q", "--cached", "acme-deploy.sh");
@@ -233,14 +246,19 @@ describe("the script, as git runs it", () => {
 	test("a PR body on stdin, where # is a heading", () => {
 		const p = Bun.spawnSync([process.execPath, hook, "-"], {
 			cwd: public_,
-			env,
+			env: { ...env, BRAIN_DIR: brain },
 			stdin: new Blob(["fe: a clean title\n\n# Heading\nfor acme\n"]),
 		});
 		expect(p.exitCode).toBe(1);
 		expect(p.stderr.toString()).toContain("4:for acme");
 	});
 
-	test("git itself runs it, through the wrapper in .gitconfig", () => {
+	test("git itself runs it, through the wrapper, which reads BRAIN_DIR from the drop-in", () => {
+		mkdirSync(join(tmp, ".config", "bash_aliases.d"), { recursive: true });
+		writeFileSync(
+			join(tmp, ".config", "bash_aliases.d", "99-local.sh"),
+			`export BRAIN_DIR=${brain}\n`,
+		);
 		git(public_, "config", "--global", "commit.gpgsign", "false");
 		git(public_, "config", "--global", "user.email", "t@t");
 		git(public_, "config", "--global", "user.name", "t");
@@ -260,10 +278,23 @@ describe("the script, as git runs it", () => {
 	});
 
 	test("the repo holding the list is exempt", () => {
-		const brain = repo(join(tmp, "projects", "landsman", "brain"));
-		writeFileSync(join(brain, "names"), "acme acme\n");
-		git(brain, "config", "--global", "forbiddenNames.file", join(brain, "names"));
 		stage(brain, "acme is a client");
-		expect(run(brain).code).toBe(0);
+		expect(run(brain, brain).code).toBe(0);
+	});
+
+	test("and stays exempt when BRAIN_DIR reaches it through a symlink", () => {
+		const link = join(tmp, "brain-link");
+		symlinkSync(brain, link);
+		stage(brain, "acme is a client");
+		expect(run(brain, link).code).toBe(0);
+	});
+
+	test("and when its list is a symlink to a file kept elsewhere", () => {
+		const elsewhere = join(tmp, "names-kept-elsewhere.txt");
+		writeFileSync(elsewhere, "acme acme\n");
+		const linked = repo(join(tmp, "projects", "landsman", "linked-brain"));
+		symlinkSync(elsewhere, join(linked, "private-names.txt"));
+		stage(linked, "acme is a client");
+		expect(run(linked, linked).code).toBe(0);
 	});
 });

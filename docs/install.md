@@ -5,6 +5,8 @@ make apps    # Homebrew if missing, then the Brewfile (stow included), then
              # on Linux whatever the distro has to install itself
 make stow    # symlink shared/ + the detected device and os packages into $HOME
 make shell   # hook the alias loader into ~/.bashrc
+make brain   # where the brain is checked out (BRAIN_DIR); every commit is refused without it
+             # (its clone URL and the drop-in it writes are set at the top of the Makefile)
 make git     # hook in .gitconfig, set email + commit signing
 make claude  # ask for the Azure DevOps org the MCP server needs (once per machine)
 make hostname  # Linux: name this install from bin/hostname/names.conf (asks for root)

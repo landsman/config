@@ -1,5 +1,18 @@
 SHELL := /bin/bash
 
+# Per-machine settings, all in one place. Override any of them on the command
+# line or from the environment: make brain BRAIN_REMOTE=git@host:me/brain.git
+#   LOCAL_ENV     the untracked drop-in every shell sources; BRAIN_DIR and the
+#                 other machine-local values are saved there
+#   BRAIN_REMOTE  where `make brain` offers to clone the brain from; empty asks
+LOCAL_ENV    ?= $(HOME)/.config/bash_aliases.d/99-local.sh
+BRAIN_REMOTE ?=
+export LOCAL_ENV BRAIN_REMOTE
+
+# Prints one of them, for a script run outside make: make -s print-LOCAL_ENV
+print-%:
+	@printf '%s\n' '$(subst ','\'',$($*))'
+
 # Dotfiles are stowed from three places, each mirroring $HOME:
 #   .           shared/   portable, any machine + any OS
 #   devices/    <device>  this hardware, whatever OS is booted
@@ -579,6 +592,10 @@ omarchy: ## add, pin, patch and enable the shell plugins in os/arch/install-plug
 # private, and this repo is public. See .docs-llm/mcp-servers.md.
 #
 
+.PHONY: brain
+brain: ## ask where the brain is checked out (cloning it if missing), save it as BRAIN_DIR
+	@bash bin/agents/brain-dir.sh
+
 .PHONY: claude
 claude: ## register the user-scope MCP servers, then set the machine-local values they read (Azure DevOps org, Forgejo URL)
 	@DEVICE=$(DEVICE) $(BUN) bin/mcp/user-servers.ts install
@@ -587,7 +604,7 @@ claude: ## register the user-scope MCP servers, then set the machine-local value
 	@# `env` block does not feed it. Both .bashrc and os/macos/.zshrc glob that
 	@# directory, so one file covers both shells, and a file this repo does not
 	@# track is one `make restow` cannot overwrite.
-	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \
+	@f="$(LOCAL_ENV)"; \
 	was=$$(sed -n 's/^export AZDO_ORG=//p' "$$f" 2>/dev/null); \
 	read -p "Azure DevOps org [$${was:-unset}]: " o; o="$${o:-$$was}"; \
 	if [ -z "$$o" ]; then echo "left unset - the azure-devops server exits before npx runs"; exit 0; fi; \
@@ -611,7 +628,7 @@ claude: ## register the user-scope MCP servers, then set the machine-local value
 	grep -H '^export FORGEJO_MCP_' "$$f"
 	@# A Forgejo token from before the MCP moved to the Pi: nothing reads it now,
 	@# and a bearer token in a file every shell sources is what that move removed.
-	@f="$$HOME/.config/bash_aliases.d/99-local.sh"; \
+	@f="$(LOCAL_ENV)"; \
 	if grep -q '^export FORGEJO_ACCESS_TOKEN=' "$$f" 2>/dev/null; then \
 		tmp=$$(mktemp); grep -v '^export FORGEJO_ACCESS_TOKEN=' "$$f" > "$$tmp"; mv "$$tmp" "$$f"; chmod 600 "$$f"; \
 		echo "$$f: FORGEJO_ACCESS_TOKEN removed; revoke it at https://git.insuit.cz/user/settings/applications"; fi
@@ -911,16 +928,15 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 	@# some unrelated repo with a message about cloning a brain.
 	@# Deliberately not created empty: an empty list matches nothing and passes
 	@# everything, which is the one outcome the hook exists to prevent. It is
-	@# also untracked in the brain itself — it is the only copy of those names —
-	@# so there is nothing here to clone either; it comes from 1Password or
-	@# another machine. See shared/.agents/rules/where-repos-live.md.
+	@# tracked in the brain, so cloning the brain brings it. See
+	@# shared/.agents/rules/where-repos-live.md.
 	@# A warning, not a failure: the email and signing set up above are worth
 	@# keeping even on a machine whose brain is not restored yet.
-	@f=$$(git config --get forbiddenNames.file || true); f="$${f/#\~/$$HOME}"; \
-		if [ -z "$$f" ]; then echo "forbidden names: not configured - .gitconfig should set forbiddenNames.file"; \
+	@b=$$(bash bin/agents/brain-dir.sh get); f="$$b/private-names.txt"; \
+		if [ -z "$$b" ]; then echo "forbidden names: BRAIN_DIR is not set - every commit will be refused until make brain"; \
 		elif [ -f "$$f" ]; then echo "forbidden names: $$f ($$(grep -cvE '^[[:space:]]*(#|$$)' "$$f") entries)"; \
 		else echo "forbidden names: $$f is MISSING - every commit will be refused until it is there"; \
-			echo "  restore it from 1Password or another machine, beside the brain's wiki/names-that-stay-private.md"; fi
+			echo "  clone the brain into $$b, or point BRAIN_DIR at its checkout with make brain"; fi
 	@git config --list --show-scope
 
 git-config-test: ## check .gitconfig parses and is tab-indented
