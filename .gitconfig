@@ -46,8 +46,10 @@
 	command = "$HOME/projects/landsman/config/bin/git/pre-push.sh"
 	event = pre-push
 
+# The list is $BRAIN_DIR/private-names.txt; without BRAIN_DIR every commit is
+# refused. See bin/agents/brain-dir.sh.
 [forbiddenNames]
-	file = ~/projects/landsman/brain/private-names.txt
+	required = true
 
 [branch]
 	autosetuprebase = always

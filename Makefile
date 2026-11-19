@@ -579,6 +579,10 @@ omarchy: ## add, pin, patch and enable the shell plugins in os/arch/install-plug
 # private, and this repo is public. See .docs-llm/mcp-servers.md.
 #
 
+.PHONY: brain
+brain: ## ask where the brain is checked out (cloning it if missing), save it as BRAIN_DIR
+	@bash bin/agents/brain-dir.sh
+
 .PHONY: claude
 claude: ## register the user-scope MCP servers, then set the machine-local values the others read (Azure DevOps org)
 	@DEVICE=$(DEVICE) $(BUN) bin/mcp/user-servers.ts install
@@ -903,8 +907,8 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 	@# another machine. See shared/.agents/rules/where-repos-live.md.
 	@# A warning, not a failure: the email and signing set up above are worth
 	@# keeping even on a machine whose brain is not restored yet.
-	@f=$$(git config --get forbiddenNames.file || true); f="$${f/#\~/$$HOME}"; \
-		if [ -z "$$f" ]; then echo "forbidden names: not configured - .gitconfig should set forbiddenNames.file"; \
+	@b=$$(bash bin/agents/brain-dir.sh get); f="$$b/private-names.txt"; \
+		if [ -z "$$b" ]; then echo "forbidden names: BRAIN_DIR is not set - every commit will be refused until make brain"; \
 		elif [ -f "$$f" ]; then echo "forbidden names: $$f ($$(grep -cvE '^[[:space:]]*(#|$$)' "$$f") entries)"; \
 		else echo "forbidden names: $$f is MISSING - every commit will be refused until it is there"; \
 			echo "  restore it from 1Password or another machine, beside the brain's wiki/names-that-stay-private.md"; fi

@@ -13,7 +13,7 @@
 // this one off.
 //
 // The names are not in this repo, which is public — listing them here would be
-// the leak. They live in the file `git config forbiddenNames.file` points at,
+// the leak. They live in `$BRAIN_DIR/private-names.txt`,
 // one `<owner> <extended regex>` per line, # comments allowed. <owner> is the
 // directory under ~/projects the name belongs to: inside that owner's repos its
 // own names are fine, everywhere else they are not. A name shared by several
@@ -325,13 +325,19 @@ if (import.meta.main) {
 		}
 	}
 
-	// git config expands no variables, so a brain cloned elsewhere is named by BRAIN_DIR.
-	const configured = process.env.BRAIN_DIR
-		? join(process.env.BRAIN_DIR, "private-names.txt")
-		: (await git("config", "--get", "forbiddenNames.file")).trim();
-	// Unset means a machine this repo never set up (a CI runner): nothing to check.
-	if (!configured) process.exit(0);
-	const listPath = configured.startsWith("~") ? join(homedir(), configured.slice(1)) : configured;
+	// The list sits in the brain, found through BRAIN_DIR (the .sh beside this
+	// reads it from the shell drop-in when git was not started from a shell).
+	const brain = process.env.BRAIN_DIR ?? "";
+	if (!brain) {
+		// .gitconfig sets it; unset means a machine this repo never set up (a CI runner).
+		const required = (await git("config", "--get", "forbiddenNames.required")).trim();
+		if (required !== "true") process.exit(0);
+		die(
+			"BRAIN_DIR is not set, refusing to commit unchecked.",
+			"run make brain in the config repo, or skip this repo: git config hook.forbidden-names.enabled false",
+		);
+	}
+	const listPath = join(brain, "private-names.txt");
 	const list = Bun.file(listPath);
 	if (!(await list.exists())) {
 		die(

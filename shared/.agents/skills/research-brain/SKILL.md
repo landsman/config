@@ -1,12 +1,12 @@
 ---
 name: brain
-description: Load before writing to or reading from my long-term knowledge base in `~/projects/landsman/brain` — after finishing any research (web search, comparing tools, reading docs, an investigation whose findings outlive the session), when I say "remember this", "save it to the brain", "what do I know about X", or ask to tidy the brain up. Carries the ingest, query and lint steps and how to commit from another repo.
+description: Load before writing to or reading from my long-term knowledge base in `$BRAIN_DIR` — after finishing any research (web search, comparing tools, reading docs, an investigation whose findings outlive the session), when I say "remember this", "save it to the brain", "what do I know about X", or ask to tidy the brain up. Carries the ingest, query and lint steps and how to commit from another repo.
 trigger-keywords: brain, brainu, remember this, zapamatuj*, research*, rešerš*
 ---
 
 # Brain
 
-`~/projects/landsman/brain` is my long-term memory, laid out as Karpathy's LLM
+`$BRAIN_DIR` is my long-term memory, laid out as Karpathy's LLM
 Wiki: `raw/` sources that are never edited, `wiki/` pages compiled from them,
 `wiki/index.md` as the catalogue, `log.md` as the append-only history.
 
@@ -33,13 +33,13 @@ already lives there, or what I said not to keep.
 ## Writing: always in a worktree of your own
 
 Other agents write to the brain at the same time. **Never edit or commit in
-`~/projects/landsman/brain` itself** — `git add -A` there sweeps another
+`$BRAIN_DIR` itself** — `git add -A` there sweeps another
 agent's half-written pages into your commit, and a pull refuses to run over
 its changes. Every write goes through a worktree of its own:
 
-    ~/projects/landsman/brain/bin/wt.sh start
+    $BRAIN_DIR/bin/wt.sh start
     # prints a path — read and write only inside it, per AGENTS.md
-    ~/projects/landsman/brain/bin/wt.sh finish <that path> "docs: <what was learned>"
+    $BRAIN_DIR/bin/wt.sh finish <that path> "docs: <what was learned>"
 
 **Use the printed path literally** in every later command and file write — a
 shell variable does not survive between tool calls. `start` makes a fresh

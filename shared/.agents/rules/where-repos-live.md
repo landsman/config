@@ -63,7 +63,7 @@ So, in any repo that is not that client's own:
 
 Which names those are cannot live in this repo, because this repo is public.
 They are in the brain's **Names that stay private** page,
-`~/projects/landsman/brain/wiki/names-that-stay-private.md`. It says what counts
+`$BRAIN_DIR/wiki/names-that-stay-private.md`. It says what counts
 as the name (the organisation on the forge, the product, its domains and
 subdomains, accounts made for them on shared infrastructure) and which names are
 mine and therefore fine anywhere.

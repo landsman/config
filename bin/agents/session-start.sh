@@ -104,8 +104,13 @@ links() {
 msg=$(links)
 [ -z "$msg" ] || echo "$msg"
 
-f="${BRAIN_DIR:-$HOME/projects/landsman/brain}/wiki/index.md"
-[ -f "$f" ] || exit 0
+brain=$(bash "$repo/bin/agents/brain-dir.sh" get)
+if [ -z "$brain" ]; then
+	echo "BRAIN_DIR is not set, so there is no brain index and every commit is refused. Tell the user: run make -C $repo brain, then start a new session."
+	exit 0
+fi
+f="$brain/wiki/index.md"
+[ -f "$f" ] || { echo "No brain index at $f. Tell the user: clone the brain there, or point BRAIN_DIR elsewhere with make -C $repo brain."; exit 0; }
 # One line per page, without the description that made the file too long. The
 # budget leaves room for what links printed above, under the same cap.
 # ponytail: titles alone overflow the cap too, near 300 pages; split the index by category then.

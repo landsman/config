@@ -13,6 +13,9 @@
 #   git config hook.forbidden-names.enabled false
 set -euo pipefail
 dir=$(cd "$(dirname "$0")" && pwd)
+# An IDE never sourced the shell drop-in that sets it.
+BRAIN_DIR=$(bash "$dir/../agents/brain-dir.sh" get)
+[ -z "$BRAIN_DIR" ] || export BRAIN_DIR
 for bun in bun /opt/homebrew/bin/bun /home/linuxbrew/.linuxbrew/bin/bun \
 	"$HOME/.local/share/mise/shims/bun" "$HOME/.bun/bin/bun"; do
 	if command -v "$bun" >/dev/null 2>&1; then exec "$bun" "$dir/forbidden-names.ts" "$@"; fi

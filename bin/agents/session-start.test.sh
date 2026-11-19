@@ -19,7 +19,7 @@ export HOME="$tmp" TMPDIR="$tmp" GIT_CONFIG_GLOBAL="$tmp/gitconfig" GIT_CONFIG_N
 repo="$tmp/repo"
 hook="$repo/bin/agents/session-start.sh"
 mkdir -p "$repo/bin/agents" "$repo/shared"
-cp "$dir/session-start.sh" "$repo/bin/agents/"
+cp "$dir/session-start.sh" "$dir/brain-dir.sh" "$repo/bin/agents/"
 cp -R "$dir/../../shared/.agents" "$repo/shared/"
 # Two names the real tree may grow: one git quotes, one stow never links.
 echo x > "$repo/shared/.agents/rules/příklad.md"
@@ -87,7 +87,8 @@ ran "on main, relink runs" yes
 expect "it linked nothing, said as such" "it reported no error, yet these are still not linked" yes
 expect "the rule is named" "$rule" yes
 expect "no output, none shown" "Output of the failed attempt" no
-expect "no brain, no index" "Brain index" no
+expect "no BRAIN_DIR, no index" "Brain index" no
+expect "and the user is asked to set it" "make -C $repo brain" yes
 
 export SESSION_START_RESTOW="$tmp/fail"
 run
@@ -97,7 +98,8 @@ expect "stow's error on stderr is shown" "stow: ERROR: conflicts" yes
 expect "make's lines around it are not" "make: " no
 expect "the fix is restow, run by the user" "run make -C $repo restow in a terminal" yes
 
-export SESSION_START_RESTOW="$tmp/link-all"
+export SESSION_START_RESTOW="$tmp/link-all" BRAIN_DIR="$tmp/brain"
+mkdir -p "$BRAIN_DIR/wiki"; : > "$BRAIN_DIR/wiki/index.md"
 run
 ran "relink runs" yes
 expect "what it linked is named" "Linked just now:" yes
@@ -170,8 +172,8 @@ bash "$hook" >/dev/null; rm -f "$tmp/ran"
 check "everything linked, nothing to say" "Tell the user" no
 ran "and nothing runs" no
 
-mkdir -p "$tmp/projects/landsman/brain/wiki"
-idx="$tmp/projects/landsman/brain/wiki/index.md"
+BRAIN_DIR="$tmp/nowhere" check "a BRAIN_DIR with no index says so" "No brain index at $tmp/nowhere/wiki/index.md" yes
+idx="$BRAIN_DIR/wiki/index.md"
 printf '# Index\n\n## Tools\n\n- [Page](page.md) — what the page holds\n- Not written yet — why it would be\n' > "$idx"
 check "the index keeps the title and link" "- [Page](page.md)" yes
 check "and drops the description" "what the page holds" no
@@ -181,8 +183,9 @@ for i in $(seq 300); do echo "- [A page title number $i](a-page-title-number-$i.
 check "a long index falls back to titles" "- A page title number 300" yes
 check "without the links" "(a-page-title-number-300.md)" no
 
-mkdir -p "$tmp/elsewhere/wiki"
-echo "- [Moved](moved.md) — d" > "$tmp/elsewhere/wiki/index.md"
-BRAIN_DIR="$tmp/elsewhere" check "BRAIN_DIR points at a brain cloned elsewhere" "- [Moved](moved.md)" yes
+unset BRAIN_DIR
+mkdir -p "$tmp/.config/bash_aliases.d"
+echo "export BRAIN_DIR=$tmp/brain" > "$tmp/.config/bash_aliases.d/99-local.sh"
+check "a hook outside a shell reads BRAIN_DIR from the drop-in" "Brain index" yes
 
 [ "$fails" -eq 0 ] || { echo "$fails failed"; exit 1; }
