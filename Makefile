@@ -915,16 +915,15 @@ git: ## set up this machine: hook in .gitconfig, set email, set up commit signin
 	@# some unrelated repo with a message about cloning a brain.
 	@# Deliberately not created empty: an empty list matches nothing and passes
 	@# everything, which is the one outcome the hook exists to prevent. It is
-	@# also untracked in the brain itself — it is the only copy of those names —
-	@# so there is nothing here to clone either; it comes from 1Password or
-	@# another machine. See shared/.agents/rules/where-repos-live.md.
+	@# tracked in the brain, so cloning the brain brings it. See
+	@# shared/.agents/rules/where-repos-live.md.
 	@# A warning, not a failure: the email and signing set up above are worth
 	@# keeping even on a machine whose brain is not restored yet.
 	@b=$$(bash bin/agents/brain-dir.sh get); f="$$b/private-names.txt"; \
 		if [ -z "$$b" ]; then echo "forbidden names: BRAIN_DIR is not set - every commit will be refused until make brain"; \
 		elif [ -f "$$f" ]; then echo "forbidden names: $$f ($$(grep -cvE '^[[:space:]]*(#|$$)' "$$f") entries)"; \
 		else echo "forbidden names: $$f is MISSING - every commit will be refused until it is there"; \
-			echo "  restore it from 1Password or another machine, beside the brain's wiki/names-that-stay-private.md"; fi
+			echo "  clone the brain into $$b, or point BRAIN_DIR at its checkout with make brain"; fi
 	@git config --list --show-scope
 
 git-config-test: ## check .gitconfig parses and is tab-indented
