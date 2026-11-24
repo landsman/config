@@ -36,5 +36,8 @@ MAKE_EXIT=2 check "a failing pre-push target stops the push" 2 1 "$push"
 GIT_DIR=$t/repo/.git check "a push with git's hook variables set still runs" 0 1 "$push"
 if grep -q "GIT_DIR=unset" "$MAKE_LOG"; then echo "ok   git's hook variables do not reach make"; else echo "FAIL git's hook variables do not reach make"; fail=1; fi
 check "deleting a branch runs nothing" 0 0 "$delete"
+git init -q --bare "$t/bare.git"
+: >"$MAKE_LOG"; rc=0; (cd "$t/bare.git" && "$hook" origin url <<<"$push" 2>/dev/null) || rc=$?
+if [ "$rc" = 0 ] && [ ! -s "$MAKE_LOG" ]; then echo "ok   a bare repo is pushed unchecked"; else echo "FAIL a bare repo is pushed unchecked (exit $rc)"; fail=1; fi
 
 exit $fail
