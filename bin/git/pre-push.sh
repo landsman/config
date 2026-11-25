@@ -19,6 +19,8 @@ while read -r _ local_sha _ _; do
 done
 [ "$pushed" = 1 ] || exit 0
 
+# A bare repo has no working tree to check (a clone made only to push a tag).
+[ "$(git rev-parse --is-bare-repository)" = false ] || exit 0
 root=$(git rev-parse --show-toplevel)
 grep -q '^pre-push:' "$root/Makefile" 2>/dev/null || exit 0
 
