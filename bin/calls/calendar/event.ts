@@ -1,7 +1,8 @@
 // Which meeting a recording was and who was on it, for whisper's prompt and the
 // transcript's header. The event comes from, in this order:
 //   - <recording>.event.json, saved by ../record/record.ts when the call stopped;
-//   - ICS=…, an .ics file or an ical:// link dragged out of Apple Calendar;
+//   - ICS=…, an .ics file, an invitation saved as .eml, or an ical:// link dragged
+//     out of Apple Calendar;
 //   - one of Calendar's last ten, picked in television;
 //   - an .ics file or a link dragged in when asked, when there is nothing to pick.
 // Its names are then shown on a line to edit, since someone invited along is on
@@ -10,6 +11,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { match } from "ts-pattern";
+import { calendarIn } from "@bin/calls/calendar/eml";
 import { attendees } from "@bin/calls/calendar/ics";
 import {
 	attendeesOfEvent,
@@ -81,7 +83,7 @@ async function findEvent(recording: string): Promise<Source> {
 		return picked;
 	}
 	const typed = await ask(
-		"Calendar event, drag it here from Calendar or as .ics",
+		"Calendar event, drag it here from Calendar, as .ics or as an invitation .eml",
 		"[Enter = none]",
 	);
 	return eventFromText(typed);
@@ -113,7 +115,7 @@ function savedEvent(recording: string): CallEvent | undefined {
 	}
 }
 
-/** What was typed or dragged in: a link to an event in Calendar, or a path to an .ics. */
+/** What was typed or dragged in: a link to an event in Calendar, or a path to an .ics or .eml. */
 export function eventFromText(text: string): Source {
 	const path = draggedPath(text);
 	if (!path) {
@@ -170,7 +172,7 @@ function peopleFrom(source: Source): { event?: CallEvent; people: string[] } {
 			return { people };
 		})
 		.with({ kind: Origin.Ics }, ({ path }) => {
-			const calendarFile = readFileSync(path, "utf8");
+			const calendarFile = calendarIn(readFileSync(path, "utf8"));
 			return { people: attendees(calendarFile) };
 		})
 		.with({ kind: Origin.Missing }, ({ path }) => {
