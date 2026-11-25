@@ -79,6 +79,38 @@ describe("expected use", () => {
 		expect(people).toEqual(["Eva Marie Dvořáková", "Petr Dvořák, CEO, Example"]);
 	});
 
+	test("an invitation saved as .eml is read from its calendar part, base64 or quoted-printable", () => {
+		const calendar = invitation(
+			"ORGANIZER;CN=Jana Nováková:mailto:jana@example.com",
+			"ATTENDEE;CN=Petr Dvořák:mailto:petr@example.com",
+		);
+		const email = (encoding: string, body: string) => {
+			return [
+				"From: Jana Nováková <jana@example.com>",
+				'Content-Type: multipart/alternative; boundary="b1"',
+				"",
+				"--b1",
+				"Content-Type: text/plain",
+				"",
+				"ATTENDEE;CN=Not Real:mailto:no@example.com",
+				"--b1",
+				'Content-Type: text/calendar; charset="utf-8"; method=REQUEST',
+				`Content-Transfer-Encoding: ${encoding}`,
+				"",
+				body,
+				"--b1--",
+			].join("\r\n");
+		};
+		const base64 = Buffer.from(calendar).toString("base64").replace(/.{76}/g, "$&\r\n");
+		const quotedPrintable = calendar.replaceAll("á", "=C3=A1").replaceAll("ř", "=C5=\r\n=99");
+
+		expect(attendees(email("base64", base64))).toEqual(["Jana Nováková", "Petr Dvořák"]);
+		expect(attendees(email("quoted-printable", quotedPrintable))).toEqual([
+			"Jana Nováková",
+			"Petr Dvořák",
+		]);
+	});
+
 	test("parameter names in lower case still count, as the standard allows", () => {
 		expect(attendees(invitation("attendee;cn=Petr Dvořák:mailto:petr@example.com"))).toEqual([
 			"Petr Dvořák",

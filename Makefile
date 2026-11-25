@@ -839,7 +839,7 @@ record: ## record a call until Ctrl+C, then name and save it with its Calendar e
 record-stop: ## stop a recording whose terminal was closed, name it (NAME=… skips it), save to ~/Recordings
 	@$(BUN) bin/calls/record/record.ts stop "$(NAME)"
 
-record-transcribe: ## transcribe a recording picked in television (type 202610 for October), or FILE=…, into a .txt beside it, Me/Them 1/Them 2…, then file it in the brain with Claude (MODEL=precise, SPOKEN=cs, ICS=event.ics or an ical:// link, SPEAKERS=3 voices on the other side, BRAIN=n)
+record-transcribe: ## transcribe a recording picked in television (type 202610 for October), or FILE=…, into a .txt beside it, Me/Them 1/Them 2…, then file it in the brain with Claude (MODEL=precise, SPOKEN=cs, ICS=event.ics, invite.eml or an ical:// link, SPEAKERS=3 voices on the other side, BRAIN=n)
 	@$(BUN) bin/calls/transcribe/transcribe.ts run "$(FILE)"
 
 ##@ GIT config
