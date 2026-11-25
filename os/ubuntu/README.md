@@ -22,6 +22,7 @@ cannot — from the vendors' own apt repos, except where the table says otherwis
 | Docker Engine | `docker-ce` + cli, containerd, buildx, compose | `download.docker.com` |
 | Tailscale | `tailscale` | `pkgs.tailscale.com` |
 | Google Chrome | `google-chrome-stable` | `dl.google.com/linux/chrome/deb` |
+| VS Code | `code` | `packages.microsoft.com/repos/code` — one `stable` suite, not a codename |
 | Stripe CLI | `stripe` | `packages.stripe.dev` — one `stable` suite, not a codename |
 | Discord | `discord` | **none** — the vendor `.deb`, see below |
 | Claude Desktop | `claude-desktop-unofficial` | `pkg.claude-desktop-debian.dev` — a third-party repackage, not Anthropic's own repo, see below |

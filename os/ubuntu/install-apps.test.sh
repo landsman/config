@@ -117,7 +117,7 @@ run() { PATH="$BIN:$PATH" CODENAME=noble SUDO_USER=tester INSTALLED="$1" FPR="$2
 	FLATPAK_PRESENT="${3-org.telegram.desktop}" \
 	FLATPAK_APPS="${4-studio.tenzen.Photon org.telegram.desktop}" bash "$SCRIPT" 2>&1; }
 
-ALL="1password 1password-cli sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial"
+ALL="1password 1password-cli sublime-text dbeaver-ce docker-ce tailscale discord google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial code"
 # The list minus one app, so a case can be "only this one is missing".
 without() { echo "$ALL" | tr ' ' '\n' | grep -vxF -e "${1:-}" -e "${2:-}" | tr '\n' ' '; }
 
@@ -125,7 +125,7 @@ echo "== every package already present"
 setup
 out="$(run "$ALL" deadbeef)"
 check "exits before doing anything" "$?" "0"
-check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 14 installed"
+check "says so" "$(echo "$out" | tail -1)" "== distro apps: all 15 installed"
 if [ -f "$ROOT/apt-installed" ]; then fail "apt never ran"; else ok "apt never ran"; fi
 rm -rf "$ROOT"
 
@@ -274,6 +274,18 @@ contains "signed-by points at its own keyring" "$ROOT/etc/apt/sources.list.d/cla
 	"signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.gpg"
 check "installs the -unofficial package, so it sits beside Anthropic's own" \
 	"$(cat "$ROOT/apt-installed")" "claude-desktop-unofficial"
+rm -rf "$ROOT"
+
+echo
+echo "== vs code, from microsoft's repo"
+setup
+out="$(run "$(without code)" BC528686B50D79E339D3721CEB3E94ADBE1229CF)"
+check "succeeds" "$?" "0"
+contains "vscode repo added" "$ROOT/etc/apt/sources.list.d/vscode.list" \
+	"https://packages.microsoft.com/repos/code stable main"
+contains "signed-by points at its own keyring" "$ROOT/etc/apt/sources.list.d/vscode.list" \
+	"signed-by=/usr/share/keyrings/vscode-archive-keyring.gpg"
+check "installs exactly what was missing" "$(cat "$ROOT/apt-installed")" "code"
 rm -rf "$ROOT"
 
 echo

@@ -45,6 +45,10 @@ STRIPE_KEY_FPR="6681D7C3D103DAC65D79C25EDEEBD57F917C83E3"
 # yearly and the primary is what apt verifies against, so the primary is pinned.
 GOOGLE_KEY_URL="https://dl.google.com/linux/linux_signing_key.pub"
 GOOGLE_KEY_FPR="EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796"
+# One key signs every packages.microsoft.com repo, VS Code's included; this is
+# the fingerprint Microsoft documents for it.
+VSCODE_KEY_URL="https://packages.microsoft.com/keys/microsoft.asc"
+VSCODE_KEY_FPR="BC528686B50D79E339D3721CEB3E94ADBE1229CF"
 # Claude Desktop's Linux build is Anthropic's official .deb repackaged by a third
 # party (aaddrick/claude-desktop-debian): same app bytes, plus a launcher and a
 # `--doctor` for Linux desktop quirks. That wrapper is the only difference from
@@ -67,7 +71,7 @@ FLATHUB_KEY_FPR="6E5C05D979C76DAF93C081354184DD4D907A7CAE"
 # repo at all — Ubuntu ships them — but they belong in the same list, because
 # what this script answers is "are the apps this repo names here yet".
 PACKAGES=(1password 1password-cli sublime-text dbeaver-ce docker-ce tailscale discord
-	google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial)
+	google-chrome-stable vlc libreoffice stripe claude-desktop-unofficial code)
 
 # The apps that come from Flathub instead, by app id. Telegram is the only one
 # and the reason this half exists at all: it was dropped from the Ubuntu archive
@@ -271,6 +275,11 @@ for pkg in ${MISSING[@]+"${MISSING[@]}"}; do
 		add_repo google-chrome "$GOOGLE_KEY_URL" "$GOOGLE_KEY_FPR" \
 			https://dl.google.com/linux/chrome/deb stable main
 		INSTALL+=(google-chrome-stable)
+		;;
+	code)
+		add_repo vscode "$VSCODE_KEY_URL" "$VSCODE_KEY_FPR" \
+			https://packages.microsoft.com/repos/code stable main
+		INSTALL+=(code)
 		;;
 	vlc | libreoffice)
 		# In the Ubuntu archive, so there is nothing to configure: no repo, no
