@@ -234,6 +234,8 @@ if OS.mac?
 	# Messaging — the native macOS client, deliberately not the `telegram-desktop`
 	# cask. The Linux boxes get the Qt one from Flathub, see os/ubuntu.
 	cask "telegram"
+	# Code editor from Microsoft. Linux takes it from Microsoft's apt repo, see os/ubuntu.
+	cask "visual-studio-code"
 	# Media player — opens the .mp4 and .m4a associations
 	cask "vlc"
 	# Video meetings and messaging
