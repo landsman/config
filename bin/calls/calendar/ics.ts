@@ -1,6 +1,5 @@
 // What an .ics file says, read on any platform: a calendar export carries no
-// platform of its own. An invitation saved from a mail app as .eml is read too,
-// from the calendar part inside it. Only the people are read, as RFC 5545 writes them:
+// platform of its own. Only the people are read, as RFC 5545 writes them:
 //   ORGANIZER;CN=Jana Nováková:mailto:jana@example.com
 //   ATTENDEE;ROLE=REQ-PARTICIPANT;CN="Dvořák, Petr":mailto:petr@example.com
 //   ATTENDEE:mailto:someone@example.com
@@ -10,7 +9,7 @@
  *  of a name is one person, under the spelling that came first. */
 export function attendees(calendarFile: string): string[] {
 	const nameByAddress = new Map<string, string>();
-	for (const line of unfoldedLines(calendarIn(calendarFile))) {
+	for (const line of unfoldedLines(calendarFile)) {
 		const person = personOnLine(line);
 		if (!person) {
 			continue;
@@ -21,34 +20,6 @@ export function attendees(calendarFile: string): string[] {
 		}
 	}
 	return [...nameByAddress.values()].filter(Boolean);
-}
-
-/** The calendar inside an e-mail (an invitation saved as .eml), or the file as it is when
- *  it holds none. Outlook sends the calendar part as base64, so its people cannot be
- *  read where they lie. Each MIME part is headers, a blank line, then the body. */
-function calendarIn(file: string): string {
-	for (const part of file.split(/^--\S+[ \t]*\r?$/m)) {
-		const [headers, ...body] = part.replace(/^\r?\n/, "").split(/\r?\n\r?\n/);
-		if (!/^Content-Type:[ \t]*text\/calendar/im.test(headers)) {
-			continue;
-		}
-		const encoding = headers.match(/^Content-Transfer-Encoding:[ \t]*(\S+)/im)?.[1].toLowerCase();
-		// ponytail: read as UTF-8 whatever charset the part names; every invitation seen so far is.
-		return decoded(body.join("\r\n\r\n"), encoding);
-	}
-	return file;
-}
-
-function decoded(body: string, encoding: string | undefined): string {
-	if (encoding === "base64") {
-		return Buffer.from(body, "base64").toString("utf8");
-	}
-	if (encoding === "quoted-printable") {
-		return body.replace(/=\r?\n/g, "").replace(/(?:=[0-9A-F]{2})+/gi, (bytes) => {
-			return Buffer.from(bytes.replaceAll("=", ""), "hex").toString("utf8");
-		});
-	}
-	return body;
 }
 
 /** A long line goes on in the next one, which starts with a space or a tab. */

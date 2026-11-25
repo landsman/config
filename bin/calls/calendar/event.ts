@@ -11,6 +11,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { match } from "ts-pattern";
+import { calendarIn } from "@bin/calls/calendar/eml";
 import { attendees } from "@bin/calls/calendar/ics";
 import {
 	attendeesOfEvent,
@@ -171,7 +172,7 @@ function peopleFrom(source: Source): { event?: CallEvent; people: string[] } {
 			return { people };
 		})
 		.with({ kind: Origin.Ics }, ({ path }) => {
-			const calendarFile = readFileSync(path, "utf8");
+			const calendarFile = calendarIn(readFileSync(path, "utf8"));
 			return { people: attendees(calendarFile) };
 		})
 		.with({ kind: Origin.Missing }, ({ path }) => {
