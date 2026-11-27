@@ -705,6 +705,10 @@ zed-extensions: ## open a pull request adding every extension installed in Zed h
 chrome: ## apply the Chrome settings that do not sync (vertical tabs, side panel, memory saver)
 	./bin/chrome/prefs.sh
 
+.PHONY: chrome-extensions
+chrome-extensions: ## offer the extensions in bin/chrome/extensions.txt to Chrome
+	./bin/chrome/extensions.sh
+
 ##@ macOS System Settings
 #
 # The panes stow cannot reach, see bin/macos/defaults.sh

@@ -1,0 +1,52 @@
+# Chrome extensions offered on every machine, applied by `make chrome-extensions`.
+# One per line: the id, then a name and its Chrome Web Store page for the reader.
+#
+# Left out on purpose:
+#   Claude in Chrome, it belongs to the ai-e2e instance only, see shared/.agents/caveats/browser-automation.md
+#   Plasma Integration, KDE only, and this list goes to the Macs too
+#   Google Analytics Debugger, deprecated by its author
+
+# Passwords
+aeblfdkhhhdcdjpifhhbdiojplfjncoa  1Password, the desktop app is in the Brewfile, https://chromewebstore.google.com/detail/aeblfdkhhhdcdjpifhhbdiojplfjncoa
+gejiddohjgogedgjnonbofjigllpkmbf  1Password Nightly, https://chromewebstore.google.com/detail/gejiddohjgogedgjnonbofjigllpkmbf
+
+# Writing and reading
+kbfnbcaeplbcioakkpcpgfkobkghlhen  Grammarly, https://chromewebstore.google.com/detail/kbfnbcaeplbcioakkpcpgfkobkghlhen
+lodbfhdipoipcjmlebjbgmmgekckhpfb  Harper, private grammar checker, https://chromewebstore.google.com/detail/lodbfhdipoipcjmlebjbgmmgekckhpfb
+jnmcpmfimecibicbojhopfkcbmkafhee  Readeck, https://chromewebstore.google.com/detail/jnmcpmfimecibicbojhopfkcbmkafhee
+alncdjedloppbablonallfbkeiknmkdi  Dark Mode, Night Eye, https://chromewebstore.google.com/detail/alncdjedloppbablonallfbkeiknmkdi
+ghbmnnjooekpmoecnnnilnnbdlolhkhi  Google Docs Offline, https://chromewebstore.google.com/detail/ghbmnnjooekpmoecnnnilnnbdlolhkhi
+
+# Web development
+fmkadmapgofadopljbjfkapdkoienihi  React Developer Tools, https://chromewebstore.google.com/detail/fmkadmapgofadopljbjfkapdkoienihi
+oddhnidmicpefilikhgeagedibnefkcf  React Context DevTool, https://chromewebstore.google.com/detail/oddhnidmicpefilikhgeagedibnefkcf
+bcjindcccaagfpapjjmafapmmgkkhgoa  JSON Formatter, https://chromewebstore.google.com/detail/bcjindcccaagfpapjjmafapmmgkkhgoa
+kbnfbcpkiaganjpcanopcgeoehkleeck  Cookie Manager, https://chromewebstore.google.com/detail/kbnfbcpkiaganjpcanopcgeoehkleeck
+gppongmhjkpfnbhagpmjfkannfbllamg  Wappalyzer, https://chromewebstore.google.com/detail/gppongmhjkpfnbhagpmjfkannfbllamg
+jabopobgcpjmedljpbcaablpmlmfcogm  WhatFont, https://chromewebstore.google.com/detail/jabopobgcpjmedljpbcaablpmlmfcogm
+nnpljppamoaalgkieeciijbcccohlpoh  Link Redirect Trace, https://chromewebstore.google.com/detail/nnpljppamoaalgkieeciijbcccohlpoh
+kejbdjndbnbjgmefkgdddjlbokphdefk  Tag Assistant, https://chromewebstore.google.com/detail/kejbdjndbnbjgmefkgdddjlbokphdefk
+fdgfkebogiimcoedlicjlajpkdmockpc  Meta Ads Data Advisor, https://chromewebstore.google.com/detail/fdgfkebogiimcoedlicjlajpkdmockpc
+lclohacjbfchomeeopaffkedfnbjicdn  Syntax Highlighter for Azure DevOps, https://chromewebstore.google.com/detail/lclohacjbfchomeeopaffkedfnbjicdn
+
+# Design and screen
+ldnheaepmnmbjjjahokphckbpgciiaed  html.to.design, website to Figma, https://chromewebstore.google.com/detail/ldnheaepmnmbjjjahokphckbpgciiaed
+glpanohoedaffcnogfenhacnofnlggfc  PostSpark, screenshot editor, https://chromewebstore.google.com/detail/glpanohoedaffcnogfenhacnofnlggfc
+liecbddmkiiihnedobmlmillhodjkdmb  Loom, https://chromewebstore.google.com/detail/liecbddmkiiihnedobmlmillhodjkdmb
+inomeogfingihgjfjlpeplalcfajhgai  Chrome Remote Desktop, https://chromewebstore.google.com/detail/inomeogfingihgjfjlpeplalcfajhgai
+
+# Video and music
+hkgfoiooedgoejojocmhlaklaeopbecg  Picture-in-Picture, by Google, https://chromewebstore.google.com/detail/hkgfoiooedgoejojocmhlaklaeopbecg
+ladkmpkpnkooecmndbadcdkpjkmbkdpa  Picture in Picture, floating player, https://chromewebstore.google.com/detail/ladkmpkpnkooecmndbadcdkpjkmbkdpa
+looepbdllpjgdmkpdcdffhdbmpbcfekj  Live Stream Downloader, https://chromewebstore.google.com/detail/looepbdllpjgdmkpdcdffhdbmpbcfekj
+hhinaapppaileiechjoiifaancjggfjm  Web Scrobbler, https://chromewebstore.google.com/detail/hhinaapppaileiechjoiifaancjggfjm
+
+# Shopping
+neebplgakaahbhdphmkckjjcegoiijjo  Keepa, Amazon price history, https://chromewebstore.google.com/detail/neebplgakaahbhdphmkckjjcegoiijjo
+plmlonggbfebcjelncogcnclagkmkikk  Hlídač Shopů, Czech e-shop price history, https://chromewebstore.google.com/detail/plmlonggbfebcjelncogcnclagkmkikk
+demmhannmmjonjhljnboiplknabfamod  Currency Conversion, https://chromewebstore.google.com/detail/demmhannmmjonjhljnboiplknabfamod
+clohebmgoccabpjpbddkffcffamogimd  Rohlik Enhanced, Nutri-Score on rohlik.cz, https://chromewebstore.google.com/detail/clohebmgoccabpjpbddkffcffamogimd
+
+# Focus and tabs
+pganeibhckoanndahmnfggfoeofncnii  Cold Turkey Blocker, https://chromewebstore.google.com/detail/pganeibhckoanndahmnfggfoeofncnii
+pkklffjkfmhpoiepobbldnadjflciinb  Simple New Tab URL, https://chromewebstore.google.com/detail/pkklffjkfmhpoiepobbldnadjflciinb
