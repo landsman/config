@@ -1,0 +1,52 @@
+# Chrome extensions offered on every machine, applied by `make chrome-extensions`.
+# One per line: the id from its Chrome Web Store URL, then a name for the reader.
+#
+# Left out on purpose:
+#   Claude in Chrome, it belongs to the ai-e2e instance only, see shared/.agents/caveats/browser-automation.md
+#   Plasma Integration, KDE only, and this list goes to the Macs too
+#   Google Analytics Debugger, deprecated by its author
+
+# Passwords
+aeblfdkhhhdcdjpifhhbdiojplfjncoa  1Password, the desktop app is in the Brewfile
+gejiddohjgogedgjnonbofjigllpkmbf  1Password Nightly
+
+# Writing and reading
+kbfnbcaeplbcioakkpcpgfkobkghlhen  Grammarly
+lodbfhdipoipcjmlebjbgmmgekckhpfb  Harper, private grammar checker
+jnmcpmfimecibicbojhopfkcbmkafhee  Readeck
+alncdjedloppbablonallfbkeiknmkdi  Dark Mode, Night Eye
+ghbmnnjooekpmoecnnnilnnbdlolhkhi  Google Docs Offline
+
+# Web development
+fmkadmapgofadopljbjfkapdkoienihi  React Developer Tools
+oddhnidmicpefilikhgeagedibnefkcf  React Context DevTool
+bcjindcccaagfpapjjmafapmmgkkhgoa  JSON Formatter
+kbnfbcpkiaganjpcanopcgeoehkleeck  Cookie Manager
+gppongmhjkpfnbhagpmjfkannfbllamg  Wappalyzer
+jabopobgcpjmedljpbcaablpmlmfcogm  WhatFont
+nnpljppamoaalgkieeciijbcccohlpoh  Link Redirect Trace
+kejbdjndbnbjgmefkgdddjlbokphdefk  Tag Assistant
+fdgfkebogiimcoedlicjlajpkdmockpc  Meta Ads Data Advisor
+lclohacjbfchomeeopaffkedfnbjicdn  Syntax Highlighter for Azure DevOps
+
+# Design and screen
+ldnheaepmnmbjjjahokphckbpgciiaed  html.to.design, website to Figma
+glpanohoedaffcnogfenhacnofnlggfc  PostSpark, screenshot editor
+liecbddmkiiihnedobmlmillhodjkdmb  Loom
+inomeogfingihgjfjlpeplalcfajhgai  Chrome Remote Desktop
+
+# Video and music
+hkgfoiooedgoejojocmhlaklaeopbecg  Picture-in-Picture, by Google
+ladkmpkpnkooecmndbadcdkpjkmbkdpa  Picture in Picture, floating player
+looepbdllpjgdmkpdcdffhdbmpbcfekj  Live Stream Downloader
+hhinaapppaileiechjoiifaancjggfjm  Web Scrobbler
+
+# Shopping
+neebplgakaahbhdphmkckjjcegoiijjo  Keepa, Amazon price history (https://keepa.com/addon)
+plmlonggbfebcjelncogcnclagkmkikk  Hlídač Shopů, Czech e-shop price history
+demmhannmmjonjhljnboiplknabfamod  Currency Conversion
+clohebmgoccabpjpbddkffcffamogimd  Rohlik Enhanced, Nutri-Score on rohlik.cz
+
+# Focus and tabs
+pganeibhckoanndahmnfggfoeofncnii  Cold Turkey Blocker
+pkklffjkfmhpoiepobbldnadjflciinb  Simple New Tab URL
