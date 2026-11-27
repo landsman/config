@@ -15,3 +15,4 @@ Python.Python.3.14        # pinned to a minor on purpose: winget has one id per 
 Tailscale.Tailscale
 TeamViewer.TeamViewer
 ZedIndustries.Zed
+ZhornSoftware.Caffeine  # keeps the screen awake, the counterpart of macOS caffeinate
